@@ -1,0 +1,14 @@
+[configuration]
+
+entry_symbol = "gdluau_entrypoint"
+compatibility_minimum = "4.5"
+reloadable = true
+
+[libraries]
+
+macos.debug = "build/libgdluau.macos.debug.arm64.dylib"
+macos.release = "build/libgdluau.macos.release.arm64.dylib"
+windows.debug.x86_64 = "build/libgdluau.windows.debug.x86_64.dll"
+windows.release.x86_64 = "build/libgdluau.windows.release.x86_64.dll"
+linux.debug.x86_64 = "build/libgdluau.linux.debug.x86_64.so"
+linux.release.x86_64 = "build/libgdluau.linux.release.x86_64.so"
