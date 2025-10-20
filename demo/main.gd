@@ -7,7 +7,7 @@ func _ready() -> void:
     var test_script := FileAccess.get_file_as_string("res://test_script.luau")
 
     L = LuaState.new()
-    L.open_libs()
+    L.openlibs()
     L.register_math_types() # Register math type constructors and metatables
 
     L.singlestep(true)

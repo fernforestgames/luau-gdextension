@@ -27,7 +27,7 @@ static void callback_debugstep(lua_State *L, lua_Debug *ar)
 
 void LuaState::_bind_methods()
 {
-    ClassDB::bind_method(D_METHOD("open_libs"), &LuaState::open_libs);
+    ClassDB::bind_method(D_METHOD("openlibs", "libs"), &LuaState::openlibs, DEFVAL(LuaState::LIB_ALL));
     ClassDB::bind_method(D_METHOD("register_math_types"), &LuaState::register_math_types);
     ClassDB::bind_method(D_METHOD("close"), &LuaState::close);
 
@@ -104,6 +104,21 @@ void LuaState::_bind_methods()
     BIND_ENUM_CONSTANT(LUA_GCSETSTEPMUL);
     BIND_ENUM_CONSTANT(LUA_GCSETSTEPSIZE);
 
+    // Library flags
+    BIND_BITFIELD_FLAG(LIB_NONE);
+    BIND_BITFIELD_FLAG(LIB_BASE);
+    BIND_BITFIELD_FLAG(LIB_COROUTINE);
+    BIND_BITFIELD_FLAG(LIB_TABLE);
+    BIND_BITFIELD_FLAG(LIB_OS);
+    BIND_BITFIELD_FLAG(LIB_STRING);
+    BIND_BITFIELD_FLAG(LIB_BIT32);
+    BIND_BITFIELD_FLAG(LIB_BUFFER);
+    BIND_BITFIELD_FLAG(LIB_UTF8);
+    BIND_BITFIELD_FLAG(LIB_MATH);
+    BIND_BITFIELD_FLAG(LIB_DEBUG);
+    BIND_BITFIELD_FLAG(LIB_VECTOR);
+    BIND_BITFIELD_FLAG(LIB_ALL);
+
     // Godot integration helpers
     ClassDB::bind_method(D_METHOD("getglobal", "key"), &LuaState::getglobal);
     ClassDB::bind_method(D_METHOD("tovariant", "index"), &LuaState::tovariant);
@@ -128,11 +143,33 @@ LuaState::~LuaState()
     close();
 }
 
-void LuaState::open_libs()
+void LuaState::openlibs(int libs)
 {
     ERR_FAIL_NULL_MSG(L, "Lua state is null. Cannot open libraries.");
 
-    luaL_openlibs(L);
+    // Open individual libraries based on flags
+    if (libs & LIB_BASE)
+        luaopen_base(L);
+    if (libs & LIB_COROUTINE)
+        luaopen_coroutine(L);
+    if (libs & LIB_TABLE)
+        luaopen_table(L);
+    if (libs & LIB_OS)
+        luaopen_os(L);
+    if (libs & LIB_STRING)
+        luaopen_string(L);
+    if (libs & LIB_BIT32)
+        luaopen_bit32(L);
+    if (libs & LIB_BUFFER)
+        luaopen_buffer(L);
+    if (libs & LIB_UTF8)
+        luaopen_utf8(L);
+    if (libs & LIB_MATH)
+        luaopen_math(L);
+    if (libs & LIB_DEBUG)
+        luaopen_debug(L);
+    if (libs & LIB_VECTOR)
+        luaopen_vector(L);
 }
 
 void LuaState::close()
