@@ -3,7 +3,7 @@ extends Node2D
 var L: LuaState
 
 func _ready() -> void:
-    var test_script := FileAccess.get_file_as_string("res://demo/test_script.luau")
+    var test_script := FileAccess.get_file_as_string("res://test_script.luau")
 
     L = LuaState.new()
     L.open_libs()
