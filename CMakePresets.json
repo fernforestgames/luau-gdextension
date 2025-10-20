@@ -10,10 +10,8 @@
       "name": "default",
       "displayName": "Default Config",
       "description": "Default (debug) build configuration",
-      "binaryDir": "${sourceDir}/addons/luau_gdextension/build",
+      "binaryDir": "${sourceDir}/build",
       "cacheVariables": {
-        "CMAKE_C_COMPILER": "clang",
-        "CMAKE_CXX_COMPILER": "clang++",
         "CMAKE_BUILD_TYPE": "Debug",
         "CMAKE_EXPORT_COMPILE_COMMANDS": "ON"
       }
@@ -22,10 +20,8 @@
       "name": "release",
       "displayName": "Release Config",
       "description": "Release build configuration",
-      "binaryDir": "${sourceDir}/addons/luau_gdextension/build",
+      "binaryDir": "${sourceDir}/build",
       "cacheVariables": {
-        "CMAKE_C_COMPILER": "clang",
-        "CMAKE_CXX_COMPILER": "clang++",
         "CMAKE_BUILD_TYPE": "Release",
         "CMAKE_EXPORT_COMPILE_COMMANDS": "ON"
       }

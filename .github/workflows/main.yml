@@ -76,11 +76,11 @@ jobs:
         with:
           key: ${{ matrix.platform }}-${{ matrix.arch }}-${{ matrix.build_type }}
 
-      - name: Configure CMake
-        run: cmake -S . -B build -DCMAKE_BUILD_TYPE=${{ matrix.build_type }}
+      - name: Configure build
+        run: cmake --preset ${{ matrix.build_type == 'Debug' && 'default' || 'release' }}
 
       - name: Build
-        run: cmake --build build --config ${{ matrix.build_type }} -j 1
+        run: cmake --build --preset ${{ matrix.build_type == 'Debug' && 'default' || 'release' }} -j 1
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
