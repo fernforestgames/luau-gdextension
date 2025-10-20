@@ -144,35 +144,42 @@ LuaState::~LuaState()
     close();
 }
 
+void LuaState::open_library(lua_CFunction func, const char *name)
+{
+    lua_pushcfunction(L, func, NULL);
+    lua_pushstring(L, name);
+    lua_call(L, 1, 0);
+}
+
 void LuaState::openlibs(int libs)
 {
     ERR_FAIL_NULL_MSG(L, "Lua state is null. Cannot open libraries.");
 
     // Open individual libraries based on flags
     if (libs & LIB_BASE)
-        luaopen_base(L);
+        open_library(luaopen_base, "");
     if (libs & LIB_COROUTINE)
-        luaopen_coroutine(L);
+        open_library(luaopen_coroutine, LUA_COLIBNAME);
     if (libs & LIB_TABLE)
-        luaopen_table(L);
+        open_library(luaopen_table, LUA_TABLIBNAME);
     if (libs & LIB_OS)
-        luaopen_os(L);
+        open_library(luaopen_os, LUA_OSLIBNAME);
     if (libs & LIB_STRING)
-        luaopen_string(L);
+        open_library(luaopen_string, LUA_STRLIBNAME);
     if (libs & LIB_BIT32)
-        luaopen_bit32(L);
+        open_library(luaopen_bit32, LUA_BITLIBNAME);
     if (libs & LIB_BUFFER)
-        luaopen_buffer(L);
+        open_library(luaopen_buffer, LUA_BUFFERLIBNAME);
     if (libs & LIB_UTF8)
-        luaopen_utf8(L);
+        open_library(luaopen_utf8, LUA_UTF8LIBNAME);
     if (libs & LIB_MATH)
-        luaopen_math(L);
+        open_library(luaopen_math, LUA_MATHLIBNAME);
     if (libs & LIB_DEBUG)
-        luaopen_debug(L);
+        open_library(luaopen_debug, LUA_DBLIBNAME);
     if (libs & LIB_VECTOR)
-        luaopen_vector(L);
+        open_library(luaopen_vector, LUA_VECLIBNAME);
     if (libs & LIB_GODOT)
-        luaopen_godot(L);
+        open_library(luaopen_godot, LUA_GODOTLIBNAME);
 }
 
 void LuaState::close()

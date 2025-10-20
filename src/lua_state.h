@@ -22,18 +22,18 @@ namespace godot
         enum LibraryFlags
         {
             LIB_NONE = 0,
-            LIB_BASE = 1 << 0,       // Basic functions (_G, print, etc.)
-            LIB_COROUTINE = 1 << 1,  // Coroutine library
-            LIB_TABLE = 1 << 2,      // Table manipulation
-            LIB_OS = 1 << 3,         // OS library (use with caution in sandboxed environments)
-            LIB_STRING = 1 << 4,     // String manipulation
-            LIB_BIT32 = 1 << 5,      // Bit manipulation
-            LIB_BUFFER = 1 << 6,     // Buffer library
-            LIB_UTF8 = 1 << 7,       // UTF-8 support
-            LIB_MATH = 1 << 8,       // Math functions
-            LIB_DEBUG = 1 << 9,      // Debug library (use with caution)
-            LIB_VECTOR = 1 << 10,    // Luau vector type
-            LIB_GODOT = 1 << 11,     // Godot math types (Vector2, Vector3, Color, etc.)
+            LIB_BASE = 1 << 0,      // Basic functions (_G, print, etc.)
+            LIB_COROUTINE = 1 << 1, // Coroutine library
+            LIB_TABLE = 1 << 2,     // Table manipulation
+            LIB_OS = 1 << 3,        // OS library (use with caution in sandboxed environments)
+            LIB_STRING = 1 << 4,    // String manipulation
+            LIB_BIT32 = 1 << 5,     // Bit manipulation
+            LIB_BUFFER = 1 << 6,    // Buffer library
+            LIB_UTF8 = 1 << 7,      // UTF-8 support
+            LIB_MATH = 1 << 8,      // Math functions
+            LIB_DEBUG = 1 << 9,     // Debug library (use with caution)
+            LIB_VECTOR = 1 << 10,   // Luau vector type
+            LIB_GODOT = 1 << 11,    // Godot math types (Vector2, Vector3, Color, etc.)
             LIB_ALL = LIB_BASE | LIB_COROUTINE | LIB_TABLE | LIB_OS | LIB_STRING |
                       LIB_BIT32 | LIB_BUFFER | LIB_UTF8 | LIB_MATH | LIB_DEBUG | LIB_VECTOR | LIB_GODOT
         };
@@ -43,6 +43,9 @@ namespace godot
 
         void openlibs(int libs = LIB_ALL);
         void close();
+
+        // Helper to open a single library via lua_call
+        void open_library(lua_CFunction func, const char *name);
 
         lua_Status load_bytecode(const PackedByteArray &bytecode, const String &chunk_name);
         lua_Status resume();
