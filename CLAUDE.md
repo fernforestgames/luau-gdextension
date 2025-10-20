@@ -17,25 +17,25 @@ derivative) into Godot Engine.
 
 ```bash
 # Debug build
-cmake --preset default
-cmake --build --preset default -j
+cmake -S . -B build -DCMAKE_BUILD_TYPE=Debug
+cmake --build build -j
 
 # Release build
-cmake --preset release
-cmake --build --preset release -j
+cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
+cmake --build build -j
 ```
 
-Built binaries output to `addons/luau_gdextension/build/`
+Built binaries output to `bin/<platform>/` and are automatically copied to
+`demo/addons/luau_gdextension/build/`
 
-Dependencies (auto-fetched via CMake, stored in
-`addons/luau_gdextension/build/_deps/`):
+Dependencies (auto-fetched via CMake, stored in `build/_deps/`):
 
 - Luau from https://github.com/luau-lang/luau.git
 - godot-cpp from https://github.com/godotengine/godot-cpp.git
 
 ## Demo Project
 
-The root directory contains a working Godot project demonstrating usage. See
+The `demo/` directory contains a working Godot project demonstrating usage. See
 `demo/main.gd` for example integration code and `demo/test_script.luau` for a
 sample Luau script.
 
@@ -54,8 +54,8 @@ func _on_break(state: LuaState) -> void:
 Read these if you ever need more information:
 
 - The `lua.h` and `lualib.h` headers in the Luau source code, at
-  `addons/luau_gdextension/build/_deps/luau-src/VM/include`, which document the
-  C API functions available.
+  `build/_deps/luau-src/VM/include`, which document the C API functions
+  available.
 - [The Lua 5.1 manual](https://www.lua.org/manual/5.1/manual.html), as Luau is
   based on Lua 5.1, including the C API.
 - The Luau manual pages:
@@ -70,8 +70,8 @@ Read these if you ever need more information:
   [documentation for godot-cpp](https://docs.godotengine.org/en/stable/tutorials/scripting/cpp/gdextension_cpp_example.html),
   used to create GDExtensions.
 - The headers for godot-cpp, located in
-  `addons/luau_gdextension/build/_deps/godot-cpp-src/include/godot_cpp`,
-  documenting the classes and methods available for GDExtensions.
+  `build/_deps/godot-cpp-src/include/godot_cpp`, documenting the classes and
+  methods available for GDExtensions.
 - Godot Engine core documentation, which describes features that also exist for
   GDExtensions in godot-cpp:
   - [Common engine methods and macros](https://docs.godotengine.org/en/stable/engine_details/architecture/common_engine_methods_and_macros.html)
