@@ -3,8 +3,18 @@ cmake_minimum_required(VERSION 3.28)
 # Allow set() to override later option() calls in subprojects
 set(CMAKE_POLICY_DEFAULT_CMP0077 NEW)
 
+# Set MSVC runtime library policy (required for CMAKE_MSVC_RUNTIME_LIBRARY)
+cmake_policy(SET CMP0091 NEW)
+
 project(gdluau)
 include(FetchContent)
+
+if(MSVC)
+    # Force /MD (dynamic runtime) on MSVC for all targets
+    # This ensures gdluau, godot-cpp, and Luau all use the same runtime library
+    # /MD = MultiThreadedDLL (Release), /MDd = MultiThreadedDebugDLL (Debug)
+    set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>DLL")
+endif()
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -22,33 +32,51 @@ if(CCACHE_PROGRAM)
     message(STATUS "ccache found and enabled: ${CCACHE_PROGRAM}")
 endif()
 
+# Enable exception handling
+if(MSVC)
+    add_compile_options(/EHsc)
+else()
+    add_compile_options(-fexceptions)
+endif()
+
+# Configure Luau options
 set(LUAU_BUILD_CLI OFF)
 set(LUAU_BUILD_TESTS OFF)
 set(LUAU_EXTERN_C ON)
+set(LUAU_STATIC_CRT OFF)  # Use dynamic runtime (/MD or /MDd) to match godot-cpp
 
+# Fetch dependencies
 FetchContent_Declare(
-  Luau
-  GIT_REPOSITORY https://github.com/luau-lang/luau.git
-  GIT_TAG 696
+    Luau
+    GIT_REPOSITORY https://github.com/luau-lang/luau.git
+    GIT_TAG 696
 )
 FetchContent_Declare(
-  GodotCpp
-  GIT_REPOSITORY https://github.com/godotengine/godot-cpp.git
-  GIT_TAG godot-4.5-stable
+    GodotCpp
+    GIT_REPOSITORY https://github.com/godotengine/godot-cpp.git
+    GIT_TAG godot-4.5-stable
 )
 FetchContent_MakeAvailable(Luau GodotCpp)
 
-# GDExtension library target
-add_library(${PROJECT_NAME} SHARED
-    src/lua_state.cpp
-    src/luau.cpp
-    src/lua_math_types.cpp
-    src/register_types.cpp
+# Collect all source files
+file(GLOB_RECURSE SOURCES
+    "src/*.cpp"
 )
 
-# Statically linked dependencies
+# GDExtension library target
+add_library(${PROJECT_NAME} SHARED ${SOURCES})
+
+# Include directories
+target_include_directories(${PROJECT_NAME} PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/src
+    ${CMAKE_CURRENT_SOURCE_DIR}
+)
+
+# Link libraries
 target_link_libraries(${PROJECT_NAME} PRIVATE
-    godot-cpp Luau.Compiler Luau.VM
+    godot-cpp
+    Luau.Compiler
+    Luau.VM
 )
 
 # Platform detection
@@ -76,15 +104,27 @@ if(BUILD_TYPE_LOWER STREQUAL "")
     set(BUILD_TYPE_LOWER "debug")
 endif()
 
+# Set output properties
 set_target_properties(${PROJECT_NAME} PROPERTIES
-    OUTPUT_NAME "gdluau.${PLATFORM_NAME}.${BUILD_TYPE_LOWER}.${ARCH_NAME}"
-    PREFIX "lib"
+    OUTPUT_NAME "libgdluau.${PLATFORM_NAME}.${BUILD_TYPE_LOWER}.${ARCH_NAME}"
+    PREFIX ""
     SUFFIX "${PLATFORM_EXT}"
     # Prevent MSVC/MSBuild from adding Debug/Release subdirectories
-    RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}"
-    LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}"
-    RUNTIME_OUTPUT_DIRECTORY_DEBUG "${CMAKE_BINARY_DIR}"
-    RUNTIME_OUTPUT_DIRECTORY_RELEASE "${CMAKE_BINARY_DIR}"
-    LIBRARY_OUTPUT_DIRECTORY_DEBUG "${CMAKE_BINARY_DIR}"
-    LIBRARY_OUTPUT_DIRECTORY_RELEASE "${CMAKE_BINARY_DIR}"
+    RUNTIME_OUTPUT_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/bin/${PLATFORM_NAME}"
+    LIBRARY_OUTPUT_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/bin/${PLATFORM_NAME}"
+    RUNTIME_OUTPUT_DIRECTORY_DEBUG "${CMAKE_CURRENT_SOURCE_DIR}/bin/${PLATFORM_NAME}"
+    RUNTIME_OUTPUT_DIRECTORY_RELEASE "${CMAKE_CURRENT_SOURCE_DIR}/bin/${PLATFORM_NAME}"
+    LIBRARY_OUTPUT_DIRECTORY_DEBUG "${CMAKE_CURRENT_SOURCE_DIR}/bin/${PLATFORM_NAME}"
+    LIBRARY_OUTPUT_DIRECTORY_RELEASE "${CMAKE_CURRENT_SOURCE_DIR}/bin/${PLATFORM_NAME}"
 )
+
+# Custom target to copy the library to the demo addon directory
+add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different
+        $<TARGET_FILE:${PROJECT_NAME}>
+        "${CMAKE_CURRENT_SOURCE_DIR}/demo/addons/luau_gdextension/build/$<TARGET_FILE_NAME:${PROJECT_NAME}>"
+    COMMENT "Copying library to demo addon directory"
+)
+
+# Enable compile_commands.json for better IDE support
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
