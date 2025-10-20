@@ -1,6 +1,7 @@
 extends Node2D
 
 var L: LuaState
+var _step_count := 0
 
 func _ready() -> void:
     var test_script := FileAccess.get_file_as_string("res://test_script.luau")
@@ -8,6 +9,9 @@ func _ready() -> void:
     L = LuaState.new()
     L.open_libs()
     L.register_math_types() # Register math type constructors and metatables
+
+    L.singlestep(true)
+    L.step.connect(self._on_step)
 
     var bytecode := Luau.compile(test_script)
     print("Luau script compiled")
@@ -17,19 +21,22 @@ func _ready() -> void:
         push_error("Failed to load Lua bytecode")
         return
 
-    print("Luau bytecode loaded")
-    L.break_after_steps = 50
-    L.break.connect(self._on_break)
-
-    print("Starting script execution")
+    print("Luau bytecode loaded, starting execution")
     var resume_status := L.resume()
     if resume_status != Luau.LUA_BREAK and resume_status != Luau.LUA_OK:
         push_error("Failed to start Luau execution")
         return
 
-func _on_break(state: LuaState) -> void:
-    var step_count = state.get_step_count()
-    print("Hit Luau breakpoint at step ", step_count)
+func _on_step(state: LuaState) -> void:
+    self._step_count += 1
+    if self._step_count < 50:
+        return
+
+    print("Pausing at step ", self._step_count)
+    state.pause()
+
+    # Disable single-step mode and resume execution after a brief pause
+    L.singlestep(false)
     self._resume_after_break.call_deferred()
 
 func _resume_after_break() -> void:

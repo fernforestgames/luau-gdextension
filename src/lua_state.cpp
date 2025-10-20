@@ -19,41 +19,32 @@ static void callback_panic(lua_State *L, int errcode)
     state->close();
 }
 
-void godot::callback_debugstep(lua_State *L, lua_Debug *ar)
+static void callback_debugstep(lua_State *L, lua_Debug *ar)
 {
     LuaState *state = static_cast<LuaState *>(lua_callbacks(L)->userdata);
-    state->step_count++;
-    if (state->step_count >= state->break_after_steps)
-    {
-        ERR_FAIL_COND_MSG(state->break_after_steps == 0, "break_after_steps is set to 0, but debugstep was called.");
-        lua_break(L);
-
-        state->set_break_after_steps(0); // Disable further breaks
-        state->emit_signal("break", state);
-    }
+    state->emit_signal("step", state);
 }
 
 void LuaState::_bind_methods()
 {
     ClassDB::bind_method(D_METHOD("open_libs"), &LuaState::open_libs);
-    ClassDB::bind_method(D_METHOD("get_step_count"), &LuaState::get_step_count);
-    ClassDB::bind_method(D_METHOD("get_break_after_steps"), &LuaState::get_break_after_steps);
-    ClassDB::bind_method(D_METHOD("set_break_after_steps", "steps"), &LuaState::set_break_after_steps);
+    ClassDB::bind_method(D_METHOD("register_math_types"), &LuaState::register_math_types);
+    ClassDB::bind_method(D_METHOD("close"), &LuaState::close);
+
     ClassDB::bind_method(D_METHOD("load_bytecode", "bytecode", "chunk_name"), &LuaState::load_bytecode);
     ClassDB::bind_method(D_METHOD("resume"), &LuaState::resume);
+
+    ClassDB::bind_method(D_METHOD("singlestep", "enable"), &LuaState::singlestep);
+    ClassDB::bind_method(D_METHOD("pause"), &LuaState::pause);
+
     ClassDB::bind_method(D_METHOD("getglobal", "key"), &LuaState::getglobal);
     ClassDB::bind_method(D_METHOD("to_variant", "index"), &LuaState::to_variant);
     ClassDB::bind_method(D_METHOD("push_variant", "value"), &LuaState::push_variant);
-    ClassDB::bind_method(D_METHOD("register_math_types"), &LuaState::register_math_types);
 
-    ADD_PROPERTY(PropertyInfo(Variant::INT, "step_count"), "", "get_step_count");
-    ADD_PROPERTY(PropertyInfo(Variant::INT, "break_after_steps"), "set_break_after_steps", "get_break_after_steps");
-
-    ADD_SIGNAL(MethodInfo("break", PropertyInfo(Variant::OBJECT, "lua_state")));
+    ADD_SIGNAL(MethodInfo("step", PropertyInfo(Variant::OBJECT, "state")));
 }
 
 LuaState::LuaState()
-    : step_count(0), break_after_steps(0)
 {
     L = luaL_newstate();
     ERR_FAIL_NULL_MSG(L, "Failed to create new Lua state.");
@@ -92,22 +83,6 @@ void LuaState::register_math_types()
     godot::register_math_types(L);
 }
 
-int LuaState::get_step_count() const
-{
-    return step_count;
-}
-
-int LuaState::get_break_after_steps() const
-{
-    return break_after_steps;
-}
-
-void LuaState::set_break_after_steps(int steps)
-{
-    break_after_steps = steps;
-    lua_singlestep(L, steps > 0);
-}
-
 lua_Status LuaState::load_bytecode(const PackedByteArray &bytecode, const String &chunk_name)
 {
     ERR_FAIL_NULL_V_MSG(L, LUA_ERRMEM, "Lua state is null. Cannot load bytecode.");
@@ -122,6 +97,18 @@ lua_Status LuaState::resume()
 
     int status = lua_resume(L, nullptr, 0);
     return static_cast<lua_Status>(status);
+}
+
+void LuaState::singlestep(bool enable)
+{
+    ERR_FAIL_NULL_MSG(L, "Lua state is null. Cannot set singlestep mode.");
+    lua_singlestep(L, enable);
+}
+
+void LuaState::pause()
+{
+    ERR_FAIL_NULL_MSG(L, "Lua state is null. Cannot pause.");
+    lua_break(L);
 }
 
 void LuaState::getglobal(const String &key)
