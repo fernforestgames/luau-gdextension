@@ -17,13 +17,13 @@ func _ready() -> void:
 
     var load_status := L.load_bytecode(bytecode, "test_script")
     if load_status != Luau.LUA_OK:
-        push_error("Failed to load Lua bytecode")
+        push_error("Failed to load Lua bytecode: ", load_status)
         return
 
     print("Luau bytecode loaded, starting execution")
     var resume_status := L.resume()
     if resume_status != Luau.LUA_BREAK and resume_status != Luau.LUA_OK:
-        push_error("Failed to start Luau execution")
+        push_error("Failed to start Luau execution: ", resume_status)
         return
 
 func _on_step(state: LuaState) -> void:
@@ -42,7 +42,7 @@ func _resume_after_break() -> void:
     print("Resuming Luau execution")
     var resume_status := L.resume()
     if resume_status != Luau.LUA_OK:
-        push_error("Failed to resume Luau execution")
+        push_error("Failed to resume Luau execution: ", resume_status)
         return
 
     print("Luau script execution completed, exiting cleanly")
