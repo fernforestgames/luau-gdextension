@@ -122,7 +122,7 @@ set_target_properties(${PROJECT_NAME} PROPERTIES
 add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy_if_different
         $<TARGET_FILE:${PROJECT_NAME}>
-        "${CMAKE_CURRENT_SOURCE_DIR}/demo/addons/luau_gdextension/build/$<TARGET_FILE_NAME:${PROJECT_NAME}>"
+        "${CMAKE_CURRENT_SOURCE_DIR}/demo/addons/luau_gdextension/bin/$<TARGET_FILE_NAME:${PROJECT_NAME}>"
     COMMENT "Copying library to demo addon directory"
 )
 
