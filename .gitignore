@@ -11,5 +11,6 @@ CTestTestfile.cmake
 _deps
 CMakeUserPresets.json
 build/
+bin/
 .claude/*.local.json
 .godot/
