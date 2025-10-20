@@ -33,15 +33,15 @@ namespace godot
             LIB_MATH = 1 << 8,       // Math functions
             LIB_DEBUG = 1 << 9,      // Debug library (use with caution)
             LIB_VECTOR = 1 << 10,    // Luau vector type
+            LIB_GODOT = 1 << 11,     // Godot math types (Vector2, Vector3, Color, etc.)
             LIB_ALL = LIB_BASE | LIB_COROUTINE | LIB_TABLE | LIB_OS | LIB_STRING |
-                      LIB_BIT32 | LIB_BUFFER | LIB_UTF8 | LIB_MATH | LIB_DEBUG | LIB_VECTOR
+                      LIB_BIT32 | LIB_BUFFER | LIB_UTF8 | LIB_MATH | LIB_DEBUG | LIB_VECTOR | LIB_GODOT
         };
 
         LuaState();
         ~LuaState();
 
         void openlibs(int libs = LIB_ALL);
-        void register_math_types();
         void close();
 
         lua_Status load_bytecode(const PackedByteArray &bytecode, const String &chunk_name);

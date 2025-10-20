@@ -7,8 +7,7 @@ func _ready() -> void:
     var test_script := FileAccess.get_file_as_string("res://test_script.luau")
 
     L = LuaState.new()
-    L.openlibs()
-    L.register_math_types() # Register math type constructors and metatables
+    L.openlibs() # Loads all libraries including godot math types
 
     L.singlestep(true)
     L.step.connect(self._on_step)

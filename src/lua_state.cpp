@@ -1,6 +1,7 @@
 #include "lua_state.h"
 #include "luau.h"
 #include "lua_math_types.h"
+#include "lua_godotlib.h"
 #include <godot_cpp/core/class_db.hpp>
 #include <godot_cpp/core/error_macros.hpp>
 #include <godot_cpp/core/object.hpp>
@@ -28,7 +29,6 @@ static void callback_debugstep(lua_State *L, lua_Debug *ar)
 void LuaState::_bind_methods()
 {
     ClassDB::bind_method(D_METHOD("openlibs", "libs"), &LuaState::openlibs, DEFVAL(LuaState::LIB_ALL));
-    ClassDB::bind_method(D_METHOD("register_math_types"), &LuaState::register_math_types);
     ClassDB::bind_method(D_METHOD("close"), &LuaState::close);
 
     ClassDB::bind_method(D_METHOD("load_bytecode", "bytecode", "chunk_name"), &LuaState::load_bytecode);
@@ -117,6 +117,7 @@ void LuaState::_bind_methods()
     BIND_BITFIELD_FLAG(LIB_MATH);
     BIND_BITFIELD_FLAG(LIB_DEBUG);
     BIND_BITFIELD_FLAG(LIB_VECTOR);
+    BIND_BITFIELD_FLAG(LIB_GODOT);
     BIND_BITFIELD_FLAG(LIB_ALL);
 
     // Godot integration helpers
@@ -170,6 +171,8 @@ void LuaState::openlibs(int libs)
         luaopen_debug(L);
     if (libs & LIB_VECTOR)
         luaopen_vector(L);
+    if (libs & LIB_GODOT)
+        luaopen_godot(L);
 }
 
 void LuaState::close()
@@ -179,13 +182,6 @@ void LuaState::close()
         lua_close(L);
         L = nullptr;
     }
-}
-
-void LuaState::register_math_types()
-{
-    ERR_FAIL_NULL_MSG(L, "Lua state is null. Cannot register math types.");
-
-    godot::register_math_types(L);
 }
 
 lua_Status LuaState::load_bytecode(const PackedByteArray &bytecode, const String &chunk_name)
