@@ -8,6 +8,7 @@ func _ready() -> void:
 
     L = LuaState.new()
     L.openlibs() # Loads all libraries including godot math types
+    L.sandbox()
 
     L.singlestep(true)
     L.step.connect(self._on_step)

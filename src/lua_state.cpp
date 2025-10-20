@@ -29,6 +29,7 @@ static void callback_debugstep(lua_State *L, lua_Debug *ar)
 void LuaState::_bind_methods()
 {
     ClassDB::bind_method(D_METHOD("openlibs", "libs"), &LuaState::openlibs, DEFVAL(LuaState::LIB_ALL));
+    ClassDB::bind_method(D_METHOD("sandbox"), &LuaState::sandbox);
     ClassDB::bind_method(D_METHOD("close"), &LuaState::close);
 
     ClassDB::bind_method(D_METHOD("load_bytecode", "bytecode", "chunk_name"), &LuaState::load_bytecode);
@@ -180,6 +181,12 @@ void LuaState::openlibs(int libs)
         open_library(luaopen_vector, LUA_VECLIBNAME);
     if (libs & LIB_GODOT)
         open_library(luaopen_godot, LUA_GODOTLIBNAME);
+}
+
+void LuaState::sandbox()
+{
+    ERR_FAIL_NULL_MSG(L, "Lua state is null. Cannot sandbox.");
+    luaL_sandbox(L);
 }
 
 void LuaState::close()

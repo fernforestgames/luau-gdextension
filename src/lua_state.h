@@ -42,6 +42,7 @@ namespace godot
         ~LuaState();
 
         void openlibs(int libs = LIB_ALL);
+        void sandbox();
         void close();
 
         // Helper to open a single library via lua_call
