@@ -10,19 +10,38 @@ derivative) into Godot Engine.
 
 **Core Classes:**
 
-- `Luau`: Compiles Luau source code to bytecode
-- `LuaState`: Executes Luau bytecode with step-by-step debugging support
+- `Luau`: Static class that compiles Luau source code to bytecode
+- `LuaState`: Manages a Lua VM instance, executes bytecode, and provides
+  debugging support via single-step execution
+- Math type bindings in `lua_math_types.h/cpp`: Bridge between Godot math types
+  (Vector2, Vector3, Color, etc.) and Luau userdata with full operator support
+
+## Project Structure
+
+```
+src/
+  luau.h/cpp          - Luau compiler wrapper (static methods)
+  lua_state.h/cpp     - Lua VM state management and execution
+  lua_math_types.h/cpp- Godot math type bindings for Luau
+  register_types.h/cpp- GDExtension registration
+demo/
+  main.gd             - Example integration code
+  test_script.luau    - Sample Luau script with math types
+  addons/luau_gdextension/
+    gdextension.json  - GDExtension manifest
+    build/            - Built binaries copied here by CMake
+```
 
 ## Building
 
 ```bash
 # Debug build
-cmake -S . -B build -DCMAKE_BUILD_TYPE=Debug
-cmake --build build -j
+cmake --preset default
+cmake --build --preset default -j
 
 # Release build
-cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
-cmake --build build -j
+cmake --preset release
+cmake --build --preset release -j
 ```
 
 Built binaries output to `bin/<platform>/` and are automatically copied to
@@ -39,14 +58,25 @@ The `demo/` directory contains a working Godot project demonstrating usage. See
 `demo/main.gd` for example integration code and `demo/test_script.luau` for a
 sample Luau script.
 
+## Architecture
+
+**Key Design Patterns:**
+
+- LuaState wraps a Luau VM and manages its lifecycle
+- Math types are implemented as userdata with metatables for operators and
+  property access
+- All Lua execution happens on the main thread
+
 ## Important Notes
 
-When resuming execution from a breakpoint handler, always use `call_deferred()`
-to avoid crashes:
+**Critical: Always use `call_deferred()` when resuming from signal handlers to
+prevent reentrancy crashes:**
 
 ```gdscript
-func _on_break(state: LuaState) -> void:
-    L.resume.call_deferred()  # Correct - prevents crashes
+func _on_step(state: LuaState) -> void:
+    # Do work...
+    state.resume.call_deferred()  # Correct
+    # state.resume()  # WRONG - will crash
 ```
 
 ## Documentation Resources
