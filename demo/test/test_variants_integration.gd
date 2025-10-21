@@ -149,9 +149,8 @@ func test_very_long_string():
 
 func test_vector2_variant():
 	var vec = Vector2(3.5, 4.5)
-	var variant = Variant(vec)
 
-	L.pushvariant(variant)
+	L.pushvariant(vec)
 	var retrieved = L.tovariant(-1)
 
 	assert_typeof(retrieved, TYPE_VECTOR2)
@@ -160,9 +159,8 @@ func test_vector2_variant():
 
 func test_vector2i_variant():
 	var vec = Vector2i(10, 20)
-	var variant = Variant(vec)
 
-	L.pushvariant(variant)
+	L.pushvariant(vec)
 	var retrieved = L.tovariant(-1)
 
 	assert_typeof(retrieved, TYPE_VECTOR2I)
@@ -171,9 +169,8 @@ func test_vector2i_variant():
 
 func test_vector3_variant():
 	var vec = Vector3(1.0, 2.0, 3.0)
-	var variant = Variant(vec)
 
-	L.pushvariant(variant)
+	L.pushvariant(vec)
 	var retrieved = L.tovariant(-1)
 
 	assert_typeof(retrieved, TYPE_VECTOR3)
@@ -183,9 +180,8 @@ func test_vector3_variant():
 
 func test_vector3i_variant():
 	var vec = Vector3i(100, 200, 300)
-	var variant = Variant(vec)
 
-	L.pushvariant(variant)
+	L.pushvariant(vec)
 	var retrieved = L.tovariant(-1)
 
 	assert_typeof(retrieved, TYPE_VECTOR3I)
@@ -195,9 +191,8 @@ func test_vector3i_variant():
 
 func test_color_variant():
 	var col = Color(1.0, 0.5, 0.0, 0.8)
-	var variant = Variant(col)
 
-	L.pushvariant(variant)
+	L.pushvariant(col)
 	var retrieved = L.tovariant(-1)
 
 	assert_typeof(retrieved, TYPE_COLOR)
@@ -212,15 +207,14 @@ func test_color_variant():
 
 func test_array_variant():
 	var arr = [1, "two", 3.0]
-	var variant = Variant(arr)
 
-	L.pushvariant(variant)
+	L.pushvariant(arr)
 	assert_true(L.istable(-1))
 
 	var retrieved = L.tovariant(-1)
 	assert_typeof(retrieved, TYPE_ARRAY)
 
-	var arr_result = Array(retrieved)
+	var arr_result = retrieved as Array
 	assert_eq(arr_result.size(), 3)
 	assert_eq(arr_result[0], 1)
 	assert_eq(arr_result[1], "two")
@@ -228,15 +222,14 @@ func test_array_variant():
 
 func test_dictionary_variant():
 	var dict = {"name": "test", "value": 42}
-	var variant = Variant(dict)
 
-	L.pushvariant(variant)
+	L.pushvariant(dict)
 	assert_true(L.istable(-1))
 
 	var retrieved = L.tovariant(-1)
 	assert_typeof(retrieved, TYPE_DICTIONARY)
 
-	var dict_result = Dictionary(retrieved)
+	var dict_result = retrieved as Dictionary
 	assert_eq(dict_result["name"], "test")
 	assert_eq(dict_result["value"], 42)
 
@@ -245,7 +238,7 @@ func test_empty_array_variant():
 	L.pushvariant(empty)
 
 	var retrieved = L.tovariant(-1)
-	var arr = Array(retrieved)
+	var arr = retrieved as Array
 	assert_eq(arr.size(), 0)
 
 func test_empty_dictionary_variant():
@@ -253,7 +246,7 @@ func test_empty_dictionary_variant():
 	L.pushvariant(empty)
 
 	var retrieved = L.tovariant(-1)
-	var dict = Dictionary(retrieved)
+	var dict = retrieved as Dictionary
 	assert_eq(dict.size(), 0)
 
 # ============================================================================
@@ -265,15 +258,15 @@ func test_nested_array_variant():
 	L.pushvariant(nested)
 
 	var retrieved = L.tovariant(-1)
-	var outer = Array(retrieved)
+	var outer = retrieved as Array
 
 	assert_eq(outer.size(), 2)
 
-	var inner1 = Array(outer[0])
+	var inner1 = outer[0] as Array
 	assert_eq(inner1[0], 1)
 	assert_eq(inner1[1], 2)
 
-	var inner2 = Array(outer[1])
+	var inner2 = outer[1] as Array
 	assert_eq(inner2[0], 3)
 	assert_eq(inner2[1], 4)
 
@@ -287,14 +280,14 @@ func test_complex_nested_variant():
 	L.pushvariant(complex)
 	var retrieved = L.tovariant(-1)
 
-	var dict = Dictionary(retrieved)
+	var dict = retrieved as Dictionary
 	assert_eq(dict["name"], "complex")
 
-	var items = Array(dict["items"])
+	var items = dict["items"] as Array
 	assert_eq(items.size(), 3)
 	assert_eq(items[0], 10)
 
-	var meta = Dictionary(dict["meta"])
+	var meta = dict["meta"] as Dictionary
 	assert_eq(meta["count"], 3)
 
 func test_array_with_mixed_types_including_math():
@@ -302,18 +295,18 @@ func test_array_with_mixed_types_including_math():
 	L.pushvariant(arr)
 
 	var retrieved = L.tovariant(-1)
-	var result = Array(retrieved)
+	var result = retrieved as Array
 
 	assert_eq(result.size(), 4)
 	assert_eq(result[0], 42)
 
-	var vec = Vector2(result[1])
+	var vec = result[1] as Vector2
 	assert_almost_eq(vec.x, 1.0, 0.001)
 	assert_almost_eq(vec.y, 2.0, 0.001)
 
 	assert_eq(result[2], "text")
 
-	var col = Color(result[3])
+	var col = result[3] as Color
 	assert_almost_eq(col.r, 1.0, 0.001)
 	assert_almost_eq(col.a, 1.0, 0.001)
 
@@ -337,7 +330,7 @@ func test_modify_variant_in_lua():
 	L.resume()
 
 	var result = L.tovariant(-1)
-	var result_arr = Array(result)
+	var result_arr = result as Array
 
 	assert_eq(result_arr.size(), 4)
 	assert_eq(result_arr[2], 3)
@@ -361,22 +354,22 @@ func test_create_complex_structure_in_lua():
 	L.resume()
 
 	var result = L.tovariant(-1)
-	var dict = Dictionary(result)
+	var dict = result as Dictionary
 
 	assert_true(dict.has("position"))
 	assert_true(dict.has("color"))
 	assert_true(dict.has("items"))
 	assert_true(dict.has("metadata"))
 
-	var pos = Vector2(dict["position"])
+	var pos = dict["position"] as Vector2
 	assert_almost_eq(pos.x, 100.0, 0.001)
 	assert_almost_eq(pos.y, 200.0, 0.001)
 
-	var items = Array(dict["items"])
+	var items = dict["items"] as Array
 	assert_eq(items.size(), 3)
 	assert_eq(items[0], 10)
 
-	var meta = Dictionary(dict["metadata"])
+	var meta = dict["metadata"] as Dictionary
 	assert_eq(meta["name"], "entity")
 	assert_true(meta["active"])
 

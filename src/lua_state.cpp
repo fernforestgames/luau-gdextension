@@ -55,6 +55,8 @@ void LuaState::_bind_methods()
     ClassDB::bind_method(D_METHOD("isfunction", "index"), &LuaState::isfunction);
     ClassDB::bind_method(D_METHOD("isuserdata", "index"), &LuaState::isuserdata);
     ClassDB::bind_method(D_METHOD("isboolean", "index"), &LuaState::isboolean);
+    ClassDB::bind_method(D_METHOD("isarray", "index"), &LuaState::isarray);
+    ClassDB::bind_method(D_METHOD("isdictionary", "index"), &LuaState::isdictionary);
     ClassDB::bind_method(D_METHOD("type", "index"), &LuaState::type);
     ClassDB::bind_method(D_METHOD("type_name", "type_id"), &LuaState::type_name);
 
@@ -283,6 +285,13 @@ bool LuaState::isarray(int index)
             return false;
         }
 
+        // Arrays must start at 1 in Lua, so any key < 1 means it's a dictionary
+        if (key_int < 1)
+        {
+            pop(2); // Pop key and value
+            return false;
+        }
+
         // Keep track of max key
         if (key_int > n)
             n = key_int;
@@ -378,7 +387,15 @@ Variant LuaState::tovariant(int index)
         return Variant(toboolean(index));
 
     case LUA_TNUMBER:
-        return Variant(tonumber(index));
+    {
+        // Check if the number is actually an integer
+        double num = tonumber(index);
+        int int_val = static_cast<int>(num);
+        if (num == static_cast<double>(int_val))
+            return Variant(int_val);  // Return as integer
+        else
+            return Variant(num);      // Return as float
+    }
 
     case LUA_TSTRING:
         return Variant(tostring(index));
@@ -391,6 +408,10 @@ Variant LuaState::tovariant(int index)
         else
             return Variant(todictionary(index));
     }
+
+    case LUA_TVECTOR:
+        // Luau's native vector type (used for Vector3)
+        return Variant(to_vector3(L, index));
 
     case LUA_TFUNCTION:
         ERR_PRINT("Cannot convert Lua function to Variant.");
