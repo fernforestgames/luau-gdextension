@@ -88,6 +88,35 @@ jobs:
         run: |
           ./bin/gdluau_tests${{ matrix.platform == 'windows' && '.exe' || '' }}
 
+      - name: Download Godot
+        run: |
+          if [ "${{ matrix.platform }}" = "windows" ]; then
+            curl -L -o godot.zip https://github.com/godotengine/godot/releases/download/4.5-stable/Godot_v4.5-stable_win64.exe.zip
+            unzip -q godot.zip
+            mv Godot_v4.5-stable_win64.exe godot.exe
+          elif [ "${{ matrix.platform }}" = "linux" ]; then
+            curl -L -o godot.zip https://github.com/godotengine/godot/releases/download/4.5-stable/Godot_v4.5-stable_linux.x86_64.zip
+            unzip -q godot.zip
+            chmod +x Godot_v4.5-stable_linux.x86_64
+            mv Godot_v4.5-stable_linux.x86_64 godot
+          elif [ "${{ matrix.platform }}" = "macos" ]; then
+            curl -L -o godot.zip https://github.com/godotengine/godot/releases/download/4.5-stable/Godot_v4.5-stable_macos.universal.zip
+            unzip -q godot.zip
+            # macOS app bundle structure
+            chmod +x Godot.app/Contents/MacOS/Godot
+            ln -s Godot.app/Contents/MacOS/Godot godot
+          fi
+        shell: bash
+
+      - name: Run GUT tests
+        run: |
+          if [ "${{ matrix.platform }}" = "windows" ]; then
+            ./godot.exe --headless -s --path demo/ addons/gut/gut_cmdln.gd -gdir=res://test -gprefix=test_ -gexit
+          else
+            ./godot --headless -s --path demo/ addons/gut/gut_cmdln.gd -gdir=res://test -gprefix=test_ -gexit
+          fi
+        shell: bash
+
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
