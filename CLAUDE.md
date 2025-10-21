@@ -29,9 +29,16 @@ src/
 demo/
   main.gd             - Example integration code
   test_script.luau    - Sample Luau script with math types
-  addons/luau_gdextension/
-    gdextension.json  - GDExtension manifest
-    build/            - Built binaries copied here by CMake
+  addons/
+    luau_gdextension/
+      gdextension.json  - GDExtension manifest
+      bin/              - Built binaries copied here by CMake
+    gut/                - GUT testing framework for GDScript tests
+  test/                 - GDScript integration tests
+tests/
+  test_*.cpp          - C++ unit tests using doctest
+  doctest.h           - doctest testing framework header
+  README.md           - Detailed testing documentation
 ```
 
 ## Building
@@ -73,6 +80,45 @@ sample Luau script.
   - Lower GC pressure
 - Other math types are implemented as userdata with metatables
 - All Lua execution happens on the main thread
+
+## Testing
+
+This project has comprehensive automated tests for all Godot-Luau bridging functionality.
+
+**Test Infrastructure:**
+- **C++ Unit Tests (doctest):** Low-level tests of the bridging layer
+  - Located in `tests/test_*.cpp`
+  - Tests math types, arrays, dictionaries, variants, edge cases
+  - Run via `./bin/gdluau_tests` after building
+- **GDScript Integration Tests (GUT):** High-level tests from Godot's perspective
+  - Located in `demo/test/test_*_integration.gd`
+  - Tests full round-trip conversions and Lua script execution
+  - Run via GUT panel in Godot editor or command line
+
+**Running Tests:**
+
+```bash
+# Build and run C++ tests
+cmake --build --preset default
+./bin/gdluau_tests  # or gdluau_tests.exe on Windows
+
+# Run GDScript tests (requires Godot)
+godot --headless --path demo/ -s addons/gut/gut_cmdln.gd -gtest=res://test/ -gexit
+```
+
+**Coverage:**
+- ✅ All math types (Vector2, Vector2i, Vector3, Vector3i, Color)
+- ✅ Array/Dictionary bridging (including nested structures)
+- ✅ Variant conversions (all supported types)
+- ✅ Edge cases and error handling
+
+See `tests/README.md` for detailed testing documentation and best practices.
+
+**When Adding New Features:**
+1. Write C++ unit tests in the appropriate `tests/test_*.cpp` file
+2. Write GDScript integration tests in `demo/test/`
+3. Ensure all tests pass before committing
+4. CI automatically runs all tests on push/PR
 
 ## Important Notes
 
