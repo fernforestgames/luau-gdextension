@@ -89,12 +89,12 @@ This project has comprehensive automated tests for all Godot-Luau bridging funct
 - **Runtime-Embedded C++ Tests (doctest):** All bridging layer tests running inside Godot runtime
   - Located in `src/tests_runtime.cpp`
   - Tests both POD types (Vector2, Color) and runtime types (Array, Dictionary, Variant)
-  - Embedded in Debug builds only, exposed via `RuntimeTests` class
-  - Run via `godot --headless --path demo/ -- --run-runtime-tests`
+  - Embedded in Debug builds only, exposed via `LuauGDExtensionTests` class
+  - Run via `godot --headless --path demo/ -- --run-tests`
 - **GDScript Integration Tests (GUT):** High-level tests from Godot's perspective
   - Located in `demo/test/test_*_integration.gd`
   - Tests full round-trip conversions and Lua script execution
-  - Run via GUT panel in Godot editor or command line
+  - Run via GUT panel in Godot editor or via `--run-tests` flag
 
 **Running Tests:**
 
@@ -103,11 +103,8 @@ This project has comprehensive automated tests for all Godot-Luau bridging funct
 cmake --preset default
 cmake --build --preset default -j
 
-# Run C++ tests (embedded in GDExtension, runs in Godot runtime)
-godot --headless --path demo/ -- --run-runtime-tests
-
-# Run GDScript tests (requires Godot)
-godot --headless --path demo/ -s addons/gut/gut_cmdln.gd -gtest=res://test/ -gexit
+# Run all tests (both C++ and GDScript)
+godot --headless --path demo/ -- --run-tests
 ```
 
 **Why Runtime-Embedded Tests?**

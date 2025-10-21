@@ -17,15 +17,15 @@ The C++ tests are embedded directly into the GDExtension library (Debug builds o
 
 ```
 src/
-├── runtime_tests.h        # RuntimeTests singleton class definition
-├── runtime_tests.cpp      # Test runner implementation using doctest
-└── tests_runtime.cpp      # All test cases (POD types + runtime types)
+├── luau_gdextension_tests.h   # LuauGDExtensionTests singleton class definition
+├── luau_gdextension_tests.cpp # Test runner implementation using doctest
+└── tests_runtime.cpp          # All test cases (POD types + runtime types)
 
 tests/
-└── doctest.h              # doctest header (single-file framework)
+└── doctest.h                  # doctest header (single-file framework)
 ```
 
-Tests are compiled into the library with `ENABLE_RUNTIME_TESTS` defined (Debug only) and exposed to GDScript via the `RuntimeTests` class.
+Tests are compiled into the library with `ENABLE_LUAU_GDEXTENSION_TESTS` defined (Debug only) and exposed to GDScript via the `LuauGDExtensionTests` class.
 
 ### Why Runtime-Embedded Tests?
 
@@ -62,13 +62,14 @@ cmake --build --preset default -j
 **Run tests:**
 ```bash
 # The test runner is integrated into the demo project
-godot --headless --path demo/ -- --run-runtime-tests
+# This runs BOTH C++ and GDScript tests
+godot --headless --path demo/ -- --run-tests
 ```
 
 **How it works:**
 1. `demo/test_runner.gd` is the main scene
-2. It checks for `--run-runtime-tests` command-line flag
-3. If present: calls `RuntimeTests.run()` and exits with pass/fail status
+2. It checks for `--run-tests` command-line flag
+3. If present: calls `LuauGDExtensionTests.run()` (C++ tests) and then runs GUT tests, exits with pass/fail status
 4. If not present: loads normal demo scene (`main.tscn`)
 
 ### Output
@@ -205,11 +206,9 @@ These will be tested once implemented.
 Tests run automatically on every push and pull request via GitHub Actions:
 
 ```yaml
-- name: Run C++ tests
-  run: godot --headless --path demo/ -- --run-runtime-tests
-
-- name: Run GDScript tests
-  run: godot --headless -s --path demo/ addons/gut/gut_cmdln.gd -gdir=res://test -gexit
+- name: Run tests
+  # Runs both C++ and GDScript tests
+  run: godot --headless --path demo/ -- --run-tests
 ```
 
 The CI runs tests on:
@@ -313,11 +312,11 @@ All tests must pass for the build to succeed.
 
 ## Troubleshooting
 
-### RuntimeTests Class Not Found
+### LuauGDExtensionTests Class Not Found
 
 - Ensure you built in Debug mode: `cmake --preset default`
 - Runtime tests are only available in Debug builds
-- Check that `ENABLE_RUNTIME_TESTS` is defined during compilation
+- Check that `ENABLE_LUAU_GDEXTENSION_TESTS` is defined during compilation
 
 ### C++ Tests Crash
 

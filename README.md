@@ -21,14 +21,11 @@ This project has comprehensive automated tests for all Godot-Luau bridging funct
 
 **Quick Start:**
 ```bash
-# Run all C++ tests (embedded in GDExtension, requires Godot runtime)
-godot --headless --path demo/ -- --run-runtime-tests
+# Run all tests (both C++ and GDScript)
+godot --headless --path demo/ -- --run-tests
 
-# Run GDScript integration tests (in Godot editor)
+# Or run GDScript integration tests in Godot editor
 # Open demo/ project → GUT tab → Run All
-
-# Or run GDScript tests headlessly
-godot --headless -s --path demo/ addons/gut/gut_cmdln.gd -gdir=res://test -gprefix=test_ -gexit
 ```
 
 **📖 For detailed testing documentation, see [`tests/README.md`](tests/README.md)**

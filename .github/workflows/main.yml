@@ -104,23 +104,14 @@ jobs:
           fi
         shell: bash
 
-      - name: Run C++ tests (runtime-embedded)
-        # Only run on Debug builds (tests are compiled in Debug only)
+      - name: Run tests
+        # Runs both C++ and GDScript tests (C++ tests only available in Debug builds)
         if: matrix.build_type == 'Debug'
         run: |
           if [ "${{ matrix.platform }}" = "windows" ]; then
-            ./godot.exe --headless --path demo/ -- --run-runtime-tests
+            ./godot.exe --headless --path demo/ -- --run-tests
           else
-            ./godot --headless --path demo/ -- --run-runtime-tests
-          fi
-        shell: bash
-
-      - name: Run GUT tests
-        run: |
-          if [ "${{ matrix.platform }}" = "windows" ]; then
-            ./godot.exe --headless -s --path demo/ addons/gut/gut_cmdln.gd -gdir=res://test -gprefix=test_ -gexit
-          else
-            ./godot --headless -s --path demo/ addons/gut/gut_cmdln.gd -gdir=res://test -gprefix=test_ -gexit
+            ./godot --headless --path demo/ -- --run-tests
           fi
         shell: bash
 

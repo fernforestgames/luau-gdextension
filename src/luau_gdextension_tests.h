@@ -1,26 +1,26 @@
 // Runtime-embedded C++ tests using doctest
 // Only available in Debug builds
-// Run via: godot --headless --path demo/ -- --run-runtime-tests
+// Run via: godot --headless --path demo/ -- --run-tests
 
-#ifndef RUNTIME_TESTS_H
-#define RUNTIME_TESTS_H
+#pragma once
 
-#ifdef ENABLE_RUNTIME_TESTS
+#ifdef ENABLE_LUAU_GDEXTENSION_TESTS
 
 #include <godot_cpp/classes/object.hpp>
 #include <godot_cpp/variant/dictionary.hpp>
 
 using namespace godot;
 
-class RuntimeTests : public Object {
-	GDCLASS(RuntimeTests, Object)
+class LuauGDExtensionTests : public Object
+{
+	GDCLASS(LuauGDExtensionTests, Object)
 
 protected:
 	static void _bind_methods();
 
 public:
-	RuntimeTests();
-	~RuntimeTests();
+	LuauGDExtensionTests();
+	~LuauGDExtensionTests();
 
 	// Run all embedded C++ tests
 	// Returns Dictionary with: {passed: int, failed: int, assertions_passed: int, assertions_failed: int, success: bool}
@@ -28,6 +28,4 @@ public:
 	static Dictionary run();
 };
 
-#endif // ENABLE_RUNTIME_TESTS
-
-#endif // RUNTIME_TESTS_H
+#endif // ENABLE_LUAU_GDEXTENSION_TESTS

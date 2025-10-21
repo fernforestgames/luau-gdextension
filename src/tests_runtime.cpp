@@ -2,7 +2,7 @@
 // Tests both POD types (Vector2, Color, etc.) and runtime types (Array, Dictionary, Variant)
 // Only compiled in Debug builds
 
-#ifdef ENABLE_RUNTIME_TESTS
+#ifdef ENABLE_LUAU_GDEXTENSION_TESTS
 
 #include "../tests/doctest.h"
 #include "lua_godotlib.h"
@@ -472,4 +472,4 @@ TEST_CASE("Math types: Type checking") {
 //
 // The C++ tests above focus on POD math types that can be tested with just the Lua C API.
 
-#endif // ENABLE_RUNTIME_TESTS
+#endif // ENABLE_LUAU_GDEXTENSION_TESTS

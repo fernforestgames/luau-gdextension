@@ -1,9 +1,9 @@
 // Runtime-embedded C++ tests using doctest
 // Only available in Debug builds
 
-#include "runtime_tests.h"
+#include "luau_gdextension_tests.h"
 
-#ifdef ENABLE_RUNTIME_TESTS
+#ifdef ENABLE_LUAU_GDEXTENSION_TESTS
 
 #define DOCTEST_CONFIG_IMPLEMENT
 #include "../tests/doctest.h"
@@ -13,17 +13,17 @@
 
 using namespace godot;
 
-RuntimeTests::RuntimeTests() {
+LuauGDExtensionTests::LuauGDExtensionTests() {
 }
 
-RuntimeTests::~RuntimeTests() {
+LuauGDExtensionTests::~LuauGDExtensionTests() {
 }
 
-void RuntimeTests::_bind_methods() {
-	ClassDB::bind_static_method("RuntimeTests", D_METHOD("run"), &RuntimeTests::run);
+void LuauGDExtensionTests::_bind_methods() {
+	ClassDB::bind_static_method("LuauGDExtensionTests", D_METHOD("run"), &LuauGDExtensionTests::run);
 }
 
-Dictionary RuntimeTests::run() {
+Dictionary LuauGDExtensionTests::run() {
 	// Configure doctest
 	doctest::Context context;
 	context.setOption("no-breaks", true);     // Don't break on failures
@@ -43,4 +43,4 @@ Dictionary RuntimeTests::run() {
 	return results;
 }
 
-#endif // ENABLE_RUNTIME_TESTS
+#endif // ENABLE_LUAU_GDEXTENSION_TESTS

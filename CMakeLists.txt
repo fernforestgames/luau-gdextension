@@ -142,8 +142,8 @@ if(CMAKE_BUILD_TYPE STREQUAL "Debug")
         src/tests_runtime.cpp
     )
 
-    # Define ENABLE_RUNTIME_TESTS for conditional compilation
-    target_compile_definitions(${PROJECT_NAME} PRIVATE ENABLE_RUNTIME_TESTS)
+    # Define ENABLE_LUAU_GDEXTENSION_TESTS for conditional compilation
+    target_compile_definitions(${PROJECT_NAME} PRIVATE ENABLE_LUAU_GDEXTENSION_TESTS)
 
     # Include tests directory for doctest.h
     target_include_directories(${PROJECT_NAME} PRIVATE

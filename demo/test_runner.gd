@@ -1,13 +1,13 @@
 ## Runtime test runner for Godot-Luau GDExtension
-## Entry point script that checks for --run-runtime-tests flag
+## Entry point script that checks for --run-tests flag
 ## If present, runs embedded C++ tests. Otherwise, loads normal demo scene.
 extends Node
 
 func _ready():
-	# Check for --run-runtime-tests flag
+	# Check for --run-tests flag
 	var args = OS.get_cmdline_user_args()
 
-	if "--run-runtime-tests" in args:
+	if "--run-tests" in args:
 		run_runtime_tests()
 	else:
 		# Normal demo behavior - load main scene
@@ -34,15 +34,15 @@ func run_cpp_tests() -> bool:
 	print("=== Running Runtime-Embedded C++ Tests ===")
 	print("")
 
-	# Check if RuntimeTests class is available (debug build only)
-	if not ClassDB.class_exists("RuntimeTests"):
-		push_error("RuntimeTests class not found!")
+	# Check if LuauGDExtensionTests class is available (debug build only)
+	if not ClassDB.class_exists("LuauGDExtensionTests"):
+		push_error("LuauGDExtensionTests class not found!")
 		push_error("Runtime tests are only available in Debug builds.")
 		push_error("Please build with: cmake --preset default && cmake --build --preset default")
 		return false
 
 	# Run the tests - doctest prints detailed results to stdout
-	var results = RuntimeTests.run()
+	var results = LuauGDExtensionTests.run()
 
 	# Check success (doctest already printed detailed results)
 	print("")
