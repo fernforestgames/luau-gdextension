@@ -3,6 +3,10 @@
 #include "lua_state.h"
 #include "luau.h"
 
+#ifdef ENABLE_RUNTIME_TESTS
+#include "runtime_tests.h"
+#endif
+
 #include <gdextension_interface.h>
 #include <godot_cpp/core/defs.hpp>
 #include <godot_cpp/godot.hpp>
@@ -31,6 +35,10 @@ void initialize_gdluau(ModuleInitializationLevel p_level)
 
     GDREGISTER_RUNTIME_CLASS(godot::Luau);
     GDREGISTER_RUNTIME_CLASS(LuaState);
+
+#ifdef ENABLE_RUNTIME_TESTS
+    GDREGISTER_RUNTIME_CLASS(RuntimeTests);
+#endif
 }
 
 void uninitialize_gdluau(ModuleInitializationLevel p_level)

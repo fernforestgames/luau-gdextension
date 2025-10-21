@@ -84,10 +84,6 @@ jobs:
       - name: Build
         run: cmake --build --preset ${{ matrix.build_type == 'Debug' && 'default' || 'release' }} -j 1
 
-      - name: Run C++ tests
-        run: |
-          ./bin/gdluau_tests${{ matrix.platform == 'windows' && '.exe' || '' }}
-
       - name: Download Godot
         run: |
           if [ "${{ matrix.platform }}" = "windows" ]; then
@@ -105,6 +101,17 @@ jobs:
             # macOS app bundle structure
             chmod +x Godot.app/Contents/MacOS/Godot
             ln -s Godot.app/Contents/MacOS/Godot godot
+          fi
+        shell: bash
+
+      - name: Run C++ tests (runtime-embedded)
+        # Only run on Debug builds (tests are compiled in Debug only)
+        if: matrix.build_type == 'Debug'
+        run: |
+          if [ "${{ matrix.platform }}" = "windows" ]; then
+            ./godot.exe --headless --path demo/ -- --run-runtime-tests
+          else
+            ./godot --headless --path demo/ -- --run-runtime-tests
           fi
         shell: bash
 

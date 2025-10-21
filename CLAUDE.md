@@ -86,10 +86,11 @@ sample Luau script.
 This project has comprehensive automated tests for all Godot-Luau bridging functionality.
 
 **Test Infrastructure:**
-- **C++ Unit Tests (doctest):** Low-level tests of the bridging layer
-  - Located in `tests/test_*.cpp`
-  - Tests math types, arrays, dictionaries, variants, edge cases
-  - Run via `./bin/gdluau_tests` after building
+- **Runtime-Embedded C++ Tests (doctest):** All bridging layer tests running inside Godot runtime
+  - Located in `src/tests_runtime.cpp`
+  - Tests both POD types (Vector2, Color) and runtime types (Array, Dictionary, Variant)
+  - Embedded in Debug builds only, exposed via `RuntimeTests` class
+  - Run via `godot --headless --path demo/ -- --run-runtime-tests`
 - **GDScript Integration Tests (GUT):** High-level tests from Godot's perspective
   - Located in `demo/test/test_*_integration.gd`
   - Tests full round-trip conversions and Lua script execution
@@ -98,24 +99,31 @@ This project has comprehensive automated tests for all Godot-Luau bridging funct
 **Running Tests:**
 
 ```bash
-# Build and run C++ tests
-cmake --build --preset default
-./bin/gdluau_tests  # or gdluau_tests.exe on Windows
+# Build Debug with embedded tests
+cmake --preset default
+cmake --build --preset default -j
+
+# Run C++ tests (embedded in GDExtension, runs in Godot runtime)
+godot --headless --path demo/ -- --run-runtime-tests
 
 # Run GDScript tests (requires Godot)
 godot --headless --path demo/ -s addons/gut/gut_cmdln.gd -gtest=res://test/ -gexit
 ```
 
+**Why Runtime-Embedded Tests?**
+Godot types like Array, Dictionary, and Variant require full Godot runtime initialization. By embedding tests in the GDExtension and running them inside Godot, we can test everything in one place with a realistic environment.
+
 **Coverage:**
 - ✅ All math types (Vector2, Vector2i, Vector3, Vector3i, Color)
 - ✅ Array/Dictionary bridging (including nested structures)
 - ✅ Variant conversions (all supported types)
+- ✅ Array vs Dictionary detection logic
 - ✅ Edge cases and error handling
 
 See `tests/README.md` for detailed testing documentation and best practices.
 
 **When Adding New Features:**
-1. Write C++ unit tests in the appropriate `tests/test_*.cpp` file
+1. Write C++ tests in `src/tests_runtime.cpp`
 2. Write GDScript integration tests in `demo/test/`
 3. Ensure all tests pass before committing
 4. CI automatically runs all tests on push/PR

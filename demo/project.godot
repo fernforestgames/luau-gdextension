@@ -11,7 +11,7 @@ config_version=5
 [application]
 
 config/name="Luau GDExtension Demo"
-run/main_scene="uid://cnyhcrsrdcg23"
+run/main_scene="res://test_runner.tscn"
 config/features=PackedStringArray("4.5", "GL Compatibility")
 
 [rendering]

@@ -21,9 +21,8 @@ This project has comprehensive automated tests for all Godot-Luau bridging funct
 
 **Quick Start:**
 ```bash
-# Run C++ unit tests
-./bin/gdluau_tests          # Linux/macOS
-./bin/gdluau_tests.exe      # Windows
+# Run all C++ tests (embedded in GDExtension, requires Godot runtime)
+godot --headless --path demo/ -- --run-runtime-tests
 
 # Run GDScript integration tests (in Godot editor)
 # Open demo/ project → GUT tab → Run All
@@ -39,6 +38,8 @@ Test coverage includes:
 - ✅ Array/Dictionary bridging
 - ✅ Variant conversions
 - ✅ Edge cases and error handling
+
+**Note:** C++ tests are embedded in the Debug build of the GDExtension library and run inside the Godot runtime. This allows testing of both POD types (Vector2, Color) and runtime-dependent types (Array, Dictionary, Variant).
 
 ## Demo Project
 

@@ -6,95 +6,76 @@ This directory contains automated tests for the Godot-Luau bridging functionalit
 
 The test suite consists of two complementary approaches:
 
-1. **C++ Unit Tests (doctest)** - Low-level tests of the bridging layer
+1. **Runtime-Embedded C++ Tests (doctest)** - All bridging layer tests running inside Godot runtime
 2. **GDScript Integration Tests (GUT)** - High-level tests from Godot's perspective
 
-## C++ Unit Tests (doctest)
+## Runtime-Embedded C++ Tests (doctest)
 
-### Structure
+### Architecture
+
+The C++ tests are embedded directly into the GDExtension library (Debug builds only):
 
 ```
+src/
+├── runtime_tests.h        # RuntimeTests singleton class definition
+├── runtime_tests.cpp      # Test runner implementation using doctest
+└── tests_runtime.cpp      # All test cases (POD types + runtime types)
+
 tests/
-├── doctest.h              # doctest header (single-file framework)
-├── test_main.cpp          # Main entry point with doctest runner
-├── test_math_types.cpp    # Tests for Vector2, Vector3, Color, etc.
-├── test_arrays.cpp        # Tests for Array ↔ Lua table bridging
-├── test_dictionaries.cpp  # Tests for Dictionary ↔ Lua table bridging
-├── test_variants.cpp      # Tests for generic Variant conversions
-└── test_edge_cases.cpp    # Edge cases and error handling tests
+└── doctest.h              # doctest header (single-file framework)
 ```
+
+Tests are compiled into the library with `ENABLE_RUNTIME_TESTS` defined (Debug only) and exposed to GDScript via the `RuntimeTests` class.
+
+### Why Runtime-Embedded Tests?
+
+**Key Insight:** Godot types like `Array`, `Dictionary`, and `Variant` require the full Godot runtime to be initialized. POD types like `Vector2` and `Color` can work without it, but for consistency and simplicity, **all C++ tests run inside the Godot runtime**.
+
+This approach:
+- ✅ Allows testing both POD and runtime-dependent types in one place
+- ✅ Simpler to maintain (one test framework, one way to run tests)
+- ✅ More realistic testing environment (how the code actually runs)
+- ✅ No need for separate test executables or complex build configurations
 
 ### What's Tested
 
-**Math Types:**
-- Vector2, Vector2i, Vector3, Vector3i, Color
-- Construction and round-trip conversion (Godot → Lua → Godot)
-- Property access and modification
-- All arithmetic operators (+, -, *, /, unary -)
-- Equality comparison
-- String conversion
+**POD Math Types:**
+- Vector2/Vector2i: Construction, property access, arithmetic operators, equality, tostring
+- Vector3/Vector3i: Native vector type operations, property access
+- Color: RGBA operations, arithmetic, property access
+- Type checking: Verify correct type identification
 
-**Array/Table Bridging:**
-- Simple arrays: `[1, 2, 3]` ↔ Lua table `{1, 2, 3}`
-- Mixed-type arrays
-- Nested arrays
-- Empty arrays
-- Array vs Dictionary detection logic
-- Large arrays (performance)
-
-**Dictionary/Table Bridging:**
-- String-keyed dictionaries
-- Integer-keyed dictionaries
-- Mixed key types
-- Nested dictionaries
-- Empty dictionaries
-- Special string keys (with spaces, dots, etc.)
-
-**Variant Conversions:**
-- All primitive types (nil, bool, int, float, string)
-- Math types as variants
-- Collections as variants
-- Nested structures
-- Round-trip through Lua execution
-
-**Edge Cases:**
-- Division by zero
-- NaN and infinity handling
-- Nil values in structures
-- Type mismatches
-- Stack management
-- Unicode and special strings
-- Boundary values for integers
-- Large collections
+**Runtime-Dependent Types:**
+- **Array Bridging:** Simple arrays, mixed types, nested arrays, empty arrays, round-trip conversions
+- **Dictionary Bridging:** String/integer keys, mixed keys, nested dictionaries, round-trip conversions
+- **Variant Conversions:** All supported Variant types, nested structures, type preservation
+- **Array vs Dictionary Detection:** Proper detection based on Lua table structure
 
 ### Building and Running
 
-**Build tests:**
+**Build with tests (Debug only):**
 ```bash
 cmake --preset default
-cmake --build --preset default
+cmake --build --preset default -j
 ```
 
 **Run tests:**
 ```bash
-# Windows
-./bin/gdluau_tests.exe
-
-# Linux/macOS
-./bin/gdluau_tests
+# The test runner is integrated into the demo project
+godot --headless --path demo/ -- --run-runtime-tests
 ```
 
-**Run with CTest:**
-```bash
-cd build
-ctest
-```
+**How it works:**
+1. `demo/test_runner.gd` is the main scene
+2. It checks for `--run-runtime-tests` command-line flag
+3. If present: calls `RuntimeTests.run()` and exits with pass/fail status
+4. If not present: loads normal demo scene (`main.tscn`)
 
 ### Output
 
 doctest provides detailed output for failures:
 ```
-test_math_types.cpp:45: FAILED:
+tests_runtime.cpp:45: FAILED:
   CHECK( result.x == doctest::Approx(4.0) )
 with expansion:
   CHECK( 3.9999 == Approx( 4.0 ) )
@@ -102,9 +83,16 @@ with expansion:
 
 Successful runs show:
 ```
-[doctest] test cases:  50 |  50 passed | 0 failed | 0 skipped
-[doctest] assertions: 250 | 250 passed | 0 failed |
-[doctest] Status: SUCCESS!
+=== Running Runtime-Embedded C++ Tests ===
+
+[doctest] test cases:  15 |  15 passed | 0 failed | 0 skipped
+[doctest] assertions: 120 | 120 passed | 0 failed |
+
+=== Test Results ===
+Test cases: 15 passed, 0 failed
+Assertions: 120 passed, 0 failed
+
+✓ All tests passed!
 ```
 
 ## GDScript Integration Tests (GUT)
@@ -175,9 +163,6 @@ godot --headless -s --path demo/ addons/gut/gut_cmdln.gd -gdir=res://test -gpref
 - `-gjunit_xml_file=<path>`: Export results to JUnit XML format
 - `-gdisable_colors`: Disable colored output (useful for CI logs)
 
-**Option 3: From Demo Scene**
-The GUT panel can also be added to any scene for interactive testing.
-
 ### Test Output
 
 GUT provides detailed assertion output:
@@ -205,7 +190,6 @@ Tests: 48 | Passed: 47 | Failed: 1
 - ✅ Variant system (all supported types)
 - ✅ Nested structures (arrays in dicts, dicts in arrays, etc.)
 - ✅ Type detection (isarray, isdictionary)
-- ✅ Edge cases and error handling
 
 ### Not Yet Implemented (Stubs Only)
 
@@ -222,7 +206,10 @@ Tests run automatically on every push and pull request via GitHub Actions:
 
 ```yaml
 - name: Run C++ tests
-  run: ./bin/gdluau_tests
+  run: godot --headless --path demo/ -- --run-runtime-tests
+
+- name: Run GDScript tests
+  run: godot --headless -s --path demo/ addons/gut/gut_cmdln.gd -gdir=res://test -gexit
 ```
 
 The CI runs tests on:
@@ -236,12 +223,7 @@ All tests must pass for the build to succeed.
 
 ### Adding C++ Tests
 
-1. **Choose the appropriate file** based on what you're testing
-   - Math types → `test_math_types.cpp`
-   - Arrays → `test_arrays.cpp`
-   - Dictionaries → `test_dictionaries.cpp`
-   - Variants → `test_variants.cpp`
-   - Edge cases → `test_edge_cases.cpp`
+1. **Edit `src/tests_runtime.cpp`** to add new test cases
 
 2. **Write a test case:**
    ```cpp
@@ -269,6 +251,27 @@ All tests must pass for the build to succeed.
    }
    ```
 
+4. **For runtime types, use the LuaState wrapper:**
+   ```cpp
+   TEST_CASE("Array round-trip") {
+       LuaState* wrapper = create_wrapper_state();
+
+       Array arr;
+       arr.push_back(1);
+       arr.push_back(2);
+
+       wrapper->pusharray(arr);
+       wrapper->setglobal("test");
+
+       wrapper->getglobal("test");
+       Array result = wrapper->toarray(-1);
+
+       CHECK(result.size() == 2);
+
+       close_wrapper_state(wrapper);
+   }
+   ```
+
 ### Adding GDScript Tests
 
 1. **Choose the appropriate file** or create a new one following the naming convention `test_*_integration.gd`
@@ -281,11 +284,10 @@ All tests must pass for the build to succeed.
 
    func before_each():
        L = LuaState.new()
-       L.openlibs()
+       L.openlibs(LuaState.LIB_ALL)
 
    func after_each():
        if L:
-           L.close()
            L = null
 
    func test_my_feature():
@@ -304,24 +306,25 @@ All tests must pass for the build to succeed.
 3. **Use appropriate assertions:**
    - `CHECK` for non-critical assertions (test continues)
    - `REQUIRE` for critical assertions (test stops)
-   - `assert_almost_eq` for floating-point comparisons
-4. **Clean up resources:** Close LuaState in `after_each()` or after test
+   - `doctest::Approx()` for floating-point comparisons
+4. **Clean up resources:** Close LuaState after tests
 5. **Keep tests focused:** Each test should verify one specific behavior
 6. **Use meaningful names:** Test names should describe what they verify
 
 ## Troubleshooting
 
-### C++ Tests Fail to Compile
+### RuntimeTests Class Not Found
 
-- Ensure godot-cpp and Luau are properly fetched by CMake
-- Check that `CMAKE_CXX_STANDARD` is set to 17
-- Verify include paths in CMakeLists.txt
+- Ensure you built in Debug mode: `cmake --preset default`
+- Runtime tests are only available in Debug builds
+- Check that `ENABLE_RUNTIME_TESTS` is defined during compilation
 
 ### C++ Tests Crash
 
 - Check for memory leaks (unclosed lua_State)
 - Verify stack is balanced (pushes match pops)
 - Look for null pointer dereferences
+- Ensure Godot runtime types are created after runtime initialization
 
 ### GUT Tests Not Found
 
