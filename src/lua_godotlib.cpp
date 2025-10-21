@@ -357,7 +357,7 @@ static int vector3_constructor(lua_State *L)
     return 1;
 }
 
-// Vector3 now uses Luau's native vector type - no metatable needed
+// Vector3 uses Luau's native vector type - no metatable needed
 // Operators (+, -, *, /, unary -, ==) are handled natively by the VM
 // Property access (x, y, z) is handled by Luau's built-in vector.__index
 

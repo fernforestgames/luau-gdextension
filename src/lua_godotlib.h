@@ -6,12 +6,11 @@
 namespace godot
 {
     // Userdata tags for each math type
-    // Note: Vector3 uses Luau's native vector type (LUA_TVECTOR), not userdata
     enum LuaMathTag
     {
         LUA_TAG_VECTOR2 = 1,
         LUA_TAG_VECTOR2I,
-        // LUA_TAG_VECTOR3 removed - using native vector type
+        // Vector3 uses native vector type, so does not have a userdata tag
         LUA_TAG_VECTOR3I = 3,
         LUA_TAG_VECTOR4,
         LUA_TAG_VECTOR4I,
@@ -27,7 +26,6 @@ namespace godot
         LUA_TAG_PROJECTION,
     };
 
-    // Generic push/to functions for math types
     void push_vector2(lua_State *L, const Vector2 &value);
     void push_vector2i(lua_State *L, const Vector2i &value);
     void push_vector3(lua_State *L, const Vector3 &value);
@@ -45,7 +43,6 @@ namespace godot
     void push_transform3d(lua_State *L, const Transform3D &value);
     void push_projection(lua_State *L, const Projection &value);
 
-    // Check if value at index is a specific math type
     bool is_vector2(lua_State *L, int index);
     bool is_vector2i(lua_State *L, int index);
     bool is_vector3(lua_State *L, int index);
@@ -63,7 +60,6 @@ namespace godot
     bool is_transform3d(lua_State *L, int index);
     bool is_projection(lua_State *L, int index);
 
-    // Extract math types from userdata
     Vector2 to_vector2(lua_State *L, int index);
     Vector2i to_vector2i(lua_State *L, int index);
     Vector3 to_vector3(lua_State *L, int index);
