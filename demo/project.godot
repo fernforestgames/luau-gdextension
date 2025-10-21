@@ -14,6 +14,10 @@ config/name="Luau GDExtension Demo"
 run/main_scene="res://test_runner.tscn"
 config/features=PackedStringArray("4.5", "GL Compatibility")
 
+[editor_plugins]
+
+enabled=PackedStringArray("res://addons/gut/plugin.cfg")
+
 [rendering]
 
 renderer/rendering_method="gl_compatibility"
