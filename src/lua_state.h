@@ -55,7 +55,7 @@ namespace godot
         void pause(); // a.k.a. break
 
         // Stack manipulation
-        int gettop();
+        int gettop() const;
         void settop(int index);
         void pop(int n);
         void pushvalue(int index);
@@ -64,15 +64,15 @@ namespace godot
         void replace(int index);
 
         // Type checking
-        bool isnil(int index);
-        bool isnumber(int index);
-        bool isstring(int index);
-        bool istable(int index);
-        bool isfunction(int index);
-        bool isuserdata(int index);
-        bool isboolean(int index);
-        int type(int index);
-        String type_name(int type_id);
+        bool isnil(int index) const;
+        bool isnumber(int index) const;
+        bool isstring(int index) const;
+        bool istable(int index) const;
+        bool isfunction(int index) const;
+        bool isuserdata(int index) const;
+        bool isboolean(int index) const;
+        int type(int index) const;
+        String type_name(int type_id) const;
 
         // Value access
         String tostring(int index);

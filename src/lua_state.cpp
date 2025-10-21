@@ -422,7 +422,7 @@ void LuaState::pushvariant(const Variant &value)
 }
 
 // Stack manipulation
-int LuaState::gettop()
+int LuaState::gettop() const
 {
     ERR_FAIL_NULL_V_MSG(L, 0, "Lua state is null. Cannot get stack top.");
     return lua_gettop(L);
@@ -465,55 +465,55 @@ void LuaState::replace(int index)
 }
 
 // Type checking
-bool LuaState::isnil(int index)
+bool LuaState::isnil(int index) const
 {
     ERR_FAIL_NULL_V_MSG(L, false, "Lua state is null. Cannot check type.");
     return lua_isnil(L, index);
 }
 
-bool LuaState::isnumber(int index)
+bool LuaState::isnumber(int index) const
 {
     ERR_FAIL_NULL_V_MSG(L, false, "Lua state is null. Cannot check type.");
     return lua_isnumber(L, index) != 0;
 }
 
-bool LuaState::isstring(int index)
+bool LuaState::isstring(int index) const
 {
     ERR_FAIL_NULL_V_MSG(L, false, "Lua state is null. Cannot check type.");
     return lua_isstring(L, index) != 0;
 }
 
-bool LuaState::istable(int index)
+bool LuaState::istable(int index) const
 {
     ERR_FAIL_NULL_V_MSG(L, false, "Lua state is null. Cannot check type.");
     return lua_istable(L, index);
 }
 
-bool LuaState::isfunction(int index)
+bool LuaState::isfunction(int index) const
 {
     ERR_FAIL_NULL_V_MSG(L, false, "Lua state is null. Cannot check type.");
     return lua_isfunction(L, index);
 }
 
-bool LuaState::isuserdata(int index)
+bool LuaState::isuserdata(int index) const
 {
     ERR_FAIL_NULL_V_MSG(L, false, "Lua state is null. Cannot check type.");
     return lua_isuserdata(L, index) != 0;
 }
 
-bool LuaState::isboolean(int index)
+bool LuaState::isboolean(int index) const
 {
     ERR_FAIL_NULL_V_MSG(L, false, "Lua state is null. Cannot check type.");
     return lua_isboolean(L, index);
 }
 
-int LuaState::type(int index)
+int LuaState::type(int index) const
 {
     ERR_FAIL_NULL_V_MSG(L, LUA_TNONE, "Lua state is null. Cannot get type.");
     return lua_type(L, index);
 }
 
-String LuaState::type_name(int type_id)
+String LuaState::type_name(int type_id) const
 {
     ERR_FAIL_NULL_V_MSG(L, String(), "Lua state is null. Cannot get type name.");
     return String(lua_typename(L, type_id));
