@@ -11,6 +11,17 @@
 #include <godot_cpp/variant/vector2i.hpp>
 #include <godot_cpp/variant/vector3.hpp>
 #include <godot_cpp/variant/vector3i.hpp>
+#include <godot_cpp/variant/vector4.hpp>
+#include <godot_cpp/variant/vector4i.hpp>
+#include <godot_cpp/variant/rect2.hpp>
+#include <godot_cpp/variant/rect2i.hpp>
+#include <godot_cpp/variant/aabb.hpp>
+#include <godot_cpp/variant/plane.hpp>
+#include <godot_cpp/variant/quaternion.hpp>
+#include <godot_cpp/variant/basis.hpp>
+#include <godot_cpp/variant/transform2d.hpp>
+#include <godot_cpp/variant/transform3d.hpp>
+#include <godot_cpp/variant/projection.hpp>
 #include <godot_cpp/variant/color.hpp>
 #include <godot_cpp/variant/array.hpp>
 #include <godot_cpp/variant/dictionary.hpp>
@@ -456,6 +467,434 @@ TEST_CASE("Math types: Type checking") {
         CHECK(is_color(L, -1));
         CHECK_FALSE(is_vector2(L, -1));
         CHECK_FALSE(is_vector3(L, -1));
+    }
+
+    close_test_state(L);
+}
+
+// ============================================================================
+// Vector4 Tests
+// ============================================================================
+
+TEST_CASE("Vector4: Construction and round-trip conversion") {
+    lua_State* L = create_test_state();
+
+    SUBCASE("Push Vector4 to Lua and retrieve") {
+        Vector4 original(1.5, 2.5, 3.5, 4.5);
+        push_vector4(L, original);
+
+        CHECK(is_vector4(L, -1));
+
+        Vector4 retrieved = to_vector4(L, -1);
+        CHECK(retrieved.x == doctest::Approx(1.5));
+        CHECK(retrieved.y == doctest::Approx(2.5));
+        CHECK(retrieved.z == doctest::Approx(3.5));
+        CHECK(retrieved.w == doctest::Approx(4.5));
+    }
+
+    SUBCASE("Create Vector4 in Lua via constructor") {
+        exec_lua(L, "v = Vector4(10.5, 20.3, 30.1, 40.9)");
+        lua_getglobal(L, "v");
+
+        CHECK(is_vector4(L, -1));
+
+        Vector4 result = to_vector4(L, -1);
+        CHECK(result.x == doctest::Approx(10.5));
+        CHECK(result.y == doctest::Approx(20.3));
+        CHECK(result.z == doctest::Approx(30.1));
+        CHECK(result.w == doctest::Approx(40.9));
+    }
+
+    close_test_state(L);
+}
+
+TEST_CASE("Vector4: Arithmetic operators") {
+    lua_State* L = create_test_state();
+
+    SUBCASE("Addition") {
+        exec_lua(L, "result = Vector4(1, 2, 3, 4) + Vector4(5, 6, 7, 8)");
+        lua_getglobal(L, "result");
+        Vector4 result = to_vector4(L, -1);
+        CHECK(result.x == doctest::Approx(6.0));
+        CHECK(result.y == doctest::Approx(8.0));
+        CHECK(result.z == doctest::Approx(10.0));
+        CHECK(result.w == doctest::Approx(12.0));
+    }
+
+    SUBCASE("Scalar multiplication") {
+        exec_lua(L, "result = Vector4(2, 3, 4, 5) * 2.5");
+        lua_getglobal(L, "result");
+        Vector4 result = to_vector4(L, -1);
+        CHECK(result.x == doctest::Approx(5.0));
+        CHECK(result.y == doctest::Approx(7.5));
+        CHECK(result.z == doctest::Approx(10.0));
+        CHECK(result.w == doctest::Approx(12.5));
+    }
+
+    SUBCASE("Unary negation") {
+        exec_lua(L, "result = -Vector4(5, -3, 2, -1)");
+        lua_getglobal(L, "result");
+        Vector4 result = to_vector4(L, -1);
+        CHECK(result.x == doctest::Approx(-5.0));
+        CHECK(result.y == doctest::Approx(3.0));
+        CHECK(result.z == doctest::Approx(-2.0));
+        CHECK(result.w == doctest::Approx(1.0));
+    }
+
+    close_test_state(L);
+}
+
+TEST_CASE("Vector4i: Construction and operators") {
+    lua_State* L = create_test_state();
+
+    SUBCASE("Constructor and property access") {
+        exec_lua(L, "v = Vector4i(10, 20, 30, 40)");
+        lua_getglobal(L, "v");
+
+        CHECK(is_vector4i(L, -1));
+
+        Vector4i result = to_vector4i(L, -1);
+        CHECK(result.x == 10);
+        CHECK(result.y == 20);
+        CHECK(result.z == 30);
+        CHECK(result.w == 40);
+    }
+
+    SUBCASE("Addition") {
+        exec_lua(L, "result = Vector4i(1, 2, 3, 4) + Vector4i(5, 6, 7, 8)");
+        lua_getglobal(L, "result");
+        Vector4i result = to_vector4i(L, -1);
+        CHECK(result.x == 6);
+        CHECK(result.y == 8);
+        CHECK(result.z == 10);
+        CHECK(result.w == 12);
+    }
+
+    close_test_state(L);
+}
+
+// ============================================================================
+// Rect2 Tests
+// ============================================================================
+
+TEST_CASE("Rect2: Construction and properties") {
+    lua_State* L = create_test_state();
+
+    SUBCASE("Push Rect2 to Lua and retrieve") {
+        Rect2 original(10.0, 20.0, 100.0, 200.0);
+        push_rect2(L, original);
+
+        CHECK(is_rect2(L, -1));
+
+        Rect2 retrieved = to_rect2(L, -1);
+        CHECK(retrieved.position.x == doctest::Approx(10.0));
+        CHECK(retrieved.position.y == doctest::Approx(20.0));
+        CHECK(retrieved.size.x == doctest::Approx(100.0));
+        CHECK(retrieved.size.y == doctest::Approx(200.0));
+    }
+
+    SUBCASE("Create Rect2 in Lua via constructor") {
+        exec_lua(L, "r = Rect2(5, 10, 50, 100)");
+        lua_getglobal(L, "r");
+
+        CHECK(is_rect2(L, -1));
+
+        Rect2 result = to_rect2(L, -1);
+        CHECK(result.position.x == doctest::Approx(5.0));
+        CHECK(result.position.y == doctest::Approx(10.0));
+        CHECK(result.size.x == doctest::Approx(50.0));
+        CHECK(result.size.y == doctest::Approx(100.0));
+    }
+
+    SUBCASE("Property access") {
+        exec_lua(L, "r = Rect2(1, 2, 3, 4)");
+        exec_lua(L, "x = r.x; y = r.y; w = r.width; h = r.height");
+
+        lua_getglobal(L, "x");
+        CHECK(lua_tonumber(L, -1) == doctest::Approx(1.0));
+        lua_pop(L, 1);
+
+        lua_getglobal(L, "w");
+        CHECK(lua_tonumber(L, -1) == doctest::Approx(3.0));
+    }
+
+    close_test_state(L);
+}
+
+TEST_CASE("Rect2i: Construction and properties") {
+    lua_State* L = create_test_state();
+
+    SUBCASE("Constructor") {
+        exec_lua(L, "r = Rect2i(10, 20, 100, 200)");
+        lua_getglobal(L, "r");
+
+        CHECK(is_rect2i(L, -1));
+
+        Rect2i result = to_rect2i(L, -1);
+        CHECK(result.position.x == 10);
+        CHECK(result.position.y == 20);
+        CHECK(result.size.x == 100);
+        CHECK(result.size.y == 200);
+    }
+
+    close_test_state(L);
+}
+
+// ============================================================================
+// AABB Tests
+// ============================================================================
+
+TEST_CASE("AABB: Construction and properties") {
+    lua_State* L = create_test_state();
+
+    SUBCASE("Push AABB to Lua and retrieve") {
+        AABB original(Vector3(1, 2, 3), Vector3(10, 20, 30));
+        push_aabb(L, original);
+
+        CHECK(is_aabb(L, -1));
+
+        AABB retrieved = to_aabb(L, -1);
+        CHECK(retrieved.position.x == doctest::Approx(1.0));
+        CHECK(retrieved.position.y == doctest::Approx(2.0));
+        CHECK(retrieved.position.z == doctest::Approx(3.0));
+        CHECK(retrieved.size.x == doctest::Approx(10.0));
+        CHECK(retrieved.size.y == doctest::Approx(20.0));
+        CHECK(retrieved.size.z == doctest::Approx(30.0));
+    }
+
+    SUBCASE("Create AABB in Lua via constructor") {
+        exec_lua(L, "aabb = AABB(5, 10, 15, 50, 100, 150)");
+        lua_getglobal(L, "aabb");
+
+        CHECK(is_aabb(L, -1));
+
+        AABB result = to_aabb(L, -1);
+        CHECK(result.position.x == doctest::Approx(5.0));
+        CHECK(result.position.y == doctest::Approx(10.0));
+        CHECK(result.position.z == doctest::Approx(15.0));
+        CHECK(result.size.x == doctest::Approx(50.0));
+        CHECK(result.size.y == doctest::Approx(100.0));
+        CHECK(result.size.z == doctest::Approx(150.0));
+    }
+
+    close_test_state(L);
+}
+
+// ============================================================================
+// Plane Tests
+// ============================================================================
+
+TEST_CASE("Plane: Construction and properties") {
+    lua_State* L = create_test_state();
+
+    SUBCASE("Push Plane to Lua and retrieve") {
+        Plane original(1.0, 0.0, 0.0, 5.0);
+        push_plane(L, original);
+
+        CHECK(is_plane(L, -1));
+
+        Plane retrieved = to_plane(L, -1);
+        CHECK(retrieved.normal.x == doctest::Approx(1.0));
+        CHECK(retrieved.normal.y == doctest::Approx(0.0));
+        CHECK(retrieved.normal.z == doctest::Approx(0.0));
+        CHECK(retrieved.d == doctest::Approx(5.0));
+    }
+
+    SUBCASE("Create Plane in Lua via constructor") {
+        exec_lua(L, "p = Plane(0, 1, 0, 10)");
+        lua_getglobal(L, "p");
+
+        CHECK(is_plane(L, -1));
+
+        Plane result = to_plane(L, -1);
+        CHECK(result.normal.x == doctest::Approx(0.0));
+        CHECK(result.normal.y == doctest::Approx(1.0));
+        CHECK(result.normal.z == doctest::Approx(0.0));
+        CHECK(result.d == doctest::Approx(10.0));
+    }
+
+    SUBCASE("Unary negation") {
+        exec_lua(L, "result = -Plane(1, 0, 0, 5)");
+        lua_getglobal(L, "result");
+        Plane result = to_plane(L, -1);
+        CHECK(result.normal.x == doctest::Approx(-1.0));
+        CHECK(result.d == doctest::Approx(-5.0));
+    }
+
+    close_test_state(L);
+}
+
+// ============================================================================
+// Quaternion Tests
+// ============================================================================
+
+TEST_CASE("Quaternion: Construction and operators") {
+    lua_State* L = create_test_state();
+
+    SUBCASE("Push Quaternion to Lua and retrieve") {
+        Quaternion original(0.0, 0.0, 0.0, 1.0);
+        push_quaternion(L, original);
+
+        CHECK(is_quaternion(L, -1));
+
+        Quaternion retrieved = to_quaternion(L, -1);
+        CHECK(retrieved.x == doctest::Approx(0.0));
+        CHECK(retrieved.y == doctest::Approx(0.0));
+        CHECK(retrieved.z == doctest::Approx(0.0));
+        CHECK(retrieved.w == doctest::Approx(1.0));
+    }
+
+    SUBCASE("Create Quaternion in Lua via constructor") {
+        exec_lua(L, "q = Quaternion(1, 2, 3, 4)");
+        lua_getglobal(L, "q");
+
+        CHECK(is_quaternion(L, -1));
+
+        Quaternion result = to_quaternion(L, -1);
+        CHECK(result.x == doctest::Approx(1.0));
+        CHECK(result.y == doctest::Approx(2.0));
+        CHECK(result.z == doctest::Approx(3.0));
+        CHECK(result.w == doctest::Approx(4.0));
+    }
+
+    SUBCASE("Addition") {
+        exec_lua(L, "result = Quaternion(1, 2, 3, 4) + Quaternion(5, 6, 7, 8)");
+        lua_getglobal(L, "result");
+        Quaternion result = to_quaternion(L, -1);
+        CHECK(result.x == doctest::Approx(6.0));
+        CHECK(result.y == doctest::Approx(8.0));
+        CHECK(result.z == doctest::Approx(10.0));
+        CHECK(result.w == doctest::Approx(12.0));
+    }
+
+    SUBCASE("Scalar multiplication") {
+        exec_lua(L, "result = Quaternion(1, 2, 3, 4) * 2.0");
+        lua_getglobal(L, "result");
+        Quaternion result = to_quaternion(L, -1);
+        CHECK(result.x == doctest::Approx(2.0));
+        CHECK(result.y == doctest::Approx(4.0));
+        CHECK(result.z == doctest::Approx(6.0));
+        CHECK(result.w == doctest::Approx(8.0));
+    }
+
+    close_test_state(L);
+}
+
+// ============================================================================
+// Basis Tests
+// ============================================================================
+
+TEST_CASE("Basis: Construction") {
+    lua_State* L = create_test_state();
+
+    SUBCASE("Push Basis to Lua and retrieve") {
+        Basis original; // Identity
+        push_basis(L, original);
+
+        CHECK(is_basis(L, -1));
+
+        Basis retrieved = to_basis(L, -1);
+        CHECK(retrieved == Basis()); // Should be identity
+    }
+
+    SUBCASE("Create Basis in Lua via constructor") {
+        exec_lua(L, "b = Basis()");
+        lua_getglobal(L, "b");
+
+        CHECK(is_basis(L, -1));
+
+        Basis result = to_basis(L, -1);
+        CHECK(result == Basis()); // Should be identity
+    }
+
+    close_test_state(L);
+}
+
+// ============================================================================
+// Transform2D Tests
+// ============================================================================
+
+TEST_CASE("Transform2D: Construction") {
+    lua_State* L = create_test_state();
+
+    SUBCASE("Push Transform2D to Lua and retrieve") {
+        Transform2D original; // Identity
+        push_transform2d(L, original);
+
+        CHECK(is_transform2d(L, -1));
+
+        Transform2D retrieved = to_transform2d(L, -1);
+        CHECK(retrieved == Transform2D()); // Should be identity
+    }
+
+    SUBCASE("Create Transform2D in Lua via constructor") {
+        exec_lua(L, "t = Transform2D()");
+        lua_getglobal(L, "t");
+
+        CHECK(is_transform2d(L, -1));
+
+        Transform2D result = to_transform2d(L, -1);
+        CHECK(result == Transform2D()); // Should be identity
+    }
+
+    close_test_state(L);
+}
+
+// ============================================================================
+// Transform3D Tests
+// ============================================================================
+
+TEST_CASE("Transform3D: Construction") {
+    lua_State* L = create_test_state();
+
+    SUBCASE("Push Transform3D to Lua and retrieve") {
+        Transform3D original; // Identity
+        push_transform3d(L, original);
+
+        CHECK(is_transform3d(L, -1));
+
+        Transform3D retrieved = to_transform3d(L, -1);
+        CHECK(retrieved == Transform3D()); // Should be identity
+    }
+
+    SUBCASE("Create Transform3D in Lua via constructor") {
+        exec_lua(L, "t = Transform3D()");
+        lua_getglobal(L, "t");
+
+        CHECK(is_transform3d(L, -1));
+
+        Transform3D result = to_transform3d(L, -1);
+        CHECK(result == Transform3D()); // Should be identity
+    }
+
+    close_test_state(L);
+}
+
+// ============================================================================
+// Projection Tests
+// ============================================================================
+
+TEST_CASE("Projection: Construction") {
+    lua_State* L = create_test_state();
+
+    SUBCASE("Push Projection to Lua and retrieve") {
+        Projection original; // Identity
+        push_projection(L, original);
+
+        CHECK(is_projection(L, -1));
+
+        Projection retrieved = to_projection(L, -1);
+        CHECK(retrieved == Projection()); // Should be identity
+    }
+
+    SUBCASE("Create Projection in Lua via constructor") {
+        exec_lua(L, "p = Projection()");
+        lua_getglobal(L, "p");
+
+        CHECK(is_projection(L, -1));
+
+        Projection result = to_projection(L, -1);
+        CHECK(result == Projection()); // Should be identity
     }
 
     close_test_state(L);
