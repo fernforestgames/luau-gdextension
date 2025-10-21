@@ -466,9 +466,30 @@ Variant LuaState::tovariant(int index)
             return Variant(to_vector3(L, index));
         else if (is_vector3i(L, index))
             return Variant(to_vector3i(L, index));
+        else if (is_vector4(L, index))
+            return Variant(to_vector4(L, index));
+        else if (is_vector4i(L, index))
+            return Variant(to_vector4i(L, index));
         else if (is_color(L, index))
             return Variant(to_color(L, index));
-        // TODO: Add more types as they are implemented
+        else if (is_rect2(L, index))
+            return Variant(to_rect2(L, index));
+        else if (is_rect2i(L, index))
+            return Variant(to_rect2i(L, index));
+        else if (is_aabb(L, index))
+            return Variant(to_aabb(L, index));
+        else if (is_plane(L, index))
+            return Variant(to_plane(L, index));
+        else if (is_quaternion(L, index))
+            return Variant(to_quaternion(L, index));
+        else if (is_basis(L, index))
+            return Variant(to_basis(L, index));
+        else if (is_transform2d(L, index))
+            return Variant(to_transform2d(L, index));
+        else if (is_transform3d(L, index))
+            return Variant(to_transform3d(L, index));
+        else if (is_projection(L, index))
+            return Variant(to_projection(L, index));
 
         ERR_PRINT("Cannot convert Lua userdata to Variant (unknown type).");
         return Variant();
@@ -580,24 +601,48 @@ void LuaState::pushvariant(const Variant &value)
         push_color(L, value);
         break;
 
-    // TODO: Add more math types as they are implemented
     case Variant::VECTOR4:
+        push_vector4(L, value);
+        break;
+
     case Variant::VECTOR4I:
+        push_vector4i(L, value);
+        break;
+
     case Variant::RECT2:
+        push_rect2(L, value);
+        break;
+
     case Variant::RECT2I:
+        push_rect2i(L, value);
+        break;
+
     case Variant::AABB:
+        push_aabb(L, value);
+        break;
+
     case Variant::PLANE:
+        push_plane(L, value);
+        break;
+
     case Variant::QUATERNION:
+        push_quaternion(L, value);
+        break;
+
     case Variant::BASIS:
+        push_basis(L, value);
+        break;
+
     case Variant::TRANSFORM2D:
+        push_transform2d(L, value);
+        break;
+
     case Variant::TRANSFORM3D:
+        push_transform3d(L, value);
+        break;
+
     case Variant::PROJECTION:
-        // For now, convert unsupported math types to string
-        {
-            String str = value;
-            pushstring(str);
-            ERR_PRINT(vformat("Variant math type %d not yet supported. Converted to string: %s", variant_type, str));
-        }
+        push_projection(L, value);
         break;
 
     default:

@@ -201,6 +201,128 @@ func test_color_variant():
 	assert_almost_eq(retrieved.b, 0.0, 0.001)
 	assert_almost_eq(retrieved.a, 0.8, 0.001)
 
+func test_vector4_variant():
+	var vec = Vector4(1.5, 2.5, 3.5, 4.5)
+
+	L.pushvariant(vec)
+	var retrieved = L.tovariant(-1)
+
+	assert_typeof(retrieved, TYPE_VECTOR4)
+	assert_almost_eq(retrieved.x, 1.5, 0.001)
+	assert_almost_eq(retrieved.y, 2.5, 0.001)
+	assert_almost_eq(retrieved.z, 3.5, 0.001)
+	assert_almost_eq(retrieved.w, 4.5, 0.001)
+
+func test_vector4i_variant():
+	var vec = Vector4i(10, 20, 30, 40)
+
+	L.pushvariant(vec)
+	var retrieved = L.tovariant(-1)
+
+	assert_typeof(retrieved, TYPE_VECTOR4I)
+	assert_eq(retrieved.x, 10)
+	assert_eq(retrieved.y, 20)
+	assert_eq(retrieved.z, 30)
+	assert_eq(retrieved.w, 40)
+
+func test_rect2_variant():
+	var rect = Rect2(10.0, 20.0, 100.0, 200.0)
+
+	L.pushvariant(rect)
+	var retrieved = L.tovariant(-1)
+
+	assert_typeof(retrieved, TYPE_RECT2)
+	assert_almost_eq(retrieved.position.x, 10.0, 0.001)
+	assert_almost_eq(retrieved.position.y, 20.0, 0.001)
+	assert_almost_eq(retrieved.size.x, 100.0, 0.001)
+	assert_almost_eq(retrieved.size.y, 200.0, 0.001)
+
+func test_rect2i_variant():
+	var rect = Rect2i(5, 10, 50, 100)
+
+	L.pushvariant(rect)
+	var retrieved = L.tovariant(-1)
+
+	assert_typeof(retrieved, TYPE_RECT2I)
+	assert_eq(retrieved.position.x, 5)
+	assert_eq(retrieved.position.y, 10)
+	assert_eq(retrieved.size.x, 50)
+	assert_eq(retrieved.size.y, 100)
+
+func test_aabb_variant():
+	var box = AABB(Vector3(1, 2, 3), Vector3(10, 20, 30))
+
+	L.pushvariant(box)
+	var retrieved = L.tovariant(-1)
+
+	assert_typeof(retrieved, TYPE_AABB)
+	assert_almost_eq(retrieved.position.x, 1.0, 0.001)
+	assert_almost_eq(retrieved.position.y, 2.0, 0.001)
+	assert_almost_eq(retrieved.position.z, 3.0, 0.001)
+	assert_almost_eq(retrieved.size.x, 10.0, 0.001)
+	assert_almost_eq(retrieved.size.y, 20.0, 0.001)
+	assert_almost_eq(retrieved.size.z, 30.0, 0.001)
+
+func test_plane_variant():
+	var plane = Plane(1.0, 0.0, 0.0, 5.0)
+
+	L.pushvariant(plane)
+	var retrieved = L.tovariant(-1)
+
+	assert_typeof(retrieved, TYPE_PLANE)
+	assert_almost_eq(retrieved.normal.x, 1.0, 0.001)
+	assert_almost_eq(retrieved.normal.y, 0.0, 0.001)
+	assert_almost_eq(retrieved.normal.z, 0.0, 0.001)
+	assert_almost_eq(retrieved.d, 5.0, 0.001)
+
+func test_quaternion_variant():
+	var quat = Quaternion(0.0, 0.0, 0.0, 1.0)
+
+	L.pushvariant(quat)
+	var retrieved = L.tovariant(-1)
+
+	assert_typeof(retrieved, TYPE_QUATERNION)
+	assert_almost_eq(retrieved.x, 0.0, 0.001)
+	assert_almost_eq(retrieved.y, 0.0, 0.001)
+	assert_almost_eq(retrieved.z, 0.0, 0.001)
+	assert_almost_eq(retrieved.w, 1.0, 0.001)
+
+func test_basis_variant():
+	var basis = Basis()  # Identity
+
+	L.pushvariant(basis)
+	var retrieved = L.tovariant(-1)
+
+	assert_typeof(retrieved, TYPE_BASIS)
+	assert_eq(retrieved, Basis())
+
+func test_transform2d_variant():
+	var transform = Transform2D()  # Identity
+
+	L.pushvariant(transform)
+	var retrieved = L.tovariant(-1)
+
+	assert_typeof(retrieved, TYPE_TRANSFORM2D)
+	assert_eq(retrieved, Transform2D())
+
+func test_transform3d_variant():
+	var transform = Transform3D()  # Identity
+
+	L.pushvariant(transform)
+	var retrieved = L.tovariant(-1)
+
+	assert_typeof(retrieved, TYPE_TRANSFORM3D)
+	assert_eq(retrieved, Transform3D())
+
+func test_projection_variant():
+	var projection = Projection()  # Identity
+
+	L.pushvariant(projection)
+	var retrieved = L.tovariant(-1)
+
+	assert_typeof(retrieved, TYPE_PROJECTION)
+	assert_eq(retrieved, Projection())
+
 # ============================================================================
 # Collection Variant Tests
 # ============================================================================
