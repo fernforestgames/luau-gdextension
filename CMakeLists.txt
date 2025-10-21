@@ -71,14 +71,8 @@ target_link_libraries(${PROJECT_NAME} PRIVATE
     Luau.VM
 )
 
-# Disable C++ exceptions (Godot doesn't use them, Luau uses setjmp/longjmp via LUAU_EXTERN_C)
+# Disable C++ exceptions in our code (Godot doesn't use them, Luau uses setjmp/longjmp via LUAU_EXTERN_C)
 if(MSVC)
-    # Remove exception handling flags that godot-cpp adds, then disable exceptions
-    get_target_property(GODOT_COMPILE_OPTIONS godot-cpp INTERFACE_COMPILE_OPTIONS)
-    if(GODOT_COMPILE_OPTIONS)
-        list(REMOVE_ITEM GODOT_COMPILE_OPTIONS /EHsc /EHs /EHc)
-        set_target_properties(godot-cpp PROPERTIES INTERFACE_COMPILE_OPTIONS "${GODOT_COMPILE_OPTIONS}")
-    endif()
     target_compile_options(${PROJECT_NAME} PRIVATE /EHs-c-)
     target_compile_definitions(${PROJECT_NAME} PRIVATE _HAS_EXCEPTIONS=0)
 else()
