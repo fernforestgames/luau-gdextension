@@ -153,9 +153,27 @@ The GUT tests provide integration testing from the GDScript/Godot Engine perspec
 
 **Option 2: Command Line (Headless)**
 ```bash
-# Navigate to Godot executable location
-godot --headless --path demo/ -s addons/gut/gut_cmdln.gd -gtest=res://test/ -gexit
+# Run all tests in demo/test/ directory
+godot --headless -s --path demo/ addons/gut/gut_cmdln.gd -gdir=res://test -gprefix=test_ -gexit
+
+# Run specific test file
+godot --headless -s --path demo/ addons/gut/gut_cmdln.gd -gtest=res://test/test_math_types_integration.gd -gexit
+
+# Run with more verbose output
+godot --headless -s --path demo/ addons/gut/gut_cmdln.gd -gdir=res://test -gprefix=test_ -glog=2 -gexit
+
+# Export results to JUnit XML (for CI)
+godot --headless -s --path demo/ addons/gut/gut_cmdln.gd -gdir=res://test -gprefix=test_ -gjunit_xml_file=test_results.xml -gexit
 ```
+
+**Command Line Options:**
+- `-gdir=<path>`: Directory to search for test files (default: `res://test`)
+- `-gprefix=<string>`: Test file prefix to match (default: `test_`)
+- `-gtest=<path>`: Run specific test file
+- `-glog=<0-3>`: Log verbosity level (0=quiet, 3=verbose)
+- `-gexit`: Exit after tests complete (required for CI)
+- `-gjunit_xml_file=<path>`: Export results to JUnit XML format
+- `-gdisable_colors`: Disable colored output (useful for CI logs)
 
 **Option 3: From Demo Scene**
 The GUT panel can also be added to any scene for interactive testing.
