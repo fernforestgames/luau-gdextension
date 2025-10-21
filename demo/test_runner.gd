@@ -42,9 +42,7 @@ func run_cpp_tests() -> bool:
 		return false
 
 	# Run the tests - doctest prints detailed results to stdout
-	# Use ClassDB to call the static method dynamically to avoid parse-time errors
-	var test_class = ClassDB.instantiate("LuauGDExtensionTests")
-	var results = test_class.run()
+	var results = LuauGDExtensionTests.run()
 
 	# Check success (doctest already printed detailed results)
 	print("")
