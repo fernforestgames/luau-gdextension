@@ -54,7 +54,7 @@ cmake --build --preset release -j
 ```
 
 Built binaries output to `bin/<platform>/` and are automatically copied to
-`demo/addons/luau_gdextension/build/`
+`demo/addons/luau_gdextension/bin/`
 
 Dependencies (auto-fetched via CMake, stored in `build/_deps/`):
 

@@ -87,16 +87,16 @@ jobs:
       - name: Download Godot
         run: |
           if [ "${{ matrix.platform }}" = "windows" ]; then
-            curl -L -o godot.zip https://github.com/godotengine/godot/releases/download/4.5-stable/Godot_v4.5-stable_win64.exe.zip
+            curl -L -o godot.zip https://github.com/godotengine/godot/releases/download/4.5.1-stable/Godot_v4.5.1-stable_win64.exe.zip
             unzip -q godot.zip
-            mv Godot_v4.5-stable_win64.exe godot.exe
+            mv Godot_v4.5.1-stable_win64.exe godot.exe
           elif [ "${{ matrix.platform }}" = "linux" ]; then
-            curl -L -o godot.zip https://github.com/godotengine/godot/releases/download/4.5-stable/Godot_v4.5-stable_linux.x86_64.zip
+            curl -L -o godot.zip https://github.com/godotengine/godot/releases/download/4.5.1-stable/Godot_v4.5.1-stable_linux.x86_64.zip
             unzip -q godot.zip
-            chmod +x Godot_v4.5-stable_linux.x86_64
-            mv Godot_v4.5-stable_linux.x86_64 godot
+            chmod +x Godot_v4.5.1-stable_linux.x86_64
+            mv Godot_v4.5.1-stable_linux.x86_64 godot
           elif [ "${{ matrix.platform }}" = "macos" ]; then
-            curl -L -o godot.zip https://github.com/godotengine/godot/releases/download/4.5-stable/Godot_v4.5-stable_macos.universal.zip
+            curl -L -o godot.zip https://github.com/godotengine/godot/releases/download/4.5.1-stable/Godot_v4.5.1-stable_macos.universal.zip
             unzip -q godot.zip
             # macOS app bundle structure
             chmod +x Godot.app/Contents/MacOS/Godot
@@ -106,13 +106,12 @@ jobs:
 
       - name: Run tests
         # Runs both C++ and GDScript tests (C++ tests only available in Debug builds)
-        # Use --debug flag to tell Godot to load debug libraries from .gdextension file
         if: matrix.build_type == 'Debug'
         run: |
           if [ "${{ matrix.platform }}" = "windows" ]; then
-            ./godot.exe --debug --headless --path demo/ -- --run-tests
+            ./godot.exe --headless --path demo/ -- --run-tests
           else
-            ./godot --debug --headless --path demo/ -- --run-tests
+            ./godot --headless --path demo/ -- --run-tests
           fi
         shell: bash
 
