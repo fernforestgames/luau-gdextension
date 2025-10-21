@@ -1,6 +1,5 @@
 #include "lua_state.h"
 #include "luau.h"
-#include "lua_math_types.h"
 #include "lua_godotlib.h"
 #include <godot_cpp/core/class_db.hpp>
 #include <godot_cpp/core/error_macros.hpp>
