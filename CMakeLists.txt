@@ -128,3 +128,48 @@ add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
 
 # Enable compile_commands.json for better IDE support
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+
+# ============================================================================
+# Test executable
+# ============================================================================
+
+# Collect test source files
+file(GLOB TEST_SOURCES
+    "tests/test_*.cpp"
+    "tests/test_main.cpp"
+)
+
+# Create test executable
+add_executable(gdluau_tests ${TEST_SOURCES} ${SOURCES})
+
+# Include directories for tests (same as main library plus tests directory)
+target_include_directories(gdluau_tests PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/src
+    ${CMAKE_CURRENT_SOURCE_DIR}/tests
+)
+
+# Link libraries for tests (same as main library)
+target_link_libraries(gdluau_tests PRIVATE
+    godot-cpp
+    Luau.Compiler
+    Luau.VM
+)
+
+# Same compiler options as main library for consistency
+if(MSVC)
+    target_compile_options(gdluau_tests PRIVATE /EHs-c-)
+    target_compile_definitions(gdluau_tests PRIVATE _HAS_EXCEPTIONS=0)
+else()
+    target_compile_options(gdluau_tests PRIVATE -fno-exceptions)
+endif()
+
+# Set output directory for test executable
+set_target_properties(gdluau_tests PROPERTIES
+    RUNTIME_OUTPUT_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/bin"
+    RUNTIME_OUTPUT_DIRECTORY_DEBUG "${CMAKE_CURRENT_SOURCE_DIR}/bin"
+    RUNTIME_OUTPUT_DIRECTORY_RELEASE "${CMAKE_CURRENT_SOURCE_DIR}/bin"
+)
+
+# Enable CTest integration
+enable_testing()
+add_test(NAME gdluau_tests COMMAND gdluau_tests)
