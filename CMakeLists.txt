@@ -32,13 +32,6 @@ if(CCACHE_PROGRAM)
     message(STATUS "ccache found and enabled: ${CCACHE_PROGRAM}")
 endif()
 
-# Enable exception handling
-if(MSVC)
-    add_compile_options(/EHsc)
-else()
-    add_compile_options(-fexceptions)
-endif()
-
 # Configure Luau options
 set(LUAU_BUILD_CLI OFF)
 set(LUAU_BUILD_TESTS OFF)
@@ -77,6 +70,20 @@ target_link_libraries(${PROJECT_NAME} PRIVATE
     Luau.Compiler
     Luau.VM
 )
+
+# Disable C++ exceptions (Godot doesn't use them, Luau uses setjmp/longjmp via LUAU_EXTERN_C)
+if(MSVC)
+    # Remove exception handling flags that godot-cpp adds, then disable exceptions
+    get_target_property(GODOT_COMPILE_OPTIONS godot-cpp INTERFACE_COMPILE_OPTIONS)
+    if(GODOT_COMPILE_OPTIONS)
+        list(REMOVE_ITEM GODOT_COMPILE_OPTIONS /EHsc /EHs /EHc)
+        set_target_properties(godot-cpp PROPERTIES INTERFACE_COMPILE_OPTIONS "${GODOT_COMPILE_OPTIONS}")
+    endif()
+    target_compile_options(${PROJECT_NAME} PRIVATE /EHs-c-)
+    target_compile_definitions(${PROJECT_NAME} PRIVATE _HAS_EXCEPTIONS=0)
+else()
+    target_compile_options(${PROJECT_NAME} PRIVATE -fno-exceptions)
+endif()
 
 # Platform detection
 if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
