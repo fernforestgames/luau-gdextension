@@ -13,7 +13,8 @@ using namespace godot;
 // causing resource leaks and potential crashes.
 static void callback_panic(lua_State *L, int errcode)
 {
-    ERR_PRINT(vformat("Luau panic (error code %d)! LuaState is now invalid and cannot be used further.", errcode));
+    const char *error_msg = lua_gettop(L) > 0 ? lua_tostring(L, -1) : "Unknown error";
+    ERR_PRINT(vformat("Luau panic! Error %d: %s. LuaState is now invalid and cannot be used further.", errcode, error_msg));
 
     LuaState *state = static_cast<LuaState *>(lua_callbacks(L)->userdata);
     state->close();
