@@ -122,6 +122,9 @@ namespace godot
         void pushdictionary(const Dictionary &dict);
         void pushvariant(const Variant &value);
 
+        // Internal state accessor (for LuaCallable and other internal use)
+        lua_State *get_lua_state() const { return L; }
+
         // Exposed inside Godot:
         //  signal step(state: LuaState)
     };

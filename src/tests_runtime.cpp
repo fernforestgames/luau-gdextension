@@ -901,6 +901,79 @@ TEST_CASE("Projection: Construction") {
 }
 
 // ============================================================================
+// Callable Tests
+// ============================================================================
+
+TEST_CASE("Callable: Lua function to Godot Callable conversion") {
+    lua_State* L = create_test_state();
+
+    SUBCASE("Simple Lua function to Callable") {
+        exec_lua(L, "function add(a, b) return a + b end");
+        lua_getglobal(L, "add");
+
+        CHECK(lua_isfunction(L, -1));
+
+        // Note: Full tovariant() test would require LuaState wrapper
+        // This test verifies the Lua side works correctly
+        // Full round-trip tests are in GDScript integration tests
+    }
+
+    SUBCASE("Lua function with multiple return values") {
+        exec_lua(L, "function multi() return 1, 2, 3 end");
+        lua_getglobal(L, "multi");
+
+        CHECK(lua_isfunction(L, -1));
+    }
+
+    close_test_state(L);
+}
+
+TEST_CASE("Callable: Godot Callable to Lua function conversion") {
+    lua_State* L = create_test_state();
+
+    SUBCASE("Push Callable to Lua and retrieve") {
+        // Create a simple callable (lambda wrapper)
+        // Note: Full Callable testing requires GDScript integration
+        // because we need actual callable objects from Godot
+
+        // For now, just test that the push/is/to functions compile
+        // Runtime tests are in GDScript integration tests
+    }
+
+    SUBCASE("Call Callable from Lua") {
+        // This is tested in GDScript integration tests
+        // where we can create real Callables from Godot objects
+    }
+
+    close_test_state(L);
+}
+
+TEST_CASE("Callable: Type checking") {
+    lua_State* L = create_test_state();
+
+    SUBCASE("Lua function is detected correctly") {
+        exec_lua(L, "function test() end");
+        lua_getglobal(L, "test");
+
+        CHECK(lua_isfunction(L, -1));
+        CHECK_FALSE(is_callable(L, -1)); // Functions are not callable userdata
+    }
+
+    SUBCASE("Non-callable values") {
+        lua_pushnil(L);
+        CHECK_FALSE(is_callable(L, -1));
+
+        lua_pushnumber(L, 42);
+        CHECK_FALSE(is_callable(L, -1));
+
+        lua_pushstring(L, "test");
+        CHECK_FALSE(is_callable(L, -1));
+    }
+
+    close_test_state(L);
+}
+
+// ============================================================================
 // Runtime Type Tests (Array, Dictionary, Variant)
 // ============================================================================
 

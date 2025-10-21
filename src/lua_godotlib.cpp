@@ -17,7 +17,11 @@
 #include <godot_cpp/variant/transform2d.hpp>
 #include <godot_cpp/variant/transform3d.hpp>
 #include <godot_cpp/variant/projection.hpp>
+#include <godot_cpp/variant/callable.hpp>
+#include "lua_callable.h"
+#include <godot_cpp/variant/array.hpp>
 #include <cstdio>
+#include <new> // For placement new
 
 using namespace godot;
 
@@ -2006,6 +2010,241 @@ static void register_projection_metatable(lua_State *L)
 }
 
 // =============================================================================
+// Callable
+// =============================================================================
+
+// Callable __call metamethod - allows calling from Lua
+static int callable_call(lua_State *L)
+{
+    // Get the callable userdata (first argument is self)
+    Callable *callable = static_cast<Callable *>(lua_touserdatatagged(L, 1, LUA_TAG_CALLABLE));
+    if (!callable)
+    {
+        luaL_error(L, "Invalid Callable userdata");
+        return 0;
+    }
+
+    // Check if callable is valid
+    if (!callable->is_valid())
+    {
+        luaL_error(L, "Callable is not valid");
+        return 0;
+    }
+
+    // Validate argument count if possible
+    int arg_count = lua_gettop(L) - 1; // Subtract 1 for self
+    int expected_args = callable->get_argument_count();
+
+    if (expected_args >= 0 && arg_count != expected_args)
+    {
+        luaL_error(L, "Callable expects %d arguments, got %d", expected_args, arg_count);
+        return 0;
+    }
+
+    // Convert Lua arguments to Godot Variant array
+    Array args;
+    args.resize(arg_count);
+
+    // Need access to LuaState to convert arguments
+    // We can't easily get the LuaState from here, so we'll use a workaround
+    // by manually converting basic types
+    for (int i = 0; i < arg_count; i++)
+    {
+        int idx = i + 2; // Skip self (1) and start from argument 1 (2)
+        int type = lua_type(L, idx);
+
+        switch (type)
+        {
+            case LUA_TNIL:
+                args[i] = Variant();
+                break;
+            case LUA_TBOOLEAN:
+                args[i] = Variant(lua_toboolean(L, idx) != 0);
+                break;
+            case LUA_TNUMBER:
+                args[i] = Variant(lua_tonumber(L, idx));
+                break;
+            case LUA_TSTRING:
+            {
+                size_t len;
+                const char *str = lua_tolstring(L, idx, &len);
+                args[i] = Variant(String::utf8(str, len));
+                break;
+            }
+            case LUA_TVECTOR:
+            {
+                const float *v = lua_tovector(L, idx);
+                args[i] = Variant(Vector3(v[0], v[1], v[2]));
+                break;
+            }
+            case LUA_TFUNCTION:
+            {
+                // Convert Lua function to LuaCallable
+                // Get the LuaState pointer from the registry
+                lua_getfield(L, LUA_REGISTRYINDEX, GDLUAU_STATE_REGISTRY_KEY);
+                LuaState *state = static_cast<LuaState *>(lua_tolightuserdata(L, -1));
+                lua_pop(L, 1);
+
+                if (!state)
+                {
+                    luaL_error(L, "Failed to get LuaState from registry");
+                    return 0;
+                }
+
+                // Validate the function before storing
+                if (!lua_isfunction(L, idx))
+                {
+                    luaL_error(L, "Argument %d is not a valid function", i + 1);
+                    return 0;
+                }
+
+                // Store function in registry and create LuaCallable
+                // In Luau, lua_ref takes a stack index and stores that value in the registry
+                int func_ref = lua_ref(L, idx);
+
+                if (func_ref == LUA_NOREF || func_ref == LUA_REFNIL)
+                {
+                    luaL_error(L, "Failed to create reference for Lua function");
+                    return 0;
+                }
+
+                // Create LuaCallable wrapper
+                Callable lua_callable = Callable(memnew(LuaCallable(state, func_ref)));
+                args[i] = lua_callable;
+                break;
+            }
+            case LUA_TUSERDATA:
+            {
+                // Check for math types
+                int tag = lua_userdatatag(L, idx);
+                switch (tag)
+                {
+                    case LUA_TAG_VECTOR2:
+                        args[i] = Variant(to_vector2(L, idx));
+                        break;
+                    case LUA_TAG_VECTOR2I:
+                        args[i] = Variant(to_vector2i(L, idx));
+                        break;
+                    case LUA_TAG_VECTOR3I:
+                        args[i] = Variant(to_vector3i(L, idx));
+                        break;
+                    case LUA_TAG_VECTOR4:
+                        args[i] = Variant(to_vector4(L, idx));
+                        break;
+                    case LUA_TAG_VECTOR4I:
+                        args[i] = Variant(to_vector4i(L, idx));
+                        break;
+                    case LUA_TAG_COLOR:
+                        args[i] = Variant(to_color(L, idx));
+                        break;
+                    case LUA_TAG_RECT2:
+                        args[i] = Variant(to_rect2(L, idx));
+                        break;
+                    case LUA_TAG_RECT2I:
+                        args[i] = Variant(to_rect2i(L, idx));
+                        break;
+                    case LUA_TAG_AABB:
+                        args[i] = Variant(to_aabb(L, idx));
+                        break;
+                    case LUA_TAG_PLANE:
+                        args[i] = Variant(to_plane(L, idx));
+                        break;
+                    case LUA_TAG_QUATERNION:
+                        args[i] = Variant(to_quaternion(L, idx));
+                        break;
+                    case LUA_TAG_BASIS:
+                        args[i] = Variant(to_basis(L, idx));
+                        break;
+                    case LUA_TAG_TRANSFORM2D:
+                        args[i] = Variant(to_transform2d(L, idx));
+                        break;
+                    case LUA_TAG_TRANSFORM3D:
+                        args[i] = Variant(to_transform3d(L, idx));
+                        break;
+                    case LUA_TAG_PROJECTION:
+                        args[i] = Variant(to_projection(L, idx));
+                        break;
+                    case LUA_TAG_CALLABLE:
+                        args[i] = Variant(to_callable(L, idx));
+                        break;
+                    default:
+                        luaL_error(L, "Unsupported argument type: userdata with tag %d", tag);
+                        return 0;
+                }
+                break;
+            }
+            default:
+                luaL_error(L, "Unsupported argument type: %s", lua_typename(L, type));
+                return 0;
+        }
+    }
+
+    // Call the Callable with array of arguments
+    Variant result = callable->callv(args);
+
+    // Convert result back to Lua using LuaState::pushvariant for full type support
+    // Get the LuaState pointer from the registry
+    lua_getfield(L, LUA_REGISTRYINDEX, GDLUAU_STATE_REGISTRY_KEY);
+    LuaState *state = static_cast<LuaState *>(lua_tolightuserdata(L, -1));
+    lua_pop(L, 1);
+
+    if (!state)
+    {
+        luaL_error(L, "Failed to get LuaState from registry for result conversion");
+        return 0;
+    }
+
+    // Use LuaState's pushvariant which handles all types correctly
+    state->pushvariant(result);
+
+    return 1;
+}
+
+// Callable __gc metamethod - destructor
+static int callable_gc(lua_State *L)
+{
+    Callable *callable = static_cast<Callable *>(lua_touserdata(L, 1));
+    if (callable)
+    {
+        callable->~Callable(); // Explicit destructor call
+    }
+    return 0;
+}
+
+// Callable __tostring metamethod
+static int callable_tostring(lua_State *L)
+{
+    Callable *callable = static_cast<Callable *>(lua_touserdatatagged(L, 1, LUA_TAG_CALLABLE));
+    if (callable && callable->is_valid())
+    {
+        String str = vformat("Callable(%s)", callable->get_method());
+        CharString utf8 = str.utf8();
+        lua_pushlstring(L, utf8.get_data(), utf8.length());
+    }
+    else
+    {
+        lua_pushstring(L, "Callable(invalid)");
+    }
+    return 1;
+}
+
+static void register_callable_metatable(lua_State *L)
+{
+    luaL_newmetatable(L, "Callable");
+
+    lua_pushcfunction(L, callable_call, "__call");
+    lua_setfield(L, -2, "__call");
+
+    lua_pushcfunction(L, callable_gc, "__gc");
+    lua_setfield(L, -2, "__gc");
+
+    lua_pushcfunction(L, callable_tostring, "__tostring");
+    lua_setfield(L, -2, "__tostring");
+
+    lua_setuserdatametatable(L, LUA_TAG_CALLABLE);
+}
+
+// =============================================================================
 // Public API - Push functions
 // =============================================================================
 
@@ -2104,6 +2343,29 @@ void godot::push_projection(lua_State *L, const Projection &value)
     *p = value;
 }
 
+void godot::push_callable(lua_State *L, const Callable &value)
+{
+    // Check if this is a LuaCallable wrapping a Lua function
+    // If so, push the original Lua function instead of wrapping it again
+    CallableCustom *custom = value.get_custom();
+    if (custom)
+    {
+        LuaCallable *lua_callable = dynamic_cast<LuaCallable *>(custom);
+        if (lua_callable && lua_callable->get_lua_state() == L)
+        {
+            // This is a LuaCallable from the same Lua state
+            // Push the original function from the registry
+            lua_rawgeti(L, LUA_REGISTRYINDEX, lua_callable->get_func_ref());
+            return;
+        }
+    }
+
+    // Not a LuaCallable or from a different state - wrap as userdata
+    // Use placement new since Callable has a destructor
+    void *userdata = lua_newuserdatataggedwithmetatable(L, sizeof(Callable), LUA_TAG_CALLABLE);
+    new (userdata) Callable(value); // Placement new
+}
+
 // =============================================================================
 // Public API - Type checking functions
 // =============================================================================
@@ -2186,6 +2448,11 @@ bool godot::is_transform3d(lua_State *L, int index)
 bool godot::is_projection(lua_State *L, int index)
 {
     return lua_userdatatag(L, index) == LUA_TAG_PROJECTION;
+}
+
+bool godot::is_callable(lua_State *L, int index)
+{
+    return lua_userdatatag(L, index) == LUA_TAG_CALLABLE;
 }
 
 // =============================================================================
@@ -2304,6 +2571,13 @@ Projection godot::to_projection(lua_State *L, int index)
     return *p;
 }
 
+Callable godot::to_callable(lua_State *L, int index)
+{
+    Callable *c = static_cast<Callable *>(lua_touserdatatagged(L, index, LUA_TAG_CALLABLE));
+    ERR_FAIL_NULL_V_MSG(c, Callable(), "Invalid Callable userdata");
+    return *c;
+}
+
 // =============================================================================
 // Library Entry Point
 // =============================================================================
@@ -2331,6 +2605,7 @@ int luaopen_godot(lua_State *L)
     register_transform2d_metatable(L);
     register_transform3d_metatable(L);
     register_projection_metatable(L);
+    register_callable_metatable(L);
 
     return 1;
 }

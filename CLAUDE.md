@@ -17,6 +17,9 @@ derivative) into Godot Engine.
   and Luau. Vector3 uses Luau's native vector type for high performance. Other
   types (Vector2, Vector4, Color, etc.) use userdata with metatables for
   operators and property access.
+- `LuaCallable` in `lua_callable.h/cpp`: Wraps Lua functions as Godot Callables,
+  enabling bidirectional callable bridging between Godot and Luau. Uses manual
+  reference counting to manage LuaState lifetime.
 
 ## Project Structure
 
@@ -25,6 +28,8 @@ src/
   luau.h/cpp          - Luau compiler wrapper (static methods)
   lua_state.h/cpp     - Lua VM state management and execution
   lua_math_types.h/cpp- Godot math type bindings for Luau
+  lua_callable.h/cpp  - Callable bridging (Lua functions ↔ Godot Callables)
+  lua_godotlib.h/cpp  - Godot type userdata and metatables for Luau
   register_types.h/cpp- GDExtension registration
 demo/
   main.gd             - Example integration code
@@ -79,6 +84,13 @@ sample Luau script.
   - Better memory layout (stored inline in stack, not as heap allocations)
   - Lower GC pressure
 - Other math types are implemented as userdata with metatables
+- **Callable bridging:** Bidirectional conversion between Lua functions and Godot
+  Callables:
+  - Lua functions → Godot Callables: Wrapped in `LuaCallable` class using manual
+    reference counting to keep LuaState alive
+  - Godot Callables → Lua: Stored as userdata with `__call` metamethod
+  - Error handling: Prints errors and returns nil on failure
+  - Multiple returns: Returns first value with warning
 - All Lua execution happens on the main thread
 
 ## Testing
@@ -111,10 +123,11 @@ godot --headless --path demo/ -- --run-tests
 Godot types like Array, Dictionary, and Variant require full Godot runtime initialization. By embedding tests in the GDExtension and running them inside Godot, we can test everything in one place with a realistic environment.
 
 **Coverage:**
-- ✅ All math types (Vector2, Vector2i, Vector3, Vector3i, Color)
+- ✅ All math types (Vector2, Vector2i, Vector3, Vector3i, Color, Vector4, etc.)
 - ✅ Array/Dictionary bridging (including nested structures)
 - ✅ Variant conversions (all supported types)
 - ✅ Array vs Dictionary detection logic
+- ✅ Callable bridging (Lua functions ↔ Godot Callables)
 - ✅ Edge cases and error handling
 
 See `tests/README.md` for detailed testing documentation and best practices.

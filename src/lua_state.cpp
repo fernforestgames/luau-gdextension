@@ -1,6 +1,7 @@
 #include "lua_state.h"
 #include "luau.h"
 #include "lua_godotlib.h"
+#include "lua_callable.h"
 #include <godot_cpp/core/class_db.hpp>
 #include <godot_cpp/core/error_macros.hpp>
 #include <godot_cpp/core/object.hpp>
@@ -202,7 +203,13 @@ void LuaState::openlibs(int libs)
     if (libs & LIB_VECTOR)
         open_library(luaopen_vector, LUA_VECLIBNAME);
     if (libs & LIB_GODOT)
+    {
+        // Store LuaState pointer in registry so godot library functions can access it
+        // This is needed for callable_call to create LuaCallables from Lua functions
+        lua_pushlightuserdata(L, this);
+        lua_setfield(L, LUA_REGISTRYINDEX, GDLUAU_STATE_REGISTRY_KEY);
         open_library(luaopen_godot, LUA_GODOTLIBNAME);
+    }
 }
 
 void LuaState::sandbox()
@@ -452,8 +459,19 @@ Variant LuaState::tovariant(int index)
         return Variant(to_vector3(L, index));
 
     case LUA_TFUNCTION:
-        ERR_PRINT("Cannot convert Lua function to Variant.");
-        return Variant();
+    {
+        // Create a reference to the function in the registry
+        pushvalue(index); // Duplicate the function on the stack
+        int func_ref = lua_ref(L, -1);
+        pop(1); // Pop the duplicated function
+
+        // Create a LuaCallable wrapping this function
+        // Pass raw 'this' pointer - LuaCallable will handle manual refcounting
+        LuaCallable *lua_callable = memnew(LuaCallable(this, func_ref));
+
+        // Return as Callable Variant
+        return Variant(Callable(lua_callable));
+    }
 
     case LUA_TUSERDATA:
     {
@@ -490,6 +508,8 @@ Variant LuaState::tovariant(int index)
             return Variant(to_transform3d(L, index));
         else if (is_projection(L, index))
             return Variant(to_projection(L, index));
+        else if (is_callable(L, index))
+            return Variant(to_callable(L, index));
 
         ERR_PRINT("Cannot convert Lua userdata to Variant (unknown type).");
         return Variant();
@@ -643,6 +663,10 @@ void LuaState::pushvariant(const Variant &value)
 
     case Variant::PROJECTION:
         push_projection(L, value);
+        break;
+
+    case Variant::CALLABLE:
+        push_callable(L, value);
         break;
 
     default:
