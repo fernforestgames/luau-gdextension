@@ -17,6 +17,7 @@
 #include <godot_cpp/variant/transform2d.hpp>
 #include <godot_cpp/variant/transform3d.hpp>
 #include <godot_cpp/variant/projection.hpp>
+#include <cstdio>
 
 using namespace godot;
 
@@ -139,8 +140,9 @@ static int vector2_eq(lua_State *L)
 static int vector2_tostring(lua_State *L)
 {
     Vector2 *v = static_cast<Vector2 *>(lua_touserdata(L, 1));
-    String str = vformat("Vector2(%f, %f)", v->x, v->y);
-    lua_pushstring(L, str.utf8().get_data());
+    char buffer[128];
+    snprintf(buffer, sizeof(buffer), "Vector2(%g, %g)", v->x, v->y);
+    lua_pushstring(L, buffer);
     return 1;
 }
 
@@ -301,8 +303,9 @@ static int vector2i_eq(lua_State *L)
 static int vector2i_tostring(lua_State *L)
 {
     Vector2i *v = static_cast<Vector2i *>(lua_touserdata(L, 1));
-    String str = vformat("Vector2i(%d, %d)", v->x, v->y);
-    lua_pushstring(L, str.utf8().get_data());
+    char buffer[128];
+    snprintf(buffer, sizeof(buffer), "Vector2i(%d, %d)", v->x, v->y);
+    lua_pushstring(L, buffer);
     return 1;
 }
 
@@ -490,8 +493,9 @@ static int vector3i_eq(lua_State *L)
 static int vector3i_tostring(lua_State *L)
 {
     Vector3i *v = static_cast<Vector3i *>(lua_touserdata(L, 1));
-    String str = vformat("Vector3i(%d, %d, %d)", v->x, v->y, v->z);
-    lua_pushstring(L, str.utf8().get_data());
+    char buffer[128];
+    snprintf(buffer, sizeof(buffer), "Vector3i(%d, %d, %d)", v->x, v->y, v->z);
+    lua_pushstring(L, buffer);
     return 1;
 }
 
@@ -672,8 +676,9 @@ static int color_eq(lua_State *L)
 static int color_tostring(lua_State *L)
 {
     Color *c = static_cast<Color *>(lua_touserdata(L, 1));
-    String str = vformat("Color(%f, %f, %f, %f)", c->r, c->g, c->b, c->a);
-    lua_pushstring(L, str.utf8().get_data());
+    char buffer[128];
+    snprintf(buffer, sizeof(buffer), "Color(%g, %g, %g, %g)", c->r, c->g, c->b, c->a);
+    lua_pushstring(L, buffer);
     return 1;
 }
 
