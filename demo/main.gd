@@ -24,7 +24,8 @@ func _ready() -> void:
     print("Luau bytecode loaded, starting execution")
     var resume_status := L.resume()
     if resume_status != Luau.LUA_BREAK and resume_status != Luau.LUA_OK:
-        push_error("Failed to start Luau execution: ", resume_status)
+        var error_msg := L.tostring(-1) if L.gettop() > 0 else "Unknown error"
+        push_error("Failed to start Luau execution: error ", resume_status, ": ", error_msg)
         return
 
 func _on_step(state: LuaState) -> void:
@@ -43,7 +44,9 @@ func _resume_after_break() -> void:
     print("Resuming Luau execution")
     var resume_status := L.resume()
     if resume_status != Luau.LUA_OK:
-        push_error("Failed to resume Luau execution: ", resume_status)
+        var error_msg := L.tostring(-1) if L.gettop() > 0 else "Unknown error"
+        push_error("Failed to resume Luau execution: error ", resume_status, ": ", error_msg)
+        L.pop(1) # Pop error message
         return
 
     print("Luau script execution completed, exiting cleanly")
