@@ -74,3 +74,27 @@ print("vi1 + vi2 =", tostring(vi1 + vi2))
 print("vi1 * 2 =", tostring(vi1 * 2))
 
 print("\n--- Math Types Tests Complete ---")
+
+print("\n--- Testing Array/Dictionary Conversion ---")
+
+-- Test array-like table (should convert to Godot Array)
+local array_table = {10, 20, 30, 40, 50}
+print("Array-like table:", array_table)
+
+-- Test dictionary-like table (should convert to Godot Dictionary)
+local dict_table = {name = "Player", health = 100, level = 5}
+print("Dictionary-like table:", dict_table)
+
+-- Test mixed table with non-consecutive indices (should convert to Dictionary)
+local mixed_table = {[1] = "first", [3] = "third", [5] = "fifth"}
+print("Mixed table (non-consecutive):", mixed_table)
+
+-- Test nested structures
+local nested = {
+    array = {1, 2, 3},
+    dict = {x = 10, y = 20},
+    mixed = {[1] = "a", key = "value"}
+}
+print("Nested structure:", nested)
+
+print("\n--- Array/Dictionary Tests Complete ---")

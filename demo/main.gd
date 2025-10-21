@@ -8,7 +8,18 @@ func _ready() -> void:
 
     L = LuaState.new()
     L.openlibs() # Loads all libraries including godot math types
-    L.sandbox()
+
+    # Set up test globals BEFORE sandboxing
+    # Note: Use floats since Lua numbers round-trip as floats
+    var godot_array := [100.0, 200.0, 300.0, 400.0]
+    L.pushvariant(godot_array)
+    L.setglobal("test_array")
+
+    var godot_dict := {"foo": "bar", "count": 42.0, "active": true}
+    L.pushvariant(godot_dict)
+    L.setglobal("test_dict")
+
+    L.sandbox() # Now lock it down
 
     L.singlestep(true)
     L.step.connect(self._on_step)
@@ -49,5 +60,44 @@ func _resume_after_break() -> void:
         L.pop(1) # Pop error message
         return
 
-    print("Luau script execution completed, exiting cleanly")
+    print("Luau script execution completed")
+    _test_array_dict_conversion()
+    print("Exiting cleanly")
     get_tree().quit()
+
+func _test_array_dict_conversion() -> void:
+    print("\n=== Testing Array/Dictionary Conversion from GDScript ===")
+
+    # Expected values (set before sandboxing in _ready)
+    var expected_array := [100.0, 200.0, 300.0, 400.0]
+    var expected_dict := {"foo": "bar", "count": 42.0, "active": true}
+
+    # Test retrieving array-like table from Lua
+    L.getglobal("test_array")
+    var retrieved_array := L.toarray(-1)
+    L.pop(1)
+    print("Retrieved array: ", retrieved_array, " (type: ", typeof(retrieved_array), ")")
+    assert(retrieved_array is Array, "Should be an Array")
+    assert(retrieved_array == expected_array, "Array values should match")
+
+    # Test retrieving dictionary from Lua
+    L.getglobal("test_dict")
+    var retrieved_dict := L.todictionary(-1)
+    L.pop(1)
+    print("Retrieved dictionary: ", retrieved_dict, " (type: ", typeof(retrieved_dict), ")")
+    assert(retrieved_dict is Dictionary, "Should be a Dictionary")
+
+    # Test nested structures (use floats for round-trip)
+    var nested := {
+        "numbers": [1.0, 2.0, 3.0, 4.0, 5.0],
+        "data": {"x": 10.0, "y": 20.0},
+        "name": "test"
+    }
+    L.pushvariant(nested)
+    var retrieved_nested := L.todictionary(-1)
+    L.pop(1)
+    print("Nested structure round-trip successful")
+    assert(retrieved_nested["numbers"] is Array, "Nested array should be Array")
+    assert(retrieved_nested["data"] is Dictionary, "Nested dict should be Dictionary")
+
+    print("=== All Array/Dictionary tests passed! ===")

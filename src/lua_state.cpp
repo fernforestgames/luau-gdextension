@@ -77,6 +77,8 @@ void LuaState::_bind_methods()
     ClassDB::bind_method(D_METHOD("settable", "index"), &LuaState::settable);
     ClassDB::bind_method(D_METHOD("getfield", "index", "key"), &LuaState::getfield);
     ClassDB::bind_method(D_METHOD("setfield", "index", "key"), &LuaState::setfield);
+    ClassDB::bind_method(D_METHOD("getglobal", "key"), &LuaState::getglobal);
+    ClassDB::bind_method(D_METHOD("setglobal", "key"), &LuaState::setglobal);
     ClassDB::bind_method(D_METHOD("rawget", "index"), &LuaState::rawget);
     ClassDB::bind_method(D_METHOD("rawset", "index"), &LuaState::rawset);
     ClassDB::bind_method(D_METHOD("rawgeti", "index", "n"), &LuaState::rawgeti);
@@ -92,6 +94,14 @@ void LuaState::_bind_methods()
 
     // Garbage collection
     ClassDB::bind_method(D_METHOD("gc", "what", "data"), &LuaState::gc);
+
+    // Godot integration helpers
+    ClassDB::bind_method(D_METHOD("toarray", "index"), &LuaState::toarray);
+    ClassDB::bind_method(D_METHOD("todictionary", "index"), &LuaState::todictionary);
+    ClassDB::bind_method(D_METHOD("tovariant", "index"), &LuaState::tovariant);
+    ClassDB::bind_method(D_METHOD("pusharray", "value"), &LuaState::pusharray);
+    ClassDB::bind_method(D_METHOD("pushdictionary", "value"), &LuaState::pushdictionary);
+    ClassDB::bind_method(D_METHOD("pushvariant", "value"), &LuaState::pushvariant);
 
     BIND_ENUM_CONSTANT(LUA_GCSTOP);
     BIND_ENUM_CONSTANT(LUA_GCRESTART);
@@ -120,10 +130,10 @@ void LuaState::_bind_methods()
     BIND_BITFIELD_FLAG(LIB_GODOT);
     BIND_BITFIELD_FLAG(LIB_ALL);
 
-    // Godot integration helpers
-    ClassDB::bind_method(D_METHOD("getglobal", "key"), &LuaState::getglobal);
-    ClassDB::bind_method(D_METHOD("tovariant", "index"), &LuaState::tovariant);
-    ClassDB::bind_method(D_METHOD("pushvariant", "value"), &LuaState::pushvariant);
+    // Pseudo-indices
+    BIND_CONSTANT(LUA_REGISTRYINDEX);
+    BIND_CONSTANT(LUA_ENVIRONINDEX);
+    BIND_CONSTANT(LUA_GLOBALSINDEX);
 
     ADD_SIGNAL(MethodInfo("step", PropertyInfo(Variant::OBJECT, "state")));
 }
@@ -231,6 +241,127 @@ void LuaState::getglobal(const String &key)
     lua_getglobal(L, key.utf8());
 }
 
+void LuaState::setglobal(const String &key)
+{
+    ERR_FAIL_NULL_MSG(L, "Lua state is null. Cannot set global variable.");
+    lua_setglobal(L, key.utf8());
+}
+
+bool LuaState::isarray(int index)
+{
+    ERR_FAIL_NULL_V_MSG(L, false, "Lua state is null. Cannot check if table is array-like.");
+
+    if (!istable(index))
+        return false;
+
+    // Normalize negative indices
+    if (index < 0)
+        index = gettop() + index + 1;
+
+    // Check if table has consecutive integer keys starting from 1
+    int n = 0;
+    pushnil();
+    while (lua_next(L, index) != 0)
+    {
+        // Key is at -2, value is at -1
+        if (!isnumber(-2))
+        {
+            // Non-numeric key, not an array
+            pop(2); // Pop key and value
+            return false;
+        }
+
+        double key_num = tonumber(-2);
+        int key_int = static_cast<int>(key_num);
+
+        // Check if key is an integer
+        if (key_num != static_cast<double>(key_int))
+        {
+            // Key is not an integer, not an array
+            pop(2); // Pop key and value
+            return false;
+        }
+
+        // Keep track of max key
+        if (key_int > n)
+            n = key_int;
+
+        // Pop value, keep key for next iteration
+        pop(1);
+    }
+
+    // Check if all keys from 1 to n are present
+    for (int i = 1; i <= n; i++)
+    {
+        rawgeti(index, i);
+        if (isnil(-1))
+        {
+            // Gap in sequence, not an array
+            pop(1);
+            return false;
+        }
+        pop(1);
+    }
+
+    return true;
+}
+
+bool LuaState::isdictionary(int index)
+{
+    ERR_FAIL_NULL_V_MSG(L, false, "Lua state is null. Cannot check if table is dictionary.");
+    return istable(index) && !isarray(index);
+}
+
+Array LuaState::toarray(int index)
+{
+    ERR_FAIL_NULL_V_MSG(L, Array(), "Lua state is null. Cannot convert to Array.");
+    ERR_FAIL_COND_V_MSG(!istable(index), Array(), "Value at index is not a table.");
+
+    Array arr;
+
+    // Normalize negative indices
+    int abs_index = index < 0 ? gettop() + index + 1 : index;
+
+    // Get array length
+    int len = lua_objlen(L, abs_index);
+
+    // Convert each element
+    for (int i = 1; i <= len; i++)
+    {
+        rawgeti(abs_index, i);
+        arr.append(tovariant(-1));
+        pop(1);
+    }
+
+    return arr;
+}
+
+Dictionary LuaState::todictionary(int index)
+{
+    ERR_FAIL_NULL_V_MSG(L, Dictionary(), "Lua state is null. Cannot convert to Dictionary.");
+    ERR_FAIL_COND_V_MSG(!istable(index), Dictionary(), "Value at index is not a table.");
+
+    Dictionary dict;
+
+    // Push nil as the first key for lua_next
+    pushnil();
+
+    // Iterate over the table
+    while (lua_next(L, index < 0 ? index - 1 : index) != 0)
+    {
+        // Key is at -2, value is at -1
+        Variant key = tovariant(-2);
+        Variant value = tovariant(-1);
+
+        dict[key] = value;
+
+        // Remove value, keep key for next iteration
+        pop(1);
+    }
+
+    return dict;
+}
+
 Variant LuaState::tovariant(int index)
 {
     ERR_FAIL_NULL_V_MSG(L, Variant(), "Lua state is null. Cannot convert to Variant.");
@@ -253,25 +384,11 @@ Variant LuaState::tovariant(int index)
 
     case LUA_TTABLE:
     {
-        Dictionary dict;
-
-        // Push nil as the first key for lua_next
-        pushnil();
-
-        // Iterate over the table
-        while (lua_next(L, index < 0 ? index - 1 : index) != 0)
-        {
-            // Key is at -2, value is at -1
-            Variant key = tovariant(-2);
-            Variant value = tovariant(-1);
-
-            dict[key] = value;
-
-            // Remove value, keep key for next iteration
-            pop(1);
-        }
-
-        return Variant(dict);
+        // Check if the table is array-like
+        if (isarray(index))
+            return Variant(toarray(index));
+        else
+            return Variant(todictionary(index));
     }
 
     case LUA_TFUNCTION:
@@ -307,6 +424,41 @@ Variant LuaState::tovariant(int index)
     }
 }
 
+void LuaState::pusharray(const Array &arr)
+{
+    ERR_FAIL_NULL_MSG(L, "Lua state is null. Cannot push Array.");
+
+    createtable(arr.size(), 0);
+
+    // Lua arrays are 1-indexed
+    for (int i = 0; i < arr.size(); i++)
+    {
+        pushvariant(arr[i]);
+        rawseti(-2, i + 1);
+    }
+}
+
+void LuaState::pushdictionary(const Dictionary &dict)
+{
+    ERR_FAIL_NULL_MSG(L, "Lua state is null. Cannot push Dictionary.");
+
+    createtable(0, dict.size());
+
+    Array keys = dict.keys();
+    for (int i = 0; i < keys.size(); i++)
+    {
+        Variant key = keys[i];
+        Variant val = dict[key];
+
+        // Push key and value
+        pushvariant(key);
+        pushvariant(val);
+
+        // Set table[key] = value
+        settable(-3);
+    }
+}
+
 void LuaState::pushvariant(const Variant &value)
 {
     ERR_FAIL_NULL_MSG(L, "Lua state is null. Cannot push Variant.");
@@ -337,39 +489,12 @@ void LuaState::pushvariant(const Variant &value)
         break;
 
     case Variant::ARRAY:
-    {
-        Array arr = value;
-        createtable(arr.size(), 0);
-
-        // Lua arrays are 1-indexed
-        for (int i = 0; i < arr.size(); i++)
-        {
-            pushvariant(arr[i]);
-            rawseti(-2, i + 1);
-        }
+        pusharray(value);
         break;
-    }
 
     case Variant::DICTIONARY:
-    {
-        Dictionary dict = value;
-        createtable(0, dict.size());
-
-        Array keys = dict.keys();
-        for (int i = 0; i < keys.size(); i++)
-        {
-            Variant key = keys[i];
-            Variant val = dict[key];
-
-            // Push key and value
-            pushvariant(key);
-            pushvariant(val);
-
-            // Set table[key] = value
-            settable(-3);
-        }
+        pushdictionary(value);
         break;
-    }
 
     case Variant::VECTOR2:
         push_vector2(L, value);

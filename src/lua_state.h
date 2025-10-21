@@ -71,6 +71,8 @@ namespace godot
         bool isfunction(int index) const;
         bool isuserdata(int index) const;
         bool isboolean(int index) const;
+        bool isarray(int index);      // requires manipulating the stack, so cannot be const
+        bool isdictionary(int index); // requires manipulating the stack, so cannot be const
         int type(int index) const;
         String type_name(int type_id) const;
 
@@ -94,6 +96,8 @@ namespace godot
         void settable(int index);
         void getfield(int index, const String &key);
         void setfield(int index, const String &key);
+        void getglobal(const String &key);
+        void setglobal(const String &key);
         void rawget(int index);
         void rawset(int index);
         void rawgeti(int index, int n);
@@ -111,8 +115,11 @@ namespace godot
         int gc(lua_GCOp what, int data);
 
         // Godot integration helpers
-        void getglobal(const String &key);
+        Array toarray(int index);
+        Dictionary todictionary(int index);
         Variant tovariant(int index);
+        void pusharray(const Array &arr);
+        void pushdictionary(const Dictionary &dict);
         void pushvariant(const Variant &value);
 
         // Exposed inside Godot:
