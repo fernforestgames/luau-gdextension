@@ -8,6 +8,9 @@
 
 using namespace godot;
 
+// Metatable name for marking tables that come from Godot Dictionaries
+static const char *GODOT_DICTIONARY_MT = "__godot_dictionary_mt";
+
 // This handler is called when Lua encounters an unprotected error.
 // If we don't handle this, Luau will longjmp across Godot's stack frames,
 // causing resource leaks and potential crashes.
@@ -150,6 +153,13 @@ LuaState::LuaState()
     callbacks->userdata = this;
     callbacks->debugstep = callback_debugstep;
     callbacks->panic = callback_panic;
+
+    // Create and store the dictionary metatable marker in the registry
+    // This metatable is used to distinguish dictionaries from arrays
+    // It must be created here (not in lua_godotlib) so it's available
+    // even if the Godot library hasn't been loaded
+    luaL_newmetatable(L, GODOT_DICTIONARY_MT);
+    lua_pop(L, 1);  // Pop the metatable, it's already stored in registry
 }
 
 LuaState::~LuaState()
@@ -261,6 +271,16 @@ bool LuaState::isarray(int index)
     if (index < 0)
         index = gettop() + index + 1;
 
+    // Check if this table has the dictionary marker metatable
+    if (lua_getmetatable(L, index))
+    {
+        luaL_getmetatable(L, GODOT_DICTIONARY_MT);
+        bool is_dict = lua_rawequal(L, -1, -2);
+        pop(2);  // Pop both metatables
+        if (is_dict)
+            return false;  // Has dictionary metatable, so not an array
+    }
+
     // Check if table has consecutive integer keys starting from 1
     int n = 0;
     pushnil();
@@ -319,7 +339,25 @@ bool LuaState::isarray(int index)
 bool LuaState::isdictionary(int index)
 {
     ERR_FAIL_NULL_V_MSG(L, false, "Lua state is null. Cannot check if table is dictionary.");
-    return istable(index) && !isarray(index);
+
+    if (!istable(index))
+        return false;
+
+    // Normalize negative indices
+    int abs_index = index < 0 ? gettop() + index + 1 : index;
+
+    // Check if this table has the dictionary marker metatable
+    if (lua_getmetatable(L, abs_index))
+    {
+        luaL_getmetatable(L, GODOT_DICTIONARY_MT);
+        bool is_dict = lua_rawequal(L, -1, -2);
+        pop(2);  // Pop both metatables
+        if (is_dict)
+            return true;  // Has dictionary metatable
+    }
+
+    // Otherwise, check if it's not an array
+    return !isarray(index);
 }
 
 Array LuaState::toarray(int index)
@@ -479,6 +517,10 @@ void LuaState::pushdictionary(const Dictionary &dict)
         // Set table[key] = value
         settable(-3);
     }
+
+    // Set the dictionary marker metatable
+    luaL_getmetatable(L, GODOT_DICTIONARY_MT);
+    lua_setmetatable(L, -2);
 }
 
 void LuaState::pushvariant(const Variant &value)
