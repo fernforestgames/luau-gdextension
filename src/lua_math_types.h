@@ -6,12 +6,13 @@
 namespace godot
 {
     // Userdata tags for each math type
+    // Note: Vector3 uses Luau's native vector type (LUA_TVECTOR), not userdata
     enum LuaMathTag
     {
         LUA_TAG_VECTOR2 = 1,
         LUA_TAG_VECTOR2I,
-        LUA_TAG_VECTOR3,
-        LUA_TAG_VECTOR3I,
+        // LUA_TAG_VECTOR3 removed - using native vector type
+        LUA_TAG_VECTOR3I = 3,
         LUA_TAG_VECTOR4,
         LUA_TAG_VECTOR4I,
         LUA_TAG_RECT2,

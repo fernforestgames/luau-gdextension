@@ -328,172 +328,10 @@ static void register_vector2i_metatable(lua_State *L)
 }
 
 // =============================================================================
-// Vector3 Constructor and Metatable
+// Vector3 - Uses Luau's native vector type (see lua_math_types.cpp)
 // =============================================================================
-
-static int vector3_create(lua_State *L)
-{
-    double x = luaL_optnumber(L, 1, 0.0);
-    double y = luaL_optnumber(L, 2, 0.0);
-    double z = luaL_optnumber(L, 3, 0.0);
-    push_vector3(L, Vector3(x, y, z));
-    return 1;
-}
-
-static int vector3_index(lua_State *L)
-{
-    Vector3 *v = static_cast<Vector3 *>(lua_touserdata(L, 1));
-    const char *key = luaL_checkstring(L, 2);
-
-    if (strcmp(key, "x") == 0)
-    {
-        lua_pushnumber(L, v->x);
-        return 1;
-    }
-    else if (strcmp(key, "y") == 0)
-    {
-        lua_pushnumber(L, v->y);
-        return 1;
-    }
-    else if (strcmp(key, "z") == 0)
-    {
-        lua_pushnumber(L, v->z);
-        return 1;
-    }
-
-    return 0;
-}
-
-static int vector3_newindex(lua_State *L)
-{
-    Vector3 *v = static_cast<Vector3 *>(lua_touserdata(L, 1));
-    const char *key = luaL_checkstring(L, 2);
-    double value = luaL_checknumber(L, 3);
-
-    if (strcmp(key, "x") == 0)
-    {
-        v->x = value;
-    }
-    else if (strcmp(key, "y") == 0)
-    {
-        v->y = value;
-    }
-    else if (strcmp(key, "z") == 0)
-    {
-        v->z = value;
-    }
-
-    return 0;
-}
-
-static int vector3_add(lua_State *L)
-{
-    Vector3 *a = static_cast<Vector3 *>(lua_touserdata(L, 1));
-    Vector3 *b = static_cast<Vector3 *>(lua_touserdata(L, 2));
-    push_vector3(L, *a + *b);
-    return 1;
-}
-
-static int vector3_sub(lua_State *L)
-{
-    Vector3 *a = static_cast<Vector3 *>(lua_touserdata(L, 1));
-    Vector3 *b = static_cast<Vector3 *>(lua_touserdata(L, 2));
-    push_vector3(L, *a - *b);
-    return 1;
-}
-
-static int vector3_mul(lua_State *L)
-{
-    Vector3 *a = static_cast<Vector3 *>(lua_touserdata(L, 1));
-
-    if (lua_isnumber(L, 2))
-    {
-        double scalar = lua_tonumber(L, 2);
-        push_vector3(L, *a * scalar);
-    }
-    else
-    {
-        Vector3 *b = static_cast<Vector3 *>(lua_touserdata(L, 2));
-        push_vector3(L, *a * *b);
-    }
-
-    return 1;
-}
-
-static int vector3_div(lua_State *L)
-{
-    Vector3 *a = static_cast<Vector3 *>(lua_touserdata(L, 1));
-
-    if (lua_isnumber(L, 2))
-    {
-        double scalar = lua_tonumber(L, 2);
-        push_vector3(L, *a / scalar);
-    }
-    else
-    {
-        Vector3 *b = static_cast<Vector3 *>(lua_touserdata(L, 2));
-        push_vector3(L, *a / *b);
-    }
-
-    return 1;
-}
-
-static int vector3_unm(lua_State *L)
-{
-    Vector3 *v = static_cast<Vector3 *>(lua_touserdata(L, 1));
-    push_vector3(L, -*v);
-    return 1;
-}
-
-static int vector3_eq(lua_State *L)
-{
-    Vector3 *a = static_cast<Vector3 *>(lua_touserdata(L, 1));
-    Vector3 *b = static_cast<Vector3 *>(lua_touserdata(L, 2));
-    lua_pushboolean(L, *a == *b);
-    return 1;
-}
-
-static int vector3_tostring(lua_State *L)
-{
-    Vector3 *v = static_cast<Vector3 *>(lua_touserdata(L, 1));
-    String str = vformat("Vector3(%f, %f, %f)", v->x, v->y, v->z);
-    lua_pushstring(L, str.utf8().get_data());
-    return 1;
-}
-
-static void register_vector3_metatable(lua_State *L)
-{
-    luaL_newmetatable(L, "Vector3");
-
-    lua_pushcfunction(L, vector3_index, "__index");
-    lua_setfield(L, -2, "__index");
-
-    lua_pushcfunction(L, vector3_newindex, "__newindex");
-    lua_setfield(L, -2, "__newindex");
-
-    lua_pushcfunction(L, vector3_add, "__add");
-    lua_setfield(L, -2, "__add");
-
-    lua_pushcfunction(L, vector3_sub, "__sub");
-    lua_setfield(L, -2, "__sub");
-
-    lua_pushcfunction(L, vector3_mul, "__mul");
-    lua_setfield(L, -2, "__mul");
-
-    lua_pushcfunction(L, vector3_div, "__div");
-    lua_setfield(L, -2, "__div");
-
-    lua_pushcfunction(L, vector3_unm, "__unm");
-    lua_setfield(L, -2, "__unm");
-
-    lua_pushcfunction(L, vector3_eq, "__eq");
-    lua_setfield(L, -2, "__eq");
-
-    lua_pushcfunction(L, vector3_tostring, "__tostring");
-    lua_setfield(L, -2, "__tostring");
-
-    lua_setuserdatametatable(L, LUA_TAG_VECTOR3);
-}
+// Vector3 now uses Luau's native vector type for high performance
+// No metatable needed - operators and property access handled by Luau VM
 
 // =============================================================================
 // Vector3i Constructor and Metatable
@@ -850,7 +688,7 @@ int luaopen_godot(lua_State *L)
     // Register all metatables
     register_vector2_metatable(L);
     register_vector2i_metatable(L);
-    register_vector3_metatable(L);
+    // Vector3 uses native vector - registered in lua_math_types.cpp
     register_vector3i_metatable(L);
     register_color_metatable(L);
 
@@ -861,8 +699,7 @@ int luaopen_godot(lua_State *L)
     lua_pushcfunction(L, vector2i_create, "Vector2i");
     lua_setglobal(L, "Vector2i");
 
-    lua_pushcfunction(L, vector3_create, "Vector3");
-    lua_setglobal(L, "Vector3");
+    // Vector3 constructor registered in lua_math_types.cpp
 
     lua_pushcfunction(L, vector3i_create, "Vector3i");
     lua_setglobal(L, "Vector3i");

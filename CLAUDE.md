@@ -14,7 +14,9 @@ derivative) into Godot Engine.
 - `LuaState`: Manages a Lua VM instance, executes bytecode, and provides
   debugging support via single-step execution
 - Math type bindings in `lua_math_types.h/cpp`: Bridge between Godot math types
-  (Vector2, Vector3, Color, etc.) and Luau userdata with full operator support
+  and Luau. Vector3 uses Luau's native vector type for high performance. Other
+  types (Vector2, Vector4, Color, etc.) use userdata with metatables for
+  operators and property access.
 
 ## Project Structure
 
@@ -63,8 +65,13 @@ sample Luau script.
 **Key Design Patterns:**
 
 - LuaState wraps a Luau VM and manages its lifecycle
-- Math types are implemented as userdata with metatables for operators and
-  property access
+- **Vector3 performance optimization:** Vector3 is bridged to Luau's native
+  `vector` type, which provides:
+  - Inline arithmetic operations in the VM (no C function calls for +, -, *, /)
+  - JIT compilation support for vector operations
+  - Better memory layout (stored inline in stack, not as heap allocations)
+  - Lower GC pressure
+- Other math types are implemented as userdata with metatables
 - All Lua execution happens on the main thread
 
 ## Important Notes
@@ -96,6 +103,7 @@ Read these if you ever need more information:
   - [Compatibility](https://luau.org/compatibility) (with regard to Lua)
   - [Typechecking](https://luau.org/typecheck)
   - [Standard library](https://luau.org/library)
+  - [Vector library](https://luau.org/library#vector-library) (used for Vector3)
 - The
   [documentation for godot-cpp](https://docs.godotengine.org/en/stable/tutorials/scripting/cpp/gdextension_cpp_example.html),
   used to create GDExtensions.
