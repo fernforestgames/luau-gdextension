@@ -27,6 +27,7 @@
         "rhs": "Windows"
       },
       "generator": "Visual Studio 17 2022",
+      "$comment": "Output dir set to prevent MSVC from adding Debug/Release subdirectories",
       "cacheVariables": {
         "CMAKE_LIBRARY_OUTPUT_DIRECTORY": "${sourceDir}/build/bin"
       }
@@ -36,9 +37,10 @@
       "inherits": [
         "windows-x86_64"
       ],
+      "$comment": "Output dir set to prevent MSVC from adding Debug/Release subdirectories",
       "cacheVariables": {
-        "CMAKE_MSVC_RUNTIME_LIBRARY": "MultiThreadedDebugDLL",
-        "CMAKE_LIBRARY_OUTPUT_DIRECTORY_DEBUG": "${sourceDir}/build/bin"
+        "CMAKE_LIBRARY_OUTPUT_DIRECTORY_DEBUG": "${sourceDir}/build/bin",
+        "CMAKE_MSVC_RUNTIME_LIBRARY": "MultiThreadedDebugDLL"
       }
     },
     {
@@ -46,9 +48,11 @@
       "inherits": [
         "windows-x86_64"
       ],
+      "$comment": "Output dir set to prevent MSVC from adding Debug/Release subdirectories",
       "cacheVariables": {
-        "CMAKE_MSVC_RUNTIME_LIBRARY": "MultiThreadedDLL",
-        "CMAKE_LIBRARY_OUTPUT_DIRECTORY_RELEASE": "${sourceDir}/build/bin"
+        "$comment": "Prevent MSVC from adding Debug/Release subdirectories",
+        "CMAKE_LIBRARY_OUTPUT_DIRECTORY_RELEASE": "${sourceDir}/build/bin",
+        "CMAKE_MSVC_RUNTIME_LIBRARY": "MultiThreadedDLL"
       }
     },
     {
@@ -56,7 +60,11 @@
       "hidden": true,
       "inherits": [
         "default"
-      ]
+      ],
+      "$comment": "Forcing PIC on when compiling static library dependencies",
+      "cacheVariables": {
+        "CMAKE_POSITION_INDEPENDENT_CODE": "TRUE"
+      }
     },
     {
       "name": "linux-x86_64-debug",
@@ -87,7 +95,9 @@
         "lhs": "${hostSystemName}",
         "rhs": "Darwin"
       },
+      "$comment": "Forcing PIC on when compiling static library dependencies",
       "cacheVariables": {
+        "CMAKE_POSITION_INDEPENDENT_CODE": "TRUE",
         "CMAKE_SHARED_MODULE_SUFFIX": "dylib"
       }
     },

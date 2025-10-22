@@ -45,7 +45,9 @@ list(FILTER SOURCES EXCLUDE REGEX ".*tests_runtime\\.cpp$")
 # GDExtension library target
 add_library(${PROJECT_NAME} MODULE ${SOURCES})
 target_compile_features(${PROJECT_NAME} PRIVATE
+    # Disable C++ exceptions in our code (Godot doesn't use them, Luau uses setjmp/longjmp via LUAU_EXTERN_C)
     cxx_noexcept
+
     cxx_std_17
 )
 target_include_directories(${PROJECT_NAME} PRIVATE
@@ -61,7 +63,6 @@ string(TOLOWER ${CMAKE_SYSTEM_NAME} PLATFORM_NAME)
 string(TOLOWER ${CMAKE_SYSTEM_PROCESSOR} ARCH_NAME)
 set_target_properties(${PROJECT_NAME} PROPERTIES
     OUTPUT_NAME "gdluau.${PLATFORM_NAME}.${ARCH_NAME}"
-    COMPILE_OPTIONS "${GDEXTENSION_COMPILE_OPTIONS}"
 )
 
 # Custom target to copy the library to the demo addon directory
