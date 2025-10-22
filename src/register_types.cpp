@@ -37,6 +37,7 @@ void initialize_gdluau(ModuleInitializationLevel p_level)
     GDREGISTER_RUNTIME_CLASS(LuaState);
 
 #ifdef ENABLE_LUAU_GDEXTENSION_TESTS
+#pragma message("Emitting code to register Luau GDExtension tests.")
     print_line("Luau GDExtension Tests enabled.");
     GDREGISTER_RUNTIME_CLASS(LuauGDExtensionTests);
 #endif

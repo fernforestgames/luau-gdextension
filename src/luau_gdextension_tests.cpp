@@ -4,6 +4,7 @@
 #include "luau_gdextension_tests.h"
 
 #ifdef ENABLE_LUAU_GDEXTENSION_TESTS
+#pragma message("Luau GDExtension Tests enabled in build.")
 
 #define DOCTEST_CONFIG_IMPLEMENT
 #include "../tests/doctest.h"
@@ -13,22 +14,26 @@
 
 using namespace godot;
 
-LuauGDExtensionTests::LuauGDExtensionTests() {
+LuauGDExtensionTests::LuauGDExtensionTests()
+{
 }
 
-LuauGDExtensionTests::~LuauGDExtensionTests() {
+LuauGDExtensionTests::~LuauGDExtensionTests()
+{
 }
 
-void LuauGDExtensionTests::_bind_methods() {
+void LuauGDExtensionTests::_bind_methods()
+{
 	ClassDB::bind_static_method("LuauGDExtensionTests", D_METHOD("run"), &LuauGDExtensionTests::run);
 }
 
-Dictionary LuauGDExtensionTests::run() {
+Dictionary LuauGDExtensionTests::run()
+{
 	// Configure doctest
 	doctest::Context context;
-	context.setOption("no-breaks", true);     // Don't break on failures
-	context.setOption("no-colors", false);    // Enable colors in output
-	context.setOption("duration", true);      // Show test durations
+	context.setOption("no-breaks", true);  // Don't break on failures
+	context.setOption("no-colors", false); // Enable colors in output
+	context.setOption("duration", true);   // Show test durations
 
 	// Run all tests - doctest outputs results to stdout
 	int result = context.run();

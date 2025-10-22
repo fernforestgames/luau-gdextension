@@ -99,15 +99,10 @@ elseif(CMAKE_SYSTEM_PROCESSOR MATCHES "aarch64|arm64")
     set(ARCH_NAME "arm64")
 endif()
 
-# Build type
-string(TOLOWER "${CMAKE_BUILD_TYPE}" BUILD_TYPE_LOWER)
-if(BUILD_TYPE_LOWER STREQUAL "")
-    set(BUILD_TYPE_LOWER "debug")
-endif()
-
 # Set output properties
 set_target_properties(${PROJECT_NAME} PROPERTIES
-    OUTPUT_NAME "libgdluau.${PLATFORM_NAME}.${BUILD_TYPE_LOWER}.${ARCH_NAME}"
+    DEBUG_POSTFIX ".debug"
+    OUTPUT_NAME "libgdluau.${PLATFORM_NAME}.${ARCH_NAME}"
     PREFIX ""
     SUFFIX "${PLATFORM_EXT}"
     # Prevent MSVC/MSBuild from adding Debug/Release subdirectories
@@ -136,19 +131,15 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 # Runtime-Embedded Tests (Debug builds only)
 # ============================================================================
 
-if(CMAKE_BUILD_TYPE STREQUAL "Debug")
-    message(STATUS "Debug build detected - enabling runtime-embedded tests")
+# Add runtime test sources
+target_sources(${PROJECT_NAME} PRIVATE
+    $<$<CONFIG:Debug>:src/tests_runtime.cpp>
+)
 
-    # Add runtime test sources
-    target_sources(${PROJECT_NAME} PRIVATE
-        src/tests_runtime.cpp
-    )
+# Define ENABLE_LUAU_GDEXTENSION_TESTS for conditional compilation
+target_compile_definitions(${PROJECT_NAME} PRIVATE $<$<CONFIG:Debug>:ENABLE_LUAU_GDEXTENSION_TESTS>)
 
-    # Define ENABLE_LUAU_GDEXTENSION_TESTS for conditional compilation
-    target_compile_definitions(${PROJECT_NAME} PRIVATE ENABLE_LUAU_GDEXTENSION_TESTS)
-
-    # Include tests directory for doctest.h
-    target_include_directories(${PROJECT_NAME} PRIVATE
-        ${CMAKE_CURRENT_SOURCE_DIR}/tests
-    )
-endif()
+# Include tests directory for doctest.h
+target_include_directories(${PROJECT_NAME} PRIVATE
+    $<$<CONFIG:Debug>:${CMAKE_CURRENT_SOURCE_DIR}/tests>
+)
