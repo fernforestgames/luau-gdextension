@@ -118,8 +118,10 @@ jobs:
         if: matrix.build_type == 'Debug'
         run: |
           if [ "${{ matrix.platform }}" = "windows" ]; then
+            ./godot.exe --headless --path demo/ --import
             ./godot.exe --headless --path demo/ -- --run-tests
           else
+            ./godot --headless --path demo/ --import
             ./godot --headless --path demo/ -- --run-tests
           fi
         shell: bash
