@@ -86,6 +86,9 @@
         "type": "equals",
         "lhs": "${hostSystemName}",
         "rhs": "Darwin"
+      },
+      "cacheVariables": {
+        "CMAKE_SHARED_LIBRARY_SUFFIX": "dylib"
       }
     },
     {
