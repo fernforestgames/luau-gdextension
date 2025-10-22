@@ -1,7 +1,4 @@
 name: Builds
-permissions:
-  contents: read
-
 on:
   push:
     branches:
@@ -14,12 +11,16 @@ on:
 
   pull_request:
 
-env:
-  LIBNAME: luau-gdextension
-
 concurrency:
-  group: ci-${{github.actor}}-${{github.head_ref || github.run_number}}-${{github.ref}}
+  group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
+
+defaults:
+  run:
+    shell: bash
+
+permissions:
+  contents: read
 
 jobs:
   build:
@@ -29,42 +30,24 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - identifier: windows-debug
+          - identifier: windows-x86_64-debug
             os: windows-latest
             name: 🏁 Windows Debug
-            build_type: Debug
-            platform: windows
-            arch: x86_64
-          - identifier: windows-release
+          - identifier: windows-x86_64-release
             os: windows-latest
             name: 🏁 Windows Release
-            build_type: Release
-            platform: windows
-            arch: x86_64
-          - identifier: macos-debug
+          - identifier: macos-arm64-debug
             os: macos-latest
             name: 🍎 macOS Debug
-            build_type: Debug
-            platform: macos
-            arch: arm64
-          - identifier: macos-release
+          - identifier: macos-arm64-release
             os: macos-latest
             name: 🍎 macOS Release
-            build_type: Release
-            platform: macos
-            arch: arm64
-          - identifier: linux-debug
+          - identifier: linux-x86_64-debug
             os: ubuntu-latest
             name: 🐧 Linux Debug
-            build_type: Debug
-            platform: linux
-            arch: x86_64
-          - identifier: linux-release
+          - identifier: linux-x86_64-release
             os: ubuntu-latest
             name: 🐧 Linux Release
-            build_type: Release
-            platform: linux
-            arch: x86_64
 
     steps:
       - name: Checkout repository
@@ -76,60 +59,52 @@ jobs:
       - name: Setup ccache
         uses: hendrikmuhs/ccache-action@v1.2
         with:
-          key: ${{ matrix.platform }}-${{ matrix.arch }}-${{ matrix.build_type }}
+          key: ${{ matrix.identifier }}
 
       - name: Configure build
-        run: cmake --preset ${{ matrix.build_type == 'Debug' && 'default' || 'release' }}
+        run: cmake --preset ${{ matrix.identifier }}
 
       - name: Build
-        run: cmake --build --preset ${{ matrix.build_type == 'Debug' && 'default' || 'release' }} -j 1
+        run: cmake --build --preset ${{ matrix.identifier }} -j 1
 
-      - name: Download Godot
+      - name: Install Godot (Windows)
+        if: runner.os == 'Windows'
         run: |
-          if [ "${{ matrix.platform }}" = "windows" ]; then
-            curl -L -o godot.zip https://github.com/godotengine/godot/releases/download/4.5.1-stable/Godot_v4.5.1-stable_win64.exe.zip
-            unzip -q godot.zip
-            mv Godot_v4.5.1-stable_win64.exe godot.exe
-          elif [ "${{ matrix.platform }}" = "linux" ]; then
-            curl -L -o godot.zip https://github.com/godotengine/godot/releases/download/4.5.1-stable/Godot_v4.5.1-stable_linux.x86_64.zip
-            unzip -q godot.zip
-            chmod +x Godot_v4.5.1-stable_linux.x86_64
-            mv Godot_v4.5.1-stable_linux.x86_64 godot
-          elif [ "${{ matrix.platform }}" = "macos" ]; then
-            curl -L -o godot.zip https://github.com/godotengine/godot/releases/download/4.5.1-stable/Godot_v4.5.1-stable_macos.universal.zip
-            unzip -q godot.zip
-            # macOS app bundle structure
-            chmod +x Godot.app/Contents/MacOS/Godot
-            ln -s Godot.app/Contents/MacOS/Godot godot
-          fi
-        shell: bash
+          curl -sL -o godot.zip https://github.com/godotengine/godot/releases/download/4.5.1-stable/Godot_v4.5.1-stable_win64.exe.zip
+          unzip -q godot.zip
+          mv Godot_v4.5.1-stable_win64.exe "$RUNNER_TEMP/godot.exe"
+          echo "GODOT_EXECUTABLE=$RUNNER_TEMP/godot.exe" >> $GITHUB_ENV
 
-      - name: Verify library files
+      - name: Install Godot (Linux)
+        if: runner.os == 'Linux'
         run: |
-          echo "=== Checking built libraries in bin/ ==="
-          ls -la bin/${{ matrix.platform }}/
-          echo ""
-          echo "=== Checking copied libraries in demo addon ==="
-          ls -la demo/addons/luau_gdextension/bin/
-        shell: bash
+          curl -sL -o godot.zip https://github.com/godotengine/godot/releases/download/4.5.1-stable/Godot_v4.5.1-stable_linux.x86_64.zip
+          unzip -q godot.zip
+          mv Godot_v4.5.1-stable_linux.x86_64 "$RUNNER_TEMP/godot"
+          echo "GODOT_EXECUTABLE=$RUNNER_TEMP/godot" >> $GITHUB_ENV
+      
+      - name: Install Godot (macOS)
+        if: runner.os == 'macOS'
+        run: |
+          curl -sL -o godot.zip https://github.com/godotengine/godot/releases/download/4.5.1-stable/Godot_v4.5.1-stable_macos.universal.zip
+          unzip -q godot.zip
+          mv Godot.app "$RUNNER_TEMP/Godot.app"
+          echo "GODOT_EXECUTABLE=$RUNNER_TEMP/Godot.app/Contents/MacOS/Godot" >> $GITHUB_ENV
+
+      - name: Checking libraries were copied to demo project
+        run: ls -la demo/addons/luau_gdextension/bin/
 
       - name: Run tests
         # Runs both C++ and GDScript tests (C++ tests only available in Debug builds)
-        if: matrix.build_type == 'Debug'
+        if: contains(matrix.identifier, 'debug')
         run: |
-          if [ "${{ matrix.platform }}" = "windows" ]; then
-            ./godot.exe --headless --path demo/ --import
-            ./godot.exe --headless --path demo/ -- --run-tests
-          else
-            ./godot --headless --path demo/ --import
-            ./godot --headless --path demo/ -- --run-tests
-          fi
-        shell: bash
+          "$GODOT_EXECUTABLE" --headless --path demo/ --import
+          "$GODOT_EXECUTABLE" --headless --path demo/ -- --run-tests
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: ${{ env.LIBNAME }}-${{ matrix.platform }}-${{ matrix.arch }}-${{ matrix.build_type }}
+          name: luau-gdextension-${{ matrix.identifier }}
           path: |
             ${{ github.workspace }}/bin/**/*
 
@@ -142,5 +117,5 @@ jobs:
         uses: actions/upload-artifact/merge@v4
         with:
           name: luau-gdextension
-          pattern: ${{ env.LIBNAME }}-*
+          pattern: luau-gdextension-*
           delete-merged: true

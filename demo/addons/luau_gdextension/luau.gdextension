@@ -6,9 +6,9 @@ reloadable = true
 
 [libraries]
 
-macos.debug = "bin/libgdluau.macos.arm64.debug.dylib"
-macos.release = "bin/libgdluau.macos.arm64.dylib"
-windows.debug.x86_64 = "bin/libgdluau.windows.x86_64.debug.dll"
-windows.release.x86_64 = "bin/libgdluau.windows.x86_64.dll"
+macos.debug = "bin/libgdluau.darwin.arm64.debug.dylib"
+macos.release = "bin/libgdluau.darwin.arm64.dylib"
+windows.debug.x86_64 = "bin/gdluau.windows.amd64.debug.dll"
+windows.release.x86_64 = "bin/gdluau.windows.amd64.dll"
 linux.debug.x86_64 = "bin/libgdluau.linux.x86_64.debug.so"
 linux.release.x86_64 = "bin/libgdluau.linux.x86_64.so"

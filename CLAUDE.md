@@ -48,17 +48,24 @@ tests/
 
 ## Building
 
-```bash
-# Debug build
-cmake --preset default
-cmake --build --preset default -j
+Build the preset appropriate for the current platform—for example:
 
-# Release build
-cmake --preset release
-cmake --build --preset release -j
+```bash
+cmake --preset windows-x86_64-debug
+cmake --build --preset windows-x86_64-debug -j
 ```
 
-Built binaries output to `bin/<platform>/` and are automatically copied to
+```bash
+cmake --preset linux-x86_64-debug
+cmake --build --preset linux-x86_64-debug -j
+```
+
+```bash
+cmake --preset macos-arm64-debug
+cmake --build --preset macos-arm64-debug -j
+```
+
+Built binaries output to `build/bin/` and are automatically copied to
 `demo/addons/luau_gdextension/bin/`
 
 Dependencies (auto-fetched via CMake, stored in `build/_deps/`):
@@ -84,8 +91,8 @@ sample Luau script.
   - Better memory layout (stored inline in stack, not as heap allocations)
   - Lower GC pressure
 - Other math types are implemented as userdata with metatables
-- **Callable bridging:** Bidirectional conversion between Lua functions and Godot
-  Callables:
+- **Callable bridging:** Bidirectional conversion between Lua functions and
+  Godot Callables:
   - Lua functions → Godot Callables: Wrapped in `LuaCallable` class using manual
     reference counting to keep LuaState alive
   - Godot Callables → Lua: Stored as userdata with `__call` metamethod
@@ -95,34 +102,39 @@ sample Luau script.
 
 ## Testing
 
-This project has comprehensive automated tests for all Godot-Luau bridging functionality.
+This project has comprehensive automated tests for all Godot-Luau bridging
+functionality.
 
 **Test Infrastructure:**
-- **Runtime-Embedded C++ Tests (doctest):** All bridging layer tests running inside Godot runtime
+
+- **Runtime-Embedded C++ Tests (doctest):** All bridging layer tests running
+  inside Godot runtime
   - Located in `src/tests_runtime.cpp`
-  - Tests both POD types (Vector2, Color) and runtime types (Array, Dictionary, Variant)
+  - Tests both POD types (Vector2, Color) and runtime types (Array, Dictionary,
+    Variant)
   - Embedded in Debug builds only, exposed via `LuauGDExtensionTests` class
   - Run via `godot --headless --path demo/ -- --run-tests`
-- **GDScript Integration Tests (GUT):** High-level tests from Godot's perspective
+- **GDScript Integration Tests (GUT):** High-level tests from Godot's
+  perspective
   - Located in `demo/test/test_*_integration.gd`
   - Tests full round-trip conversions and Lua script execution
   - Run via GUT panel in Godot editor or via `--run-tests` flag
 
 **Running Tests:**
 
-```bash
-# Build Debug with embedded tests
-cmake --preset default
-cmake --build --preset default -j
+Tests are available in Debug builds, and can be run via Godot:
 
-# Run all tests (both C++ and GDScript)
+```bash
 godot --headless --path demo/ -- --run-tests
 ```
 
-**Why Runtime-Embedded Tests?**
-Godot types like Array, Dictionary, and Variant require full Godot runtime initialization. By embedding tests in the GDExtension and running them inside Godot, we can test everything in one place with a realistic environment.
+**Why Runtime-Embedded Tests?** Godot types like Array, Dictionary, and Variant
+require full Godot runtime initialization. By embedding tests in the GDExtension
+and running them inside Godot, we can test everything in one place with a
+realistic environment.
 
 **Coverage:**
+
 - ✅ All math types (Vector2, Vector2i, Vector3, Vector3i, Color, Vector4, etc.)
 - ✅ Array/Dictionary bridging (including nested structures)
 - ✅ Variant conversions (all supported types)
@@ -133,6 +145,7 @@ Godot types like Array, Dictionary, and Variant require full Godot runtime initi
 See `tests/README.md` for detailed testing documentation and best practices.
 
 **When Adding New Features:**
+
 1. Write C++ tests in `src/tests_runtime.cpp`
 2. Write GDScript integration tests in `demo/test/`
 3. Ensure all tests pass before committing
