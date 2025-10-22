@@ -106,7 +106,7 @@ jobs:
         with:
           name: luau-gdextension-${{ matrix.identifier }}
           path: |
-            ${{ github.workspace }}/bin/**/*
+            demo/addons/luau_gdextension/bin/*
 
   merge:
     runs-on: ubuntu-latest
