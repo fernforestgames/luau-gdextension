@@ -102,36 +102,53 @@ sample Luau script.
 
 ## Testing
 
-This project has comprehensive automated tests for all Godot-Luau bridging
-functionality.
+This project has comprehensive automated tests using CMake's CTest framework.
 
 **Test Infrastructure:**
 
-- **Runtime-Embedded C++ Tests (doctest):** All bridging layer tests running
-  inside Godot runtime
-  - Located in `src/tests_runtime.cpp`
+- **C++ Tests (doctest):** Separate GDExtension (`gdluau_tests`) with bridging
+  layer tests
+  - Located in `tests/tests_runtime.cpp` and `tests/luau_gdextension_tests.cpp`
   - Tests both POD types (Vector2, Color) and runtime types (Array, Dictionary,
     Variant)
-  - Embedded in Debug builds only, exposed via `LuauGDExtensionTests` class
-  - Run via `godot --headless --path demo/ -- --run-tests`
+  - Built as separate library when `BUILD_TESTING=ON` (enabled in Debug
+    presets)
+  - Has its own `.gdextension` file for independent loading
+  - Run inside Godot runtime for full engine integration
 - **GDScript Integration Tests (GUT):** High-level tests from Godot's
   perspective
   - Located in `demo/test/test_*_integration.gd`
   - Tests full round-trip conversions and Lua script execution
-  - Run via GUT panel in Godot editor or via `--run-tests` flag
+  - Run via GUT framework
+
+**Building with Tests:**
+
+```bash
+# Debug build includes test library (BUILD_TESTING=ON)
+cmake --preset windows-x86_64-debug   # or linux-x86_64-debug, macos-arm64-debug
+cmake --build --preset windows-x86_64-debug -j
+
+# Release build excludes tests (BUILD_TESTING=OFF)
+cmake --preset windows-x86_64-release
+cmake --build --preset windows-x86_64-release -j
+```
 
 **Running Tests:**
 
-Tests are available in Debug builds, and can be run via Godot:
-
 ```bash
+# Using CTest (recommended)
+cd build
+ctest --output-on-failure --verbose
+
+# Or directly via Godot
 godot --headless --path demo/ -- --run-tests
 ```
 
-**Why Runtime-Embedded Tests?** Godot types like Array, Dictionary, and Variant
-require full Godot runtime initialization. By embedding tests in the GDExtension
-and running them inside Godot, we can test everything in one place with a
-realistic environment.
+**Test Architecture:** Main library (`gdluau`) never contains test code, even
+in Debug builds. Test library (`gdluau_tests`) is a separate GDExtension with
+its own `.gdextension` file, only built when `BUILD_TESTING=ON`. Test library
+is completely optional and can be excluded from distributions. CTest drives test
+execution via Godot with `--run-tests` flag.
 
 **Coverage:**
 
@@ -146,10 +163,14 @@ See `tests/README.md` for detailed testing documentation and best practices.
 
 **When Adding New Features:**
 
-1. Write C++ tests in `src/tests_runtime.cpp`
+1. Write C++ tests in `tests/tests_runtime.cpp`
 2. Write GDScript integration tests in `demo/test/`
-3. Ensure all tests pass before committing
-4. CI automatically runs all tests on push/PR
+3. Run `ctest` to verify all tests pass
+4. CI automatically runs tests on push/PR (via CTest)
+
+**Distribution:** When packaging for distribution, simply exclude
+`*_tests*` files from `demo/addons/luau_gdextension/`. This removes both the
+test library binaries and the `luau_tests.gdextension` file.
 
 ## Important Notes
 

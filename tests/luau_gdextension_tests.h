@@ -1,10 +1,8 @@
-// Runtime-embedded C++ tests using doctest
-// Only available in Debug builds
+// C++ tests using doctest
+// Built as separate shared library (gdluau_tests)
 // Run via: godot --headless --path demo/ -- --run-tests
 
 #pragma once
-
-#ifdef ENABLE_LUAU_GDEXTENSION_TESTS
 
 #include <godot_cpp/classes/object.hpp>
 #include <godot_cpp/variant/dictionary.hpp>
@@ -22,10 +20,8 @@ public:
 	LuauGDExtensionTests();
 	~LuauGDExtensionTests();
 
-	// Run all embedded C++ tests
-	// Returns Dictionary with: {passed: int, failed: int, assertions_passed: int, assertions_failed: int, success: bool}
+	// Run all C++ tests using doctest
+	// Returns Dictionary with: {success: bool}
 	// Also prints detailed test output to stdout
 	static Dictionary run();
 };
-
-#endif // ENABLE_LUAU_GDEXTENSION_TESTS

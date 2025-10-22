@@ -36,18 +36,35 @@ FetchContent_Declare(
 )
 FetchContent_MakeAvailable(Luau GodotCpp)
 
-# Collect source files (exclude tests_runtime.cpp initially)
+# Collect source files (excluding register_types.cpp which is added separately)
 file(GLOB_RECURSE SOURCES
     "src/*.cpp"
 )
-list(FILTER SOURCES EXCLUDE REGEX ".*tests_runtime\\.cpp$")
+list(FILTER SOURCES EXCLUDE REGEX ".*register_types\\.cpp$")
 
-# GDExtension library target
-add_library(${PROJECT_NAME} MODULE ${SOURCES})
-target_compile_features(${PROJECT_NAME} PRIVATE
+# Create object library for shared code (used by both main and test libraries)
+add_library(${PROJECT_NAME}_core OBJECT ${SOURCES})
+target_compile_features(${PROJECT_NAME}_core PRIVATE
     # Disable C++ exceptions in our code (Godot doesn't use them, Luau uses setjmp/longjmp via LUAU_EXTERN_C)
     cxx_noexcept
+    cxx_std_17
+)
+target_include_directories(${PROJECT_NAME}_core PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/src
+)
+target_link_libraries(${PROJECT_NAME}_core PRIVATE
+    godot-cpp
+    Luau.Compiler
+    Luau.VM
+)
 
+# GDExtension library target (uses core object library + register_types.cpp)
+add_library(${PROJECT_NAME} MODULE
+    $<TARGET_OBJECTS:${PROJECT_NAME}_core>
+    src/register_types.cpp
+)
+target_compile_features(${PROJECT_NAME} PRIVATE
+    cxx_noexcept
     cxx_std_17
 )
 target_include_directories(${PROJECT_NAME} PRIVATE
@@ -72,22 +89,95 @@ add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy_if_different
         $<TARGET_FILE:${PROJECT_NAME}>
         "${CMAKE_CURRENT_SOURCE_DIR}/demo/addons/luau_gdextension/bin/$<TARGET_FILE_NAME:${PROJECT_NAME}>"
-    COMMENT "Copying library to demo addon directory"
+    COMMENT "Copying extension library to demo addons"
 )
 
 # ============================================================================
-# Runtime-Embedded Tests (Debug builds only)
+# Test Library (separate shared library, only when BUILD_TESTING=ON)
 # ============================================================================
 
-# Add runtime test sources
-target_sources(${PROJECT_NAME} PRIVATE
-    $<$<CONFIG:Debug>:src/tests_runtime.cpp>
-)
+# Enable CTest support
+include(CTest)
 
-# Define ENABLE_LUAU_GDEXTENSION_TESTS for conditional compilation
-target_compile_definitions(${PROJECT_NAME} PRIVATE $<$<CONFIG:Debug>:ENABLE_LUAU_GDEXTENSION_TESTS>)
+if(BUILD_TESTING)
+    message(STATUS "Test library enabled: gdluau_tests will be built")
 
-# Include tests directory for doctest.h
-target_include_directories(${PROJECT_NAME} PRIVATE
-    $<$<CONFIG:Debug>:${CMAKE_CURRENT_SOURCE_DIR}/tests>
-)
+    # Collect test source files
+    file(GLOB TEST_SOURCES
+        "tests/*.cpp"
+    )
+
+    # Test library target (uses core object library + test files)
+    add_library(${PROJECT_NAME}_tests MODULE
+        $<TARGET_OBJECTS:${PROJECT_NAME}_core>
+        ${TEST_SOURCES}
+    )
+    target_compile_features(${PROJECT_NAME}_tests PRIVATE
+        cxx_noexcept
+        cxx_std_17
+    )
+    target_include_directories(${PROJECT_NAME}_tests PRIVATE
+        ${CMAKE_CURRENT_SOURCE_DIR}/src
+        ${CMAKE_CURRENT_SOURCE_DIR}/tests
+    )
+    target_link_libraries(${PROJECT_NAME}_tests PRIVATE
+        godot-cpp
+        Luau.Compiler
+        Luau.VM
+    )
+
+    set_target_properties(${PROJECT_NAME}_tests PROPERTIES
+        DEBUG_POSTFIX ""
+        OUTPUT_NAME "gdluau_tests.${PLATFORM_NAME}.${ARCH_NAME}"
+    )
+
+    # Copy test library to demo addon directory (same location as main library)
+    add_custom_command(TARGET ${PROJECT_NAME}_tests POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different
+            $<TARGET_FILE:${PROJECT_NAME}_tests>
+            "${CMAKE_CURRENT_SOURCE_DIR}/demo/addons/luau_gdextension_tests/bin/$<TARGET_FILE_NAME:${PROJECT_NAME}_tests>"
+        COMMENT "Copying test library to demo addons"
+    )
+
+    # Add CTest for running Godot tests
+    # Note: Godot executable must be in PATH or specified via GODOT_EXECUTABLE env var
+    find_program(GODOT_EXECUTABLE
+        NAMES godot godot.exe Godot Godot.exe Godot.app Godot_v4.5.1-stable_win64.exe Godot_v4.5.1-stable_linux.x86_64
+        HINTS
+            ENV GODOT_EXECUTABLE
+            ENV RUNNER_TEMP
+            "C:/Program Files/Godot"
+            "/Applications"
+            "$ENV{HOME}/Applications"
+            "/usr/local/bin"
+            "/usr/bin"
+        DOC "Path to Godot executable"
+    )
+
+    if(GODOT_EXECUTABLE)
+        message(STATUS "Found Godot executable: ${GODOT_EXECUTABLE}")
+
+        add_test(
+            NAME GodotImport
+            COMMAND "${GODOT_EXECUTABLE}" --headless --import
+            WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/demo"
+        )
+
+        set_tests_properties(GodotImport PROPERTIES FIXTURES_SETUP GODOT)
+
+        add_test(
+            NAME GodotTests
+            COMMAND "${GODOT_EXECUTABLE}" --headless -- --run-tests
+            WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/demo"
+        )
+
+        set_tests_properties(GodotTests PROPERTIES
+            TIMEOUT 300  # 5 minute timeout
+            LABELS "integration"
+            FIXTURES_REQUIRED GODOT
+        )
+    else()
+        message(WARNING "Godot executable not found. Tests can still be run manually.")
+        message(STATUS "Set GODOT_EXECUTABLE to Godot's path to enable CTest integration.")
+    endif()
+endif()

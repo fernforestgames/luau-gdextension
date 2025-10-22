@@ -3,10 +3,6 @@
 #include "lua_state.h"
 #include "luau.h"
 
-#ifdef ENABLE_LUAU_GDEXTENSION_TESTS
-#include "luau_gdextension_tests.h"
-#endif
-
 #include <gdextension_interface.h>
 #include <godot_cpp/core/defs.hpp>
 #include <godot_cpp/godot.hpp>
@@ -35,12 +31,6 @@ void initialize_gdluau(ModuleInitializationLevel p_level)
 
     GDREGISTER_RUNTIME_CLASS(godot::Luau);
     GDREGISTER_RUNTIME_CLASS(LuaState);
-
-#ifdef ENABLE_LUAU_GDEXTENSION_TESTS
-#pragma message("Emitting code to register Luau GDExtension tests.")
-    print_line("Luau GDExtension Tests enabled.");
-    GDREGISTER_RUNTIME_CLASS(LuauGDExtensionTests);
-#endif
 }
 
 void uninitialize_gdluau(ModuleInitializationLevel p_level)

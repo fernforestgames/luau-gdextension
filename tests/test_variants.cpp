@@ -2,8 +2,9 @@
 // Tests pushvariant() and tovariant() with all supported types
 
 #include "doctest.h"
-#include "../src/lua_state.h"
-#include "../src/lua_godotlib.h"
+#include "lua_state.h"
+#include "lua_godotlib.h"
+#include "luau.h"
 #include <godot_cpp/variant/variant.hpp>
 #include <godot_cpp/variant/array.hpp>
 #include <godot_cpp/variant/dictionary.hpp>
@@ -11,158 +12,188 @@
 #include <godot_cpp/variant/vector2.hpp>
 #include <godot_cpp/variant/vector3.hpp>
 #include <godot_cpp/variant/color.hpp>
+#include <godot_cpp/core/memory.hpp>
 #include <lua.h>
 #include <lualib.h>
 
 using namespace godot;
 
-TEST_CASE("Variant: Primitive type conversions") {
-    LuaState L;
-    L.openlibs(LuaState::LIB_ALL);
+// Helper to create a LuaState with all libs
+static LuaState *create_test_state()
+{
+    LuaState *state = memnew(LuaState);
+    state->openlibs(LuaState::LIB_ALL);
+    return state;
+}
 
-    SUBCASE("Nil variant") {
+static void close_test_state(LuaState *state)
+{
+    memdelete(state);
+}
+
+TEST_CASE("Variant: Primitive type conversions")
+{
+    LuaState *L = create_test_state();
+
+    SUBCASE("Nil variant")
+    {
         Variant nil_var;
-        L.pushvariant(nil_var);
+        L->pushvariant(nil_var);
 
-        CHECK(L.isnil(-1));
+        CHECK(L->isnil(-1));
 
-        Variant retrieved = L.tovariant(-1);
+        Variant retrieved = L->tovariant(-1);
         CHECK(retrieved.get_type() == Variant::NIL);
     }
 
-    SUBCASE("Boolean true") {
+    SUBCASE("Boolean true")
+    {
         Variant bool_var = true;
-        L.pushvariant(bool_var);
+        L->pushvariant(bool_var);
 
-        CHECK(L.isboolean(-1));
-        CHECK(L.toboolean(-1) == true);
+        CHECK(L->isboolean(-1));
+        CHECK(L->toboolean(-1) == true);
 
-        Variant retrieved = L.tovariant(-1);
+        Variant retrieved = L->tovariant(-1);
         CHECK(retrieved.get_type() == Variant::BOOL);
         CHECK((bool)retrieved == true);
     }
 
-    SUBCASE("Boolean false") {
+    SUBCASE("Boolean false")
+    {
         Variant bool_var = false;
-        L.pushvariant(bool_var);
+        L->pushvariant(bool_var);
 
-        CHECK(L.isboolean(-1));
-        CHECK(L.toboolean(-1) == false);
+        CHECK(L->isboolean(-1));
+        CHECK(L->toboolean(-1) == false);
 
-        Variant retrieved = L.tovariant(-1);
+        Variant retrieved = L->tovariant(-1);
         CHECK((bool)retrieved == false);
     }
 
-    SUBCASE("Integer") {
+    SUBCASE("Integer")
+    {
         Variant int_var = 42;
-        L.pushvariant(int_var);
+        L->pushvariant(int_var);
 
-        CHECK(L.isnumber(-1));
-        CHECK(L.tointeger(-1) == 42);
+        CHECK(L->isnumber(-1));
+        CHECK(L->tointeger(-1) == 42);
 
-        Variant retrieved = L.tovariant(-1);
+        Variant retrieved = L->tovariant(-1);
         // May be INT or FLOAT depending on Lua representation
         int value = retrieved;
         CHECK(value == 42);
     }
 
-    SUBCASE("Float") {
+    SUBCASE("Float")
+    {
         Variant float_var = 3.14159;
-        L.pushvariant(float_var);
+        L->pushvariant(float_var);
 
-        CHECK(L.isnumber(-1));
-        CHECK(L.tonumber(-1) == doctest::Approx(3.14159));
+        CHECK(L->isnumber(-1));
+        CHECK(L->tonumber(-1) == doctest::Approx(3.14159));
 
-        Variant retrieved = L.tovariant(-1);
+        Variant retrieved = L->tovariant(-1);
         double value = retrieved;
         CHECK(value == doctest::Approx(3.14159));
     }
 
-    SUBCASE("Negative numbers") {
+    SUBCASE("Negative numbers")
+    {
         Variant neg_int = -100;
-        L.pushvariant(neg_int);
+        L->pushvariant(neg_int);
 
-        Variant retrieved = L.tovariant(-1);
+        Variant retrieved = L->tovariant(-1);
         int value = retrieved;
         CHECK(value == -100);
     }
 
-    SUBCASE("Zero") {
+    SUBCASE("Zero")
+    {
         Variant zero = 0;
-        L.pushvariant(zero);
+        L->pushvariant(zero);
 
-        Variant retrieved = L.tovariant(-1);
+        Variant retrieved = L->tovariant(-1);
         int value = retrieved;
         CHECK(value == 0);
     }
+
+    close_test_state(L);
 }
 
-TEST_CASE("Variant: String conversions") {
-    LuaState L;
-    L.openlibs(LuaState::LIB_ALL);
+TEST_CASE("Variant: String conversions")
+{
+    LuaState *L = create_test_state();
 
-    SUBCASE("Simple string") {
+    SUBCASE("Simple string")
+    {
         Variant str_var = String("hello world");
-        L.pushvariant(str_var);
+        L->pushvariant(str_var);
 
-        CHECK(L.isstring(-1));
-        CHECK(L.tostring(-1) == "hello world");
+        CHECK(L->isstring(-1));
+        CHECK(L->tostring(-1) == "hello world");
 
-        Variant retrieved = L.tovariant(-1);
+        Variant retrieved = L->tovariant(-1);
         CHECK(retrieved.get_type() == Variant::STRING);
         CHECK((String)retrieved == "hello world");
     }
 
-    SUBCASE("Empty string") {
+    SUBCASE("Empty string")
+    {
         Variant empty = String("");
-        L.pushvariant(empty);
+        L->pushvariant(empty);
 
-        CHECK(L.isstring(-1));
+        CHECK(L->isstring(-1));
 
-        Variant retrieved = L.tovariant(-1);
+        Variant retrieved = L->tovariant(-1);
         CHECK((String)retrieved == "");
     }
 
-    SUBCASE("String with special characters") {
+    SUBCASE("String with special characters")
+    {
         Variant special = String("Hello\nWorld\t!");
-        L.pushvariant(special);
+        L->pushvariant(special);
 
-        Variant retrieved = L.tovariant(-1);
+        Variant retrieved = L->tovariant(-1);
         CHECK((String)retrieved == "Hello\nWorld\t!");
     }
 
-    SUBCASE("Unicode string") {
+    SUBCASE("Unicode string")
+    {
         Variant unicode = String("こんにちは 世界 🌍");
-        L.pushvariant(unicode);
+        L->pushvariant(unicode);
 
-        Variant retrieved = L.tovariant(-1);
+        Variant retrieved = L->tovariant(-1);
         CHECK((String)retrieved == "こんにちは 世界 🌍");
     }
 
-    SUBCASE("StringName") {
+    SUBCASE("StringName")
+    {
         Variant strname = StringName("test_name");
-        L.pushvariant(strname);
+        L->pushvariant(strname);
 
-        CHECK(L.isstring(-1));
+        CHECK(L->isstring(-1));
 
-        Variant retrieved = L.tovariant(-1);
+        Variant retrieved = L->tovariant(-1);
         // Should convert to string
         String str = retrieved;
         CHECK(str == "test_name");
     }
+
+    close_test_state(L);
 }
 
-TEST_CASE("Variant: Math type conversions") {
-    LuaState L;
-    L.openlibs(LuaState::LIB_ALL);
+TEST_CASE("Variant: Math type conversions")
+{
+    LuaState *L = create_test_state();
 
-    SUBCASE("Vector2") {
+    SUBCASE("Vector2")
+    {
         Variant vec = Vector2(3.5, 4.5);
-        L.pushvariant(vec);
+        L->pushvariant(vec);
+        CHECK(is_vector2((lua_State *)nullptr, -1));
 
-        CHECK(is_vector2((lua_State*)nullptr, -1) || L.istable(-1)); // Might be userdata
-
-        Variant retrieved = L.tovariant(-1);
+        Variant retrieved = L->tovariant(-1);
         CHECK(retrieved.get_type() == Variant::VECTOR2);
 
         Vector2 v = retrieved;
@@ -170,11 +201,12 @@ TEST_CASE("Variant: Math type conversions") {
         CHECK(v.y == doctest::Approx(4.5));
     }
 
-    SUBCASE("Vector2i") {
+    SUBCASE("Vector2i")
+    {
         Variant vec = Vector2i(10, 20);
-        L.pushvariant(vec);
+        L->pushvariant(vec);
 
-        Variant retrieved = L.tovariant(-1);
+        Variant retrieved = L->tovariant(-1);
         CHECK(retrieved.get_type() == Variant::VECTOR2I);
 
         Vector2i v = retrieved;
@@ -182,14 +214,13 @@ TEST_CASE("Variant: Math type conversions") {
         CHECK(v.y == 20);
     }
 
-    SUBCASE("Vector3") {
+    SUBCASE("Vector3")
+    {
         Variant vec = Vector3(1.0, 2.0, 3.0);
-        L.pushvariant(vec);
+        L->pushvariant(vec);
+        CHECK(is_vector3((lua_State *)nullptr, -1));
 
-        // Vector3 uses native vector type
-        CHECK(is_vector3((lua_State*)nullptr, -1) || L.istable(-1));
-
-        Variant retrieved = L.tovariant(-1);
+        Variant retrieved = L->tovariant(-1);
         CHECK(retrieved.get_type() == Variant::VECTOR3);
 
         Vector3 v = retrieved;
@@ -198,11 +229,12 @@ TEST_CASE("Variant: Math type conversions") {
         CHECK(v.z == doctest::Approx(3.0));
     }
 
-    SUBCASE("Vector3i") {
+    SUBCASE("Vector3i")
+    {
         Variant vec = Vector3i(100, 200, 300);
-        L.pushvariant(vec);
+        L->pushvariant(vec);
 
-        Variant retrieved = L.tovariant(-1);
+        Variant retrieved = L->tovariant(-1);
         CHECK(retrieved.get_type() == Variant::VECTOR3I);
 
         Vector3i v = retrieved;
@@ -211,11 +243,12 @@ TEST_CASE("Variant: Math type conversions") {
         CHECK(v.z == 300);
     }
 
-    SUBCASE("Color") {
+    SUBCASE("Color")
+    {
         Variant col = Color(1.0, 0.5, 0.0, 0.8);
-        L.pushvariant(col);
+        L->pushvariant(col);
 
-        Variant retrieved = L.tovariant(-1);
+        Variant retrieved = L->tovariant(-1);
         CHECK(retrieved.get_type() == Variant::COLOR);
 
         Color c = retrieved;
@@ -224,24 +257,27 @@ TEST_CASE("Variant: Math type conversions") {
         CHECK(c.b == doctest::Approx(0.0));
         CHECK(c.a == doctest::Approx(0.8));
     }
+
+    close_test_state(L);
 }
 
-TEST_CASE("Variant: Collection conversions") {
-    LuaState L;
-    L.openlibs(LuaState::LIB_ALL);
+TEST_CASE("Variant: Collection conversions")
+{
+    LuaState *L = create_test_state();
 
-    SUBCASE("Array variant") {
+    SUBCASE("Array variant")
+    {
         Array arr;
         arr.push_back(1);
         arr.push_back("two");
         arr.push_back(3.0);
 
         Variant arr_var = arr;
-        L.pushvariant(arr_var);
+        L->pushvariant(arr_var);
 
-        CHECK(L.istable(-1));
+        CHECK(L->istable(-1));
 
-        Variant retrieved = L.tovariant(-1);
+        Variant retrieved = L->tovariant(-1);
         CHECK(retrieved.get_type() == Variant::ARRAY);
 
         Array retrieved_arr = retrieved;
@@ -251,17 +287,18 @@ TEST_CASE("Variant: Collection conversions") {
         CHECK((double)retrieved_arr[2] == doctest::Approx(3.0));
     }
 
-    SUBCASE("Dictionary variant") {
+    SUBCASE("Dictionary variant")
+    {
         Dictionary dict;
         dict["name"] = "test";
         dict["value"] = 42;
 
         Variant dict_var = dict;
-        L.pushvariant(dict_var);
+        L->pushvariant(dict_var);
 
-        CHECK(L.istable(-1));
+        CHECK(L->istable(-1));
 
-        Variant retrieved = L.tovariant(-1);
+        Variant retrieved = L->tovariant(-1);
         CHECK(retrieved.get_type() == Variant::DICTIONARY);
 
         Dictionary retrieved_dict = retrieved;
@@ -269,34 +306,39 @@ TEST_CASE("Variant: Collection conversions") {
         CHECK((int)retrieved_dict["value"] == 42);
     }
 
-    SUBCASE("Empty array") {
+    SUBCASE("Empty array")
+    {
         Array empty;
         Variant arr_var = empty;
 
-        L.pushvariant(arr_var);
+        L->pushvariant(arr_var);
 
-        Variant retrieved = L.tovariant(-1);
+        Variant retrieved = L->tovariant(-1);
         Array retrieved_arr = retrieved;
         CHECK(retrieved_arr.size() == 0);
     }
 
-    SUBCASE("Empty dictionary") {
+    SUBCASE("Empty dictionary")
+    {
         Dictionary empty;
         Variant dict_var = empty;
 
-        L.pushvariant(dict_var);
+        L->pushvariant(dict_var);
 
-        Variant retrieved = L.tovariant(-1);
+        Variant retrieved = L->tovariant(-1);
         Dictionary retrieved_dict = retrieved;
         CHECK(retrieved_dict.size() == 0);
     }
+
+    close_test_state(L);
 }
 
-TEST_CASE("Variant: Nested structure conversions") {
-    LuaState L;
-    L.openlibs(LuaState::LIB_ALL);
+TEST_CASE("Variant: Nested structure conversions")
+{
+    LuaState *L = create_test_state();
 
-    SUBCASE("Array containing arrays") {
+    SUBCASE("Array containing arrays")
+    {
         Array inner1;
         inner1.push_back(1);
         inner1.push_back(2);
@@ -310,9 +352,9 @@ TEST_CASE("Variant: Nested structure conversions") {
         outer.push_back(inner2);
 
         Variant var = outer;
-        L.pushvariant(var);
+        L->pushvariant(var);
 
-        Variant retrieved = L.tovariant(-1);
+        Variant retrieved = L->tovariant(-1);
         Array retrieved_outer = retrieved;
 
         CHECK(retrieved_outer.size() == 2);
@@ -326,7 +368,8 @@ TEST_CASE("Variant: Nested structure conversions") {
         CHECK((int)r_inner2[1] == 4);
     }
 
-    SUBCASE("Dictionary containing arrays and dictionaries") {
+    SUBCASE("Dictionary containing arrays and dictionaries")
+    {
         Array items;
         items.push_back(10);
         items.push_back(20);
@@ -340,9 +383,9 @@ TEST_CASE("Variant: Nested structure conversions") {
         outer["name"] = "complex";
 
         Variant var = outer;
-        L.pushvariant(var);
+        L->pushvariant(var);
 
-        Variant retrieved = L.tovariant(-1);
+        Variant retrieved = L->tovariant(-1);
         Dictionary retrieved_dict = retrieved;
 
         CHECK((String)retrieved_dict["name"] == "complex");
@@ -355,7 +398,8 @@ TEST_CASE("Variant: Nested structure conversions") {
         CHECK((int)r_meta["count"] == 2);
     }
 
-    SUBCASE("Array with mixed types including math types") {
+    SUBCASE("Array with mixed types including math types")
+    {
         Array arr;
         arr.push_back(42);
         arr.push_back(Vector2(1, 2));
@@ -363,9 +407,9 @@ TEST_CASE("Variant: Nested structure conversions") {
         arr.push_back(Color(1, 0, 0, 1));
 
         Variant var = arr;
-        L.pushvariant(var);
+        L->pushvariant(var);
 
-        Variant retrieved = L.tovariant(-1);
+        Variant retrieved = L->tovariant(-1);
         Array r_arr = retrieved;
 
         CHECK(r_arr.size() == 4);
@@ -381,32 +425,35 @@ TEST_CASE("Variant: Nested structure conversions") {
         CHECK(c.r == doctest::Approx(1.0));
         CHECK(c.a == doctest::Approx(1.0));
     }
+
+    close_test_state(L);
 }
 
-TEST_CASE("Variant: Round-trip through Lua execution") {
-    LuaState L;
-    L.openlibs(LuaState::LIB_ALL);
+TEST_CASE("Variant: Round-trip through Lua execution")
+{
+    LuaState *L = create_test_state();
 
-    SUBCASE("Modify variant in Lua") {
+    SUBCASE("Modify variant in Lua")
+    {
         Array original;
         original.push_back(1);
         original.push_back(2);
 
         Variant var = original;
-        L.pushvariant(var);
-        L.setglobal("arr");
+        L->pushvariant(var);
+        L->setglobal("arr");
 
-        const char* code = R"(
+        const char *code = R"(
             table.insert(arr, 3)
             table.insert(arr, 4)
             return arr
         )";
 
         PackedByteArray bytecode = Luau::compile(code);
-        L.load_bytecode(bytecode, "test");
-        L.resume();
+        L->load_bytecode(bytecode, "test");
+        L->resume();
 
-        Variant result = L.tovariant(-1);
+        Variant result = L->tovariant(-1);
         Array result_arr = result;
 
         CHECK(result_arr.size() == 4);
@@ -414,8 +461,9 @@ TEST_CASE("Variant: Round-trip through Lua execution") {
         CHECK((int)result_arr[3] == 4);
     }
 
-    SUBCASE("Create complex structure in Lua") {
-        const char* code = R"(
+    SUBCASE("Create complex structure in Lua")
+    {
+        const char *code = R"(
             return {
                 position = Vector2(100, 200),
                 color = Color(1, 0, 0, 1),
@@ -428,10 +476,10 @@ TEST_CASE("Variant: Round-trip through Lua execution") {
         )";
 
         PackedByteArray bytecode = Luau::compile(code);
-        L.load_bytecode(bytecode, "test");
-        L.resume();
+        L->load_bytecode(bytecode, "test");
+        L->resume();
 
-        Variant result = L.tovariant(-1);
+        Variant result = L->tovariant(-1);
         Dictionary dict = result;
 
         CHECK(dict.has("position"));
@@ -451,48 +499,56 @@ TEST_CASE("Variant: Round-trip through Lua execution") {
         CHECK((String)meta["name"] == "entity");
         CHECK((bool)meta["active"] == true);
     }
+
+    close_test_state(L);
 }
 
-TEST_CASE("Variant: Type edge cases") {
-    LuaState L;
-    L.openlibs(LuaState::LIB_ALL);
+TEST_CASE("Variant: Type edge cases")
+{
+    LuaState *L = create_test_state();
 
-    SUBCASE("Very large integer") {
+    SUBCASE("Very large integer")
+    {
         Variant large = 2147483647; // Max 32-bit int
-        L.pushvariant(large);
+        L->pushvariant(large);
 
-        Variant retrieved = L.tovariant(-1);
+        Variant retrieved = L->tovariant(-1);
         int64_t value = retrieved;
         CHECK(value == 2147483647);
     }
 
-    SUBCASE("Very small float") {
+    SUBCASE("Very small float")
+    {
         Variant small = 0.000001;
-        L.pushvariant(small);
+        L->pushvariant(small);
 
-        Variant retrieved = L.tovariant(-1);
+        Variant retrieved = L->tovariant(-1);
         double value = retrieved;
         CHECK(value == doctest::Approx(0.000001));
     }
 
-    SUBCASE("Negative zero") {
+    SUBCASE("Negative zero")
+    {
         Variant neg_zero = -0.0;
-        L.pushvariant(neg_zero);
+        L->pushvariant(neg_zero);
 
-        Variant retrieved = L.tovariant(-1);
+        Variant retrieved = L->tovariant(-1);
         double value = retrieved;
         // -0.0 should be preserved
         CHECK(value == doctest::Approx(0.0));
     }
 
-    SUBCASE("Multiple nil variants") {
-        L.pushvariant(Variant());
-        L.pushvariant(Variant());
-        L.pushvariant(Variant());
+    SUBCASE("Multiple nil variants")
+    {
+        L->pushvariant(Variant());
+        L->pushvariant(Variant());
+        L->pushvariant(Variant());
 
-        CHECK(L.gettop() == 3);
-        CHECK(L.isnil(-1));
-        CHECK(L.isnil(-2));
-        CHECK(L.isnil(-3));
+        CHECK(L->gettop() == 3);
+        CHECK(L->isnil(-1));
+        CHECK(L->isnil(-2));
+        CHECK(L->isnil(-3));
     }
+
+    close_test_state(L);
 }

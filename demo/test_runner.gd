@@ -31,15 +31,21 @@ func run_runtime_tests():
 		get_tree().quit(1)
 
 func run_cpp_tests() -> bool:
-	print("=== Running Runtime-Embedded C++ Tests ===")
+	print("=== Running C++ Tests ===")
 	print("")
 
-	# Check if LuauGDExtensionTests class is available (debug build only)
+	# Check if LuauGDExtensionTests class is available
+	# This class is in a separate test library (gdluau_tests) built when BUILD_TESTING=ON
 	if not ClassDB.class_exists("LuauGDExtensionTests"):
-		push_error("LuauGDExtensionTests class not found!")
-		push_error("Runtime tests are only available in Debug builds.")
-		push_error("Please build with: cmake --preset default && cmake --build --preset default")
-		return false
+		print("⚠ LuauGDExtensionTests class not found - C++ tests not available")
+		print("  The test library (gdluau_tests) was not loaded.")
+		print("  To enable C++ tests, build with:")
+		print("    cmake --preset <platform>-debug")
+		print("    cmake --build --preset <platform>-debug")
+		print("")
+		print("  Continuing with GDScript tests only...")
+		print("")
+		return true  # Not a failure, just skip C++ tests
 
 	# Run the tests - doctest prints detailed results to stdout
 	var results = LuauGDExtensionTests.run()

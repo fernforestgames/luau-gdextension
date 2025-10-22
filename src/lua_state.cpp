@@ -37,6 +37,7 @@ void LuaState::_bind_methods()
     ClassDB::bind_method(D_METHOD("close"), &LuaState::close);
 
     ClassDB::bind_method(D_METHOD("load_bytecode", "bytecode", "chunk_name"), &LuaState::load_bytecode);
+    ClassDB::bind_method(D_METHOD("loadstring", "code", "chunk_name"), &LuaState::loadstring);
     ClassDB::bind_method(D_METHOD("resume"), &LuaState::resume);
 
     ClassDB::bind_method(D_METHOD("singlestep", "enable"), &LuaState::singlestep);
@@ -160,7 +161,7 @@ LuaState::LuaState()
     // It must be created here (not in lua_godotlib) so it's available
     // even if the Godot library hasn't been loaded
     luaL_newmetatable(L, GODOT_DICTIONARY_MT);
-    lua_pop(L, 1);  // Pop the metatable, it's already stored in registry
+    lua_pop(L, 1); // Pop the metatable, it's already stored in registry
 }
 
 LuaState::~LuaState()
@@ -235,6 +236,33 @@ lua_Status LuaState::load_bytecode(const PackedByteArray &bytecode, const String
     return static_cast<lua_Status>(status);
 }
 
+lua_Status LuaState::loadstring(const String &code, const String &chunk_name)
+{
+    ERR_FAIL_NULL_V_MSG(L, LUA_ERRMEM, "Lua state is null. Cannot load string.");
+    return load_bytecode(Luau::compile(code), chunk_name);
+}
+
+lua_Status LuaState::dostring(const String &code, const String &chunk_name)
+{
+    ERR_FAIL_NULL_V_MSG(L, LUA_ERRMEM, "Lua state is null. Cannot run string.");
+
+    lua_Status status = loadstring(code, chunk_name);
+    if (status != LUA_OK)
+    {
+        return status;
+    }
+
+    // Execute the loaded chunk
+    if (lua_pcall(L, 0, LUA_MULTRET, 0))
+    {
+        return LUA_ERRRUN;
+    }
+    else
+    {
+        return LUA_OK;
+    }
+}
+
 lua_Status LuaState::resume()
 {
     ERR_FAIL_NULL_V_MSG(L, LUA_ERRMEM, "Lua state is null. Cannot resume execution.");
@@ -283,9 +311,9 @@ bool LuaState::isarray(int index)
     {
         luaL_getmetatable(L, GODOT_DICTIONARY_MT);
         bool is_dict = lua_rawequal(L, -1, -2);
-        pop(2);  // Pop both metatables
+        pop(2); // Pop both metatables
         if (is_dict)
-            return false;  // Has dictionary metatable, so not an array
+            return false; // Has dictionary metatable, so not an array
     }
 
     // Check if table has consecutive integer keys starting from 1
@@ -358,9 +386,9 @@ bool LuaState::isdictionary(int index)
     {
         luaL_getmetatable(L, GODOT_DICTIONARY_MT);
         bool is_dict = lua_rawequal(L, -1, -2);
-        pop(2);  // Pop both metatables
+        pop(2); // Pop both metatables
         if (is_dict)
-            return true;  // Has dictionary metatable
+            return true; // Has dictionary metatable
     }
 
     // Otherwise, check if it's not an array
@@ -437,9 +465,9 @@ Variant LuaState::tovariant(int index)
         double num = tonumber(index);
         int int_val = static_cast<int>(num);
         if (num == static_cast<double>(int_val))
-            return Variant(int_val);  // Return as integer
+            return Variant(int_val); // Return as integer
         else
-            return Variant(num);      // Return as float
+            return Variant(num); // Return as float
     }
 
     case LUA_TSTRING:

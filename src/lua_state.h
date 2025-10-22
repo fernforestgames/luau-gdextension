@@ -49,6 +49,8 @@ namespace godot
         void open_library(lua_CFunction func, const char *name);
 
         lua_Status load_bytecode(const PackedByteArray &bytecode, const String &chunk_name);
+        lua_Status loadstring(const String &code, const String &chunk_name);
+        lua_Status dostring(const String &code, const String &chunk_name);
         lua_Status resume();
 
         void singlestep(bool enable);

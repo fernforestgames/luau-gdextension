@@ -95,18 +95,21 @@ jobs:
         run: ls -la demo/addons/luau_gdextension/bin/
 
       - name: Run tests
-        # Runs both C++ and GDScript tests (C++ tests only available in Debug builds)
+        # Use CTest to run all tests (C++ and GDScript via Godot)
+        # Tests only run on Debug builds (BUILD_TESTING=ON)
         if: contains(matrix.identifier, 'debug')
         run: |
           "$GODOT_EXECUTABLE" --headless --path demo/ --import
-          "$GODOT_EXECUTABLE" --headless --path demo/ -- --run-tests
+          cd build
+          ctest --output-on-failure --verbose
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
           name: luau-gdextension-${{ matrix.identifier }}
           path: |
-            demo/addons/luau_gdextension/bin/*
+            demo/addons/luau_gdextension/**
+            !demo/addons/luau_gdextension/**/*_tests*
 
   merge:
     runs-on: ubuntu-latest

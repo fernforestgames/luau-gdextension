@@ -2,8 +2,8 @@
 // Tests Vector2, Vector2i, Vector3, Vector3i, and Color conversions and operations
 
 #include "doctest.h"
-#include "../src/lua_godotlib.h"
-#include "../src/lua_state.h"
+#include "lua_state.h"
+#include "lua_godotlib.h"
 #include <godot_cpp/variant/vector2.hpp>
 #include <godot_cpp/variant/vector2i.hpp>
 #include <godot_cpp/variant/vector3.hpp>
@@ -17,40 +17,47 @@
 using namespace godot;
 
 // Helper to create a LuaState with Godot libs
-static lua_State* create_test_state() {
-    lua_State* L = luaL_newstate();
+static lua_State *create_test_state()
+{
+    lua_State *L = luaL_newstate();
     luaL_openlibs(L);
     luaopen_godot(L); // Open Godot math types library
     return L;
 }
 
 // Helper to clean up
-static void close_test_state(lua_State* L) {
+static void close_test_state(lua_State *L)
+{
     lua_close(L);
 }
 
 // Helper to execute Luau code (replacement for exec_lua which doesn't exist in Luau)
-static int exec_lua(lua_State* L, const char* code) {
+static int exec_lua(lua_State *L, const char *code)
+{
     size_t bytecode_size = 0;
-    char* bytecode = luau_compile(code, strlen(code), nullptr, &bytecode_size);
-    if (!bytecode) {
+    char *bytecode = luau_compile(code, strlen(code), nullptr, &bytecode_size);
+    if (!bytecode)
+    {
         return -1;
     }
 
     int result = luau_load(L, "test", bytecode, bytecode_size, 0);
     free(bytecode);
 
-    if (result == 0) {
+    if (result == 0)
+    {
         result = lua_resume(L, nullptr, 0);
     }
 
     return result;
 }
 
-TEST_CASE("Vector2: Construction and round-trip conversion") {
-    lua_State* L = create_test_state();
+TEST_CASE("Vector2: Construction and round-trip conversion")
+{
+    lua_State *L = create_test_state();
 
-    SUBCASE("Push Vector2 to Lua and retrieve") {
+    SUBCASE("Push Vector2 to Lua and retrieve")
+    {
         Vector2 original(3.5, 4.2);
         push_vector2(L, original);
 
@@ -61,7 +68,8 @@ TEST_CASE("Vector2: Construction and round-trip conversion") {
         CHECK(retrieved.y == doctest::Approx(4.2));
     }
 
-    SUBCASE("Create Vector2 in Lua via constructor") {
+    SUBCASE("Create Vector2 in Lua via constructor")
+    {
         exec_lua(L, "v = Vector2(10.5, 20.3)");
         lua_getglobal(L, "v");
 
@@ -75,10 +83,12 @@ TEST_CASE("Vector2: Construction and round-trip conversion") {
     close_test_state(L);
 }
 
-TEST_CASE("Vector2: Property access") {
-    lua_State* L = create_test_state();
+TEST_CASE("Vector2: Property access")
+{
+    lua_State *L = create_test_state();
 
-    SUBCASE("Read properties") {
+    SUBCASE("Read properties")
+    {
         Vector2 v(7.5, 8.5);
         push_vector2(L, v);
         lua_setglobal(L, "v");
@@ -94,7 +104,8 @@ TEST_CASE("Vector2: Property access") {
         CHECK(lua_tonumber(L, -1) == doctest::Approx(8.5));
     }
 
-    SUBCASE("Write properties") {
+    SUBCASE("Write properties")
+    {
         Vector2 v(1.0, 2.0);
         push_vector2(L, v);
         lua_setglobal(L, "v");
@@ -111,10 +122,12 @@ TEST_CASE("Vector2: Property access") {
     close_test_state(L);
 }
 
-TEST_CASE("Vector2: Arithmetic operators") {
-    lua_State* L = create_test_state();
+TEST_CASE("Vector2: Arithmetic operators")
+{
+    lua_State *L = create_test_state();
 
-    SUBCASE("Addition") {
+    SUBCASE("Addition")
+    {
         exec_lua(L, "v1 = Vector2(1.0, 2.0)");
         exec_lua(L, "v2 = Vector2(3.0, 4.0)");
         exec_lua(L, "result = v1 + v2");
@@ -125,7 +138,8 @@ TEST_CASE("Vector2: Arithmetic operators") {
         CHECK(result.y == doctest::Approx(6.0));
     }
 
-    SUBCASE("Subtraction") {
+    SUBCASE("Subtraction")
+    {
         exec_lua(L, "v1 = Vector2(10.0, 20.0)");
         exec_lua(L, "v2 = Vector2(3.0, 7.0)");
         exec_lua(L, "result = v1 - v2");
@@ -136,7 +150,8 @@ TEST_CASE("Vector2: Arithmetic operators") {
         CHECK(result.y == doctest::Approx(13.0));
     }
 
-    SUBCASE("Scalar multiplication") {
+    SUBCASE("Scalar multiplication")
+    {
         exec_lua(L, "v = Vector2(2.0, 3.0)");
         exec_lua(L, "result = v * 2.5");
 
@@ -146,7 +161,8 @@ TEST_CASE("Vector2: Arithmetic operators") {
         CHECK(result.y == doctest::Approx(7.5));
     }
 
-    SUBCASE("Component-wise multiplication") {
+    SUBCASE("Component-wise multiplication")
+    {
         exec_lua(L, "v1 = Vector2(2.0, 3.0)");
         exec_lua(L, "v2 = Vector2(4.0, 5.0)");
         exec_lua(L, "result = v1 * v2");
@@ -157,7 +173,8 @@ TEST_CASE("Vector2: Arithmetic operators") {
         CHECK(result.y == doctest::Approx(15.0));
     }
 
-    SUBCASE("Scalar division") {
+    SUBCASE("Scalar division")
+    {
         exec_lua(L, "v = Vector2(10.0, 20.0)");
         exec_lua(L, "result = v / 2.0");
 
@@ -167,7 +184,8 @@ TEST_CASE("Vector2: Arithmetic operators") {
         CHECK(result.y == doctest::Approx(10.0));
     }
 
-    SUBCASE("Component-wise division") {
+    SUBCASE("Component-wise division")
+    {
         exec_lua(L, "v1 = Vector2(12.0, 20.0)");
         exec_lua(L, "v2 = Vector2(4.0, 5.0)");
         exec_lua(L, "result = v1 / v2");
@@ -178,7 +196,8 @@ TEST_CASE("Vector2: Arithmetic operators") {
         CHECK(result.y == doctest::Approx(4.0));
     }
 
-    SUBCASE("Unary negation") {
+    SUBCASE("Unary negation")
+    {
         exec_lua(L, "v = Vector2(5.0, -3.0)");
         exec_lua(L, "result = -v");
 
@@ -191,10 +210,12 @@ TEST_CASE("Vector2: Arithmetic operators") {
     close_test_state(L);
 }
 
-TEST_CASE("Vector2: Equality and tostring") {
-    lua_State* L = create_test_state();
+TEST_CASE("Vector2: Equality and tostring")
+{
+    lua_State *L = create_test_state();
 
-    SUBCASE("Equality comparison") {
+    SUBCASE("Equality comparison")
+    {
         exec_lua(L, "v1 = Vector2(1.0, 2.0)");
         exec_lua(L, "v2 = Vector2(1.0, 2.0)");
         exec_lua(L, "v3 = Vector2(3.0, 4.0)");
@@ -209,12 +230,13 @@ TEST_CASE("Vector2: Equality and tostring") {
         CHECK(lua_toboolean(L, -1) == false);
     }
 
-    SUBCASE("String conversion") {
+    SUBCASE("String conversion")
+    {
         exec_lua(L, "v = Vector2(3.5, 4.2)");
         exec_lua(L, "str = tostring(v)");
 
         lua_getglobal(L, "str");
-        const char* str = lua_tostring(L, -1);
+        const char *str = lua_tostring(L, -1);
         CHECK(str != nullptr);
         // String should contain the coordinates in some form
         // Expected format: "Vector2(3.5, 4.2)" or similar
@@ -223,10 +245,12 @@ TEST_CASE("Vector2: Equality and tostring") {
     close_test_state(L);
 }
 
-TEST_CASE("Vector2i: Integer vector operations") {
-    lua_State* L = create_test_state();
+TEST_CASE("Vector2i: Integer vector operations")
+{
+    lua_State *L = create_test_state();
 
-    SUBCASE("Construction with integers") {
+    SUBCASE("Construction with integers")
+    {
         exec_lua(L, "v = Vector2i(10, 20)");
         lua_getglobal(L, "v");
 
@@ -237,7 +261,8 @@ TEST_CASE("Vector2i: Integer vector operations") {
         CHECK(result.y == 20);
     }
 
-    SUBCASE("Integer arithmetic") {
+    SUBCASE("Integer arithmetic")
+    {
         exec_lua(L, "v1 = Vector2i(10, 20)");
         exec_lua(L, "v2 = Vector2i(3, 7)");
         exec_lua(L, "sum = v1 + v2");
@@ -258,10 +283,12 @@ TEST_CASE("Vector2i: Integer vector operations") {
     close_test_state(L);
 }
 
-TEST_CASE("Vector3: Native vector type operations") {
-    lua_State* L = create_test_state();
+TEST_CASE("Vector3: Native vector type operations")
+{
+    lua_State *L = create_test_state();
 
-    SUBCASE("Construction and retrieval") {
+    SUBCASE("Construction and retrieval")
+    {
         Vector3 original(1.5, 2.5, 3.5);
         push_vector3(L, original);
 
@@ -273,7 +300,8 @@ TEST_CASE("Vector3: Native vector type operations") {
         CHECK(retrieved.z == doctest::Approx(3.5));
     }
 
-    SUBCASE("Lua constructor") {
+    SUBCASE("Lua constructor")
+    {
         exec_lua(L, "v = Vector3(10, 20, 30)");
         lua_getglobal(L, "v");
 
@@ -283,7 +311,8 @@ TEST_CASE("Vector3: Native vector type operations") {
         CHECK(result.z == doctest::Approx(30));
     }
 
-    SUBCASE("Native vector arithmetic") {
+    SUBCASE("Native vector arithmetic")
+    {
         // Vector3 uses Luau's native vector type, so arithmetic is built-in
         exec_lua(L, "v1 = Vector3(1, 2, 3)");
         exec_lua(L, "v2 = Vector3(4, 5, 6)");
@@ -296,7 +325,8 @@ TEST_CASE("Vector3: Native vector type operations") {
         CHECK(sum.z == doctest::Approx(9));
     }
 
-    SUBCASE("Property access") {
+    SUBCASE("Property access")
+    {
         exec_lua(L, "v = Vector3(7, 8, 9)");
         exec_lua(L, "x = v.x");
         exec_lua(L, "y = v.y");
@@ -317,10 +347,12 @@ TEST_CASE("Vector3: Native vector type operations") {
     close_test_state(L);
 }
 
-TEST_CASE("Vector3i: Integer 3D vector") {
-    lua_State* L = create_test_state();
+TEST_CASE("Vector3i: Integer 3D vector")
+{
+    lua_State *L = create_test_state();
 
-    SUBCASE("Construction and round-trip") {
+    SUBCASE("Construction and round-trip")
+    {
         Vector3i original(100, 200, 300);
         push_vector3i(L, original);
 
@@ -332,7 +364,8 @@ TEST_CASE("Vector3i: Integer 3D vector") {
         CHECK(retrieved.z == 300);
     }
 
-    SUBCASE("Operations") {
+    SUBCASE("Operations")
+    {
         exec_lua(L, "v = Vector3i(5, 10, 15)");
         exec_lua(L, "doubled = v * 2");
 
@@ -346,10 +379,12 @@ TEST_CASE("Vector3i: Integer 3D vector") {
     close_test_state(L);
 }
 
-TEST_CASE("Color: RGBA color operations") {
-    lua_State* L = create_test_state();
+TEST_CASE("Color: RGBA color operations")
+{
+    lua_State *L = create_test_state();
 
-    SUBCASE("Construction with RGB") {
+    SUBCASE("Construction with RGB")
+    {
         exec_lua(L, "c = Color(1.0, 0.5, 0.0)");
         lua_getglobal(L, "c");
 
@@ -362,7 +397,8 @@ TEST_CASE("Color: RGBA color operations") {
         CHECK(result.a == doctest::Approx(1.0)); // Default alpha
     }
 
-    SUBCASE("Construction with RGBA") {
+    SUBCASE("Construction with RGBA")
+    {
         exec_lua(L, "c = Color(0.2, 0.4, 0.6, 0.8)");
         lua_getglobal(L, "c");
 
@@ -373,7 +409,8 @@ TEST_CASE("Color: RGBA color operations") {
         CHECK(result.a == doctest::Approx(0.8));
     }
 
-    SUBCASE("Property access and modification") {
+    SUBCASE("Property access and modification")
+    {
         exec_lua(L, "c = Color(1, 0, 0, 1)");
         exec_lua(L, "c.g = 0.5");
         exec_lua(L, "c.a = 0.7");
@@ -386,7 +423,8 @@ TEST_CASE("Color: RGBA color operations") {
         CHECK(result.a == doctest::Approx(0.7));
     }
 
-    SUBCASE("Color arithmetic") {
+    SUBCASE("Color arithmetic")
+    {
         exec_lua(L, "c1 = Color(0.2, 0.3, 0.4, 1.0)");
         exec_lua(L, "c2 = Color(0.1, 0.2, 0.1, 0.0)");
         exec_lua(L, "sum = c1 + c2");
@@ -399,7 +437,8 @@ TEST_CASE("Color: RGBA color operations") {
         CHECK(sum.a == doctest::Approx(1.0));
     }
 
-    SUBCASE("Scalar multiplication") {
+    SUBCASE("Scalar multiplication")
+    {
         exec_lua(L, "c = Color(0.5, 0.5, 0.5, 1.0)");
         exec_lua(L, "brighter = c * 2.0");
 
@@ -411,7 +450,8 @@ TEST_CASE("Color: RGBA color operations") {
         CHECK(result.a == doctest::Approx(2.0)); // Alpha is also scaled
     }
 
-    SUBCASE("Round-trip conversion") {
+    SUBCASE("Round-trip conversion")
+    {
         Color original(0.1, 0.2, 0.3, 0.4);
         push_color(L, original);
 
@@ -425,10 +465,12 @@ TEST_CASE("Color: RGBA color operations") {
     close_test_state(L);
 }
 
-TEST_CASE("Math types: Type checking") {
-    lua_State* L = create_test_state();
+TEST_CASE("Math types: Type checking")
+{
+    lua_State *L = create_test_state();
 
-    SUBCASE("Correctly identify types") {
+    SUBCASE("Correctly identify types")
+    {
         push_vector2(L, Vector2(1, 2));
         CHECK(is_vector2(L, -1));
         CHECK_FALSE(is_vector3(L, -1));

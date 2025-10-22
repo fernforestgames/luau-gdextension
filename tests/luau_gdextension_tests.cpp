@@ -1,13 +1,10 @@
-// Runtime-embedded C++ tests using doctest
-// Only available in Debug builds
+// C++ tests using doctest
+// Built as separate GDExtension (gdluau_tests)
 
 #include "luau_gdextension_tests.h"
 
-#ifdef ENABLE_LUAU_GDEXTENSION_TESTS
-#pragma message("Luau GDExtension Tests enabled in build.")
-
 #define DOCTEST_CONFIG_IMPLEMENT
-#include "../tests/doctest.h"
+#include "doctest.h"
 
 #include <godot_cpp/classes/global_constants.hpp>
 #include <godot_cpp/core/class_db.hpp>
@@ -47,5 +44,3 @@ Dictionary LuauGDExtensionTests::run()
 
 	return results;
 }
-
-#endif // ENABLE_LUAU_GDEXTENSION_TESTS
