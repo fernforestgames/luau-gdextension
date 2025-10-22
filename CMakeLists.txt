@@ -9,9 +9,6 @@ cmake_policy(SET CMP0091 NEW)
 project(gdluau)
 include(FetchContent)
 
-set(CMAKE_CXX_STANDARD 17)
-set(CMAKE_CXX_STANDARD_REQUIRED ON)
-
 # Configure ccache if available
 find_program(CCACHE_PROGRAM ccache)
 if(CCACHE_PROGRAM)
@@ -47,7 +44,10 @@ list(FILTER SOURCES EXCLUDE REGEX ".*tests_runtime\\.cpp$")
 
 # GDExtension library target
 add_library(${PROJECT_NAME} MODULE ${SOURCES})
-target_compile_features(${PROJECT_NAME} PRIVATE cxx_noexcept)
+target_compile_features(${PROJECT_NAME} PRIVATE
+    cxx_noexcept
+    cxx_std_17
+)
 target_include_directories(${PROJECT_NAME} PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/src
 )
