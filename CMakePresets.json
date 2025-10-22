@@ -28,7 +28,6 @@
       },
       "generator": "Visual Studio 17 2022",
       "cacheVariables": {
-        "CMAKE_CXX_FLAGS": "/EHs-c- /D_HAS_EXCEPTIONS=0",
         "CMAKE_LIBRARY_OUTPUT_DIRECTORY": "${sourceDir}/build/bin"
       }
     },
@@ -57,10 +56,7 @@
       "hidden": true,
       "inherits": [
         "default"
-      ],
-      "cacheVariables": {
-        "CMAKE_CXX_FLAGS": "-fno-exceptions"
-      }
+      ]
     },
     {
       "name": "linux-x86_64-debug",
@@ -90,9 +86,6 @@
         "type": "equals",
         "lhs": "${hostSystemName}",
         "rhs": "Darwin"
-      },
-      "cacheVariables": {
-        "CMAKE_CXX_FLAGS": "-fno-exceptions"
       }
     },
     {

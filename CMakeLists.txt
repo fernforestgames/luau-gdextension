@@ -47,13 +47,10 @@ list(FILTER SOURCES EXCLUDE REGEX ".*tests_runtime\\.cpp$")
 
 # GDExtension library target
 add_library(${PROJECT_NAME} MODULE ${SOURCES})
-
-# Include directories
+target_compile_features(${PROJECT_NAME} PRIVATE cxx_noexcept)
 target_include_directories(${PROJECT_NAME} PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/src
 )
-
-# Link libraries
 target_link_libraries(${PROJECT_NAME} PRIVATE
     godot-cpp
     Luau.Compiler
@@ -62,10 +59,9 @@ target_link_libraries(${PROJECT_NAME} PRIVATE
 
 string(TOLOWER ${CMAKE_SYSTEM_NAME} PLATFORM_NAME)
 string(TOLOWER ${CMAKE_SYSTEM_PROCESSOR} ARCH_NAME)
-
-# Set output properties
 set_target_properties(${PROJECT_NAME} PROPERTIES
     OUTPUT_NAME "gdluau.${PLATFORM_NAME}.${ARCH_NAME}"
+    COMPILE_OPTIONS "${GDEXTENSION_COMPILE_OPTIONS}"
 )
 
 # Custom target to copy the library to the demo addon directory
