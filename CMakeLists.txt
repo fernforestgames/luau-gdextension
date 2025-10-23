@@ -157,23 +157,49 @@ if(BUILD_TESTING)
     if(GODOT_EXECUTABLE)
         message(STATUS "Found Godot executable: ${GODOT_EXECUTABLE}")
 
+        # Setup test fixture (Godot import)
         add_test(
             NAME GodotImport
             COMMAND "${GODOT_EXECUTABLE}" --headless --import
             WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/demo"
         )
-
         set_tests_properties(GodotImport PROPERTIES FIXTURES_SETUP GODOT)
 
+        # Generate file for discovered tests
+        set(DISCOVERED_TESTS_FILE "${CMAKE_CURRENT_BINARY_DIR}/CTestDiscoveredTests.cmake")
+
+        # Add custom command to discover tests at build time
+        add_custom_command(
+            OUTPUT "${DISCOVERED_TESTS_FILE}"
+            COMMAND ${CMAKE_COMMAND}
+                "-DGODOT_EXECUTABLE=${GODOT_EXECUTABLE}"
+                "-DDEMO_DIR=${CMAKE_CURRENT_SOURCE_DIR}/demo"
+                "-DOUTPUT_FILE=${DISCOVERED_TESTS_FILE}"
+                -P "${CMAKE_CURRENT_SOURCE_DIR}/tests/discover_tests.cmake"
+            DEPENDS ${PROJECT_NAME}_tests
+            COMMENT "Discovering individual test cases..."
+        )
+
+        # Add custom target to trigger test discovery
+        add_custom_target(discover_tests ALL
+            DEPENDS "${DISCOVERED_TESTS_FILE}"
+        )
+
+        # Include the discovered tests file if it exists
+        if(EXISTS "${DISCOVERED_TESTS_FILE}")
+            include("${DISCOVERED_TESTS_FILE}")
+        endif()
+
+        # Legacy combined test for convenience
         add_test(
-            NAME GodotTests
+            NAME AllTests
             COMMAND "${GODOT_EXECUTABLE}" --headless -- --run-tests
             WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/demo"
         )
 
-        set_tests_properties(GodotTests PROPERTIES
-            TIMEOUT 300  # 5 minute timeout
-            LABELS "integration"
+        set_tests_properties(AllTests PROPERTIES
+            TIMEOUT 300
+            LABELS "integration;legacy"
             FIXTURES_REQUIRED GODOT
         )
     else()
