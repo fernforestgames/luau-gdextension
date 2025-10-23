@@ -1391,8 +1391,8 @@ static int aabb_tostring(lua_State *L)
     AABB *aabb = static_cast<AABB *>(lua_touserdata(L, 1));
     char buffer[256];
     snprintf(buffer, sizeof(buffer), "AABB((%g, %g, %g), (%g, %g, %g))",
-        aabb->position.x, aabb->position.y, aabb->position.z,
-        aabb->size.x, aabb->size.y, aabb->size.z);
+             aabb->position.x, aabb->position.y, aabb->position.z,
+             aabb->size.x, aabb->size.y, aabb->size.z);
     lua_pushstring(L, buffer);
     return 1;
 }
@@ -1762,7 +1762,7 @@ static int basis_tostring(lua_State *L)
     Vector3 y = b->get_column(1);
     Vector3 z = b->get_column(2);
     snprintf(buffer, sizeof(buffer), "Basis((%g, %g, %g), (%g, %g, %g), (%g, %g, %g))",
-        x.x, x.y, x.z, y.x, y.y, y.z, z.x, z.y, z.z);
+             x.x, x.y, x.z, y.x, y.y, y.z, z.x, z.y, z.z);
     lua_pushstring(L, buffer);
     return 1;
 }
@@ -1849,7 +1849,7 @@ static int transform2d_tostring(lua_State *L)
     Vector2 y = (*t)[1];
     Vector2 o = t->get_origin();
     snprintf(buffer, sizeof(buffer), "Transform2D((%g, %g), (%g, %g), (%g, %g))",
-        x.x, x.y, y.x, y.y, o.x, o.y);
+             x.x, x.y, y.x, y.y, o.x, o.y);
     lua_pushstring(L, buffer);
     return 1;
 }
@@ -1928,7 +1928,7 @@ static int transform3d_tostring(lua_State *L)
     Transform3D *t = static_cast<Transform3D *>(lua_touserdata(L, 1));
     char buffer[512];
     snprintf(buffer, sizeof(buffer), "Transform3D(Basis(...), Origin(%g, %g, %g))",
-        t->origin.x, t->origin.y, t->origin.z);
+             t->origin.x, t->origin.y, t->origin.z);
     lua_pushstring(L, buffer);
     return 1;
 }
@@ -2055,127 +2055,138 @@ static int callable_call(lua_State *L)
 
         switch (type)
         {
-            case LUA_TNIL:
-                args[i] = Variant();
-                break;
-            case LUA_TBOOLEAN:
-                args[i] = Variant(lua_toboolean(L, idx) != 0);
-                break;
-            case LUA_TNUMBER:
-                args[i] = Variant(lua_tonumber(L, idx));
-                break;
-            case LUA_TSTRING:
+        case LUA_TNIL:
+            args[i] = Variant();
+            break;
+        case LUA_TBOOLEAN:
+            args[i] = Variant(lua_toboolean(L, idx) != 0);
+            break;
+        case LUA_TNUMBER:
+            args[i] = Variant(lua_tonumber(L, idx));
+            break;
+        case LUA_TSTRING:
+        {
+            size_t len;
+            const char *str = lua_tolstring(L, idx, &len);
+            args[i] = Variant(String::utf8(str, len));
+            break;
+        }
+        case LUA_TVECTOR:
+        {
+            const float *v = lua_tovector(L, idx);
+            args[i] = Variant(Vector3(v[0], v[1], v[2]));
+            break;
+        }
+        case LUA_TFUNCTION:
+        {
+            // Convert Lua function to LuaCallable
+            // Get the LuaState pointer from the registry
+            lua_getfield(L, LUA_REGISTRYINDEX, GDLUAU_STATE_REGISTRY_KEY);
+            LuaState *state = static_cast<LuaState *>(lua_tolightuserdata(L, -1));
+            lua_pop(L, 1);
+
+            if (!state)
             {
-                size_t len;
-                const char *str = lua_tolstring(L, idx, &len);
-                args[i] = Variant(String::utf8(str, len));
-                break;
-            }
-            case LUA_TVECTOR:
-            {
-                const float *v = lua_tovector(L, idx);
-                args[i] = Variant(Vector3(v[0], v[1], v[2]));
-                break;
-            }
-            case LUA_TFUNCTION:
-            {
-                // Convert Lua function to LuaCallable
-                // Get the LuaState pointer from the registry
-                lua_getfield(L, LUA_REGISTRYINDEX, GDLUAU_STATE_REGISTRY_KEY);
-                LuaState *state = static_cast<LuaState *>(lua_tolightuserdata(L, -1));
-                lua_pop(L, 1);
-
-                if (!state)
-                {
-                    luaL_error(L, "Failed to get LuaState from registry");
-                    return 0;
-                }
-
-                // Validate the function before storing
-                if (!lua_isfunction(L, idx))
-                {
-                    luaL_error(L, "Argument %d is not a valid function", i + 1);
-                    return 0;
-                }
-
-                // Store function in registry and create LuaCallable
-                // In Luau, lua_ref takes a stack index and stores that value in the registry
-                int func_ref = lua_ref(L, idx);
-
-                if (func_ref == LUA_NOREF || func_ref == LUA_REFNIL)
-                {
-                    luaL_error(L, "Failed to create reference for Lua function");
-                    return 0;
-                }
-
-                // Create LuaCallable wrapper
-                Callable lua_callable = Callable(memnew(LuaCallable(state, func_ref)));
-                args[i] = lua_callable;
-                break;
-            }
-            case LUA_TUSERDATA:
-            {
-                // Check for math types
-                int tag = lua_userdatatag(L, idx);
-                switch (tag)
-                {
-                    case LUA_TAG_VECTOR2:
-                        args[i] = Variant(to_vector2(L, idx));
-                        break;
-                    case LUA_TAG_VECTOR2I:
-                        args[i] = Variant(to_vector2i(L, idx));
-                        break;
-                    case LUA_TAG_VECTOR3I:
-                        args[i] = Variant(to_vector3i(L, idx));
-                        break;
-                    case LUA_TAG_VECTOR4:
-                        args[i] = Variant(to_vector4(L, idx));
-                        break;
-                    case LUA_TAG_VECTOR4I:
-                        args[i] = Variant(to_vector4i(L, idx));
-                        break;
-                    case LUA_TAG_COLOR:
-                        args[i] = Variant(to_color(L, idx));
-                        break;
-                    case LUA_TAG_RECT2:
-                        args[i] = Variant(to_rect2(L, idx));
-                        break;
-                    case LUA_TAG_RECT2I:
-                        args[i] = Variant(to_rect2i(L, idx));
-                        break;
-                    case LUA_TAG_AABB:
-                        args[i] = Variant(to_aabb(L, idx));
-                        break;
-                    case LUA_TAG_PLANE:
-                        args[i] = Variant(to_plane(L, idx));
-                        break;
-                    case LUA_TAG_QUATERNION:
-                        args[i] = Variant(to_quaternion(L, idx));
-                        break;
-                    case LUA_TAG_BASIS:
-                        args[i] = Variant(to_basis(L, idx));
-                        break;
-                    case LUA_TAG_TRANSFORM2D:
-                        args[i] = Variant(to_transform2d(L, idx));
-                        break;
-                    case LUA_TAG_TRANSFORM3D:
-                        args[i] = Variant(to_transform3d(L, idx));
-                        break;
-                    case LUA_TAG_PROJECTION:
-                        args[i] = Variant(to_projection(L, idx));
-                        break;
-                    case LUA_TAG_CALLABLE:
-                        args[i] = Variant(to_callable(L, idx));
-                        break;
-                    default:
-                        luaL_error(L, "Unsupported argument type: userdata with tag %d", tag);
-                        return 0;
-                }
-                break;
-            }
-            default:
-                luaL_error(L, "Unsupported argument type: %s", lua_typename(L, type));
+                luaL_error(L, "Failed to get LuaState from registry");
                 return 0;
+            }
+
+            // Validate the function before storing
+            if (!lua_isfunction(L, idx))
+            {
+                luaL_error(L, "Argument %d is not a valid function", i + 1);
+                return 0;
+            }
+
+            String funcname;
+            lua_Debug ar;
+            if (lua_getinfo(L, idx, "n", &ar))
+            {
+                funcname = ar.name;
+            }
+            else
+            {
+                funcname = "<unknown>";
+            }
+
+            // Store function in registry and create LuaCallable
+            // In Luau, lua_ref takes a stack index and stores that value in the registry
+            int func_ref = lua_ref(L, idx);
+
+            if (func_ref == LUA_NOREF || func_ref == LUA_REFNIL)
+            {
+                luaL_error(L, "Failed to create reference for Lua function");
+                return 0;
+            }
+
+            // Create LuaCallable wrapper
+            Callable lua_callable = Callable(memnew(LuaCallable(state, funcname, func_ref)));
+            args[i] = lua_callable;
+            break;
+        }
+        case LUA_TUSERDATA:
+        {
+            // Check for math types
+            int tag = lua_userdatatag(L, idx);
+            switch (tag)
+            {
+            case LUA_TAG_VECTOR2:
+                args[i] = Variant(to_vector2(L, idx));
+                break;
+            case LUA_TAG_VECTOR2I:
+                args[i] = Variant(to_vector2i(L, idx));
+                break;
+            case LUA_TAG_VECTOR3I:
+                args[i] = Variant(to_vector3i(L, idx));
+                break;
+            case LUA_TAG_VECTOR4:
+                args[i] = Variant(to_vector4(L, idx));
+                break;
+            case LUA_TAG_VECTOR4I:
+                args[i] = Variant(to_vector4i(L, idx));
+                break;
+            case LUA_TAG_COLOR:
+                args[i] = Variant(to_color(L, idx));
+                break;
+            case LUA_TAG_RECT2:
+                args[i] = Variant(to_rect2(L, idx));
+                break;
+            case LUA_TAG_RECT2I:
+                args[i] = Variant(to_rect2i(L, idx));
+                break;
+            case LUA_TAG_AABB:
+                args[i] = Variant(to_aabb(L, idx));
+                break;
+            case LUA_TAG_PLANE:
+                args[i] = Variant(to_plane(L, idx));
+                break;
+            case LUA_TAG_QUATERNION:
+                args[i] = Variant(to_quaternion(L, idx));
+                break;
+            case LUA_TAG_BASIS:
+                args[i] = Variant(to_basis(L, idx));
+                break;
+            case LUA_TAG_TRANSFORM2D:
+                args[i] = Variant(to_transform2d(L, idx));
+                break;
+            case LUA_TAG_TRANSFORM3D:
+                args[i] = Variant(to_transform3d(L, idx));
+                break;
+            case LUA_TAG_PROJECTION:
+                args[i] = Variant(to_projection(L, idx));
+                break;
+            case LUA_TAG_CALLABLE:
+                args[i] = Variant(to_callable(L, idx));
+                break;
+            default:
+                luaL_error(L, "Unsupported argument type: userdata with tag %d", tag);
+                return 0;
+            }
+            break;
+        }
+        default:
+            luaL_error(L, "Unsupported argument type: %s", lua_typename(L, type));
+            return 0;
         }
     }
 

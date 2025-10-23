@@ -5,8 +5,8 @@
 
 using namespace godot;
 
-LuaCallable::LuaCallable(LuaState *p_state, int p_func_ref)
-    : state(p_state), func_ref(p_func_ref)
+LuaCallable::LuaCallable(LuaState *p_state, const String &p_func_name, int p_func_ref)
+    : state(p_state), func_name(p_func_name), func_ref(p_func_ref)
 {
     // Manually increment reference count to keep LuaState alive
     if (state)
@@ -19,6 +19,11 @@ LuaCallable::LuaCallable(LuaState *p_state, int p_func_ref)
             ERR_PRINT("LuaCallable: Failed to reference LuaState (object may be destroying)");
             state = nullptr;
         }
+    }
+
+    if (func_name.is_empty())
+    {
+        func_name = "<unknown>";
     }
 }
 
@@ -60,7 +65,7 @@ uint32_t LuaCallable::hash() const
 
 String LuaCallable::get_as_text() const
 {
-    return vformat("LuaCallable(ref=%d)", func_ref);
+    return vformat("LuaCallable(%s, ref=%d)", func_name, func_ref);
 }
 
 CallableCustom::CompareEqualFunc LuaCallable::get_compare_equal_func() const
@@ -134,9 +139,11 @@ void LuaCallable::call(const Variant **p_arguments, int p_argcount, Variant &r_r
     {
         // Error occurred
         const char *error_msg = lua_tostring(L, -1);
-        ERR_PRINT(vformat("LuaCallable: Error calling Lua function: %s", error_msg ? error_msg : "Unknown error"));
+        ERR_PRINT(vformat("LuaCallable: Error calling Lua function %s: %s", func_name, error_msg ? error_msg : "Unknown error"));
         lua_pop(L, 1); // Pop error message
-        r_call_error.error = GDEXTENSION_CALL_ERROR_INVALID_METHOD;
+
+        // This isn't a legal error value, but none of the existing errors fits well
+        r_call_error.error = GDEXTENSION_CALL_ERROR_INVALID_METHOD; // static_cast<GDExtensionCallErrorType>(-1);
         return;
     }
 
@@ -160,7 +167,7 @@ void LuaCallable::call(const Variant **p_arguments, int p_argcount, Variant &r_r
         // Multiple return values - return first and warn
         WARN_PRINT(vformat("LuaCallable: Lua function returned %d values, returning only the first.", nresults));
         r_return_value = state->tovariant(-nresults); // Get first return value
-        lua_pop(L, nresults); // Pop all return values
+        lua_pop(L, nresults);                         // Pop all return values
     }
 }
 

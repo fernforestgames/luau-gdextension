@@ -490,13 +490,22 @@ Variant LuaState::tovariant(int index)
     case LUA_TFUNCTION:
     {
         // Create a reference to the function in the registry
-        pushvalue(index); // Duplicate the function on the stack
-        int func_ref = lua_ref(L, -1);
-        pop(1); // Pop the duplicated function
+        int func_ref = lua_ref(L, index);
+
+        String funcname;
+        lua_Debug ar;
+        if (lua_getinfo(L, index, "n", &ar))
+        {
+            funcname = ar.name;
+        }
+        else
+        {
+            funcname = "<unknown>";
+        }
 
         // Create a LuaCallable wrapping this function
         // Pass raw 'this' pointer - LuaCallable will handle manual refcounting
-        LuaCallable *lua_callable = memnew(LuaCallable(this, func_ref));
+        LuaCallable *lua_callable = memnew(LuaCallable(this, funcname, func_ref));
 
         // Return as Callable Variant
         return Variant(Callable(lua_callable));
