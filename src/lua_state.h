@@ -59,6 +59,7 @@ namespace godot
         // Stack manipulation
         int gettop() const;
         void settop(int index);
+        bool checkstack(int extra);
         void pop(int n);
         void pushvalue(int index);
         void remove(int index);

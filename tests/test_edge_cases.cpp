@@ -293,7 +293,9 @@ TEST_CASE("Edge cases: Stack management")
 
     SUBCASE("Push many values")
     {
+
         int initial_top = L->gettop();
+        L->checkstack(100);
 
         for (int i = 0; i < 100; i++)
         {

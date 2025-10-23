@@ -46,6 +46,7 @@ void LuaState::_bind_methods()
     // Stack manipulation
     ClassDB::bind_method(D_METHOD("gettop"), &LuaState::gettop);
     ClassDB::bind_method(D_METHOD("settop", "index"), &LuaState::settop);
+    ClassDB::bind_method(D_METHOD("checkstack", "extra"), &LuaState::checkstack);
     ClassDB::bind_method(D_METHOD("pop", "n"), &LuaState::pop);
     ClassDB::bind_method(D_METHOD("pushvalue", "index"), &LuaState::pushvalue);
     ClassDB::bind_method(D_METHOD("remove", "index"), &LuaState::remove);
@@ -718,6 +719,12 @@ void LuaState::settop(int index)
 {
     ERR_FAIL_NULL_MSG(L, "Lua state is null. Cannot set stack top.");
     lua_settop(L, index);
+}
+
+bool LuaState::checkstack(int size)
+{
+    ERR_FAIL_NULL_V_MSG(L, false, "Lua state is null. Cannot manipulate stack size.");
+    return lua_checkstack(L, size) != 0;
 }
 
 void LuaState::pop(int n)
