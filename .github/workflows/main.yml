@@ -98,7 +98,7 @@ jobs:
         run: cmake --build --preset ${{ matrix.platform }}-${{ matrix.configuration }} -j 1
 
       - name: Checking libraries were copied to demo project
-        run: ls -la demo/addons/luau_gdextension/bin/
+        run: ls -la demo/addons/luau_gdextension/bin/ demo/addons/luau_gdextension_tests/bin/
 
       - name: Run tests
         if: matrix.configuration == 'debug'
