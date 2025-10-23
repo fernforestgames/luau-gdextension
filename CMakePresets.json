@@ -29,7 +29,8 @@
       "generator": "Visual Studio 17 2022",
       "$comment": "Output dir set to prevent MSVC from adding Debug/Release subdirectories",
       "cacheVariables": {
-        "CMAKE_LIBRARY_OUTPUT_DIRECTORY": "${sourceDir}/build/bin"
+        "CMAKE_LIBRARY_OUTPUT_DIRECTORY": "${sourceDir}/build/bin",
+        "LIBRARY_SUFFIX": "dll"
       }
     },
     {
@@ -64,7 +65,8 @@
       ],
       "$comment": "Forcing PIC on when compiling static library dependencies",
       "cacheVariables": {
-        "CMAKE_POSITION_INDEPENDENT_CODE": "TRUE"
+        "CMAKE_POSITION_INDEPENDENT_CODE": "TRUE",
+        "LIBRARY_SUFFIX": "so"
       }
     },
     {
@@ -101,7 +103,7 @@
       "$comment": "Forcing PIC on when compiling static library dependencies",
       "cacheVariables": {
         "CMAKE_POSITION_INDEPENDENT_CODE": "TRUE",
-        "CMAKE_SHARED_MODULE_SUFFIX": "dylib"
+        "LIBRARY_SUFFIX": "dylib"
       }
     },
     {

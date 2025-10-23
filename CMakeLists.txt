@@ -80,6 +80,7 @@ string(TOLOWER ${CMAKE_SYSTEM_NAME} PLATFORM_NAME)
 string(TOLOWER ${CMAKE_SYSTEM_PROCESSOR} ARCH_NAME)
 set_target_properties(${PROJECT_NAME} PROPERTIES
     OUTPUT_NAME "gdluau.${PLATFORM_NAME}.${ARCH_NAME}"
+    SUFFIX ".${LIBRARY_SUFFIX}"
 )
 
 # Custom target to copy the library to the demo addon directory
@@ -129,6 +130,7 @@ if(BUILD_TESTING)
     set_target_properties(${PROJECT_NAME}_tests PROPERTIES
         DEBUG_POSTFIX ""
         OUTPUT_NAME "gdluau_tests.${PLATFORM_NAME}.${ARCH_NAME}"
+        SUFFIX ".${LIBRARY_SUFFIX}"
     )
 
     # Copy test library to demo addon directory (same location as main library)
