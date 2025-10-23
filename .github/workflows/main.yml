@@ -61,12 +61,6 @@ jobs:
         with:
           key: ${{ matrix.identifier }}
 
-      - name: Configure build
-        run: cmake --preset ${{ matrix.identifier }}
-
-      - name: Build
-        run: cmake --build --preset ${{ matrix.identifier }} -j 1
-
       - name: Install Godot (Windows)
         if: runner.os == 'Windows'
         run: |
@@ -90,6 +84,12 @@ jobs:
           unzip -q godot.zip
           mv Godot.app "$RUNNER_TEMP/Godot.app"
           echo "GODOT_EXECUTABLE=$RUNNER_TEMP/Godot.app/Contents/MacOS/Godot" >> $GITHUB_ENV
+
+      - name: Configure build
+        run: cmake --preset ${{ matrix.identifier }}
+
+      - name: Build
+        run: cmake --build --preset ${{ matrix.identifier }} -j 1
 
       - name: Checking libraries were copied to demo project
         run: ls -la demo/addons/luau_gdextension/bin/
