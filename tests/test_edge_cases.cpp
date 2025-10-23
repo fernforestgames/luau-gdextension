@@ -2,36 +2,18 @@
 // Tests error conditions, boundary values, and special cases
 
 #include "doctest.h"
-#include "lua_state.h"
+#include "test_fixtures.h"
 #include "lua_godotlib.h"
-#include "luau.h"
 #include <godot_cpp/variant/variant.hpp>
 #include <godot_cpp/variant/array.hpp>
 #include <godot_cpp/variant/dictionary.hpp>
 #include <godot_cpp/variant/vector2.hpp>
 #include <godot_cpp/variant/color.hpp>
-#include <godot_cpp/core/memory.hpp>
-#include <lua.h>
-#include <lualib.h>
 
 using namespace godot;
 
-// Helper to create a LuaState with all libs
-static LuaState *create_test_state()
+TEST_CASE_FIXTURE(LuaStateFixture, "Edge cases: Division by zero")
 {
-    LuaState *state = memnew(LuaState);
-    state->openlibs(LuaState::LIB_ALL);
-    return state;
-}
-
-static void close_test_state(LuaState *state)
-{
-    memdelete(state);
-}
-
-TEST_CASE("Edge cases: Division by zero")
-{
-    LuaState *L = create_test_state();
 
     SUBCASE("Vector2 division by zero scalar")
     {
@@ -41,15 +23,13 @@ TEST_CASE("Edge cases: Division by zero")
             return result
         )";
 
-        PackedByteArray bytecode = Luau::compile(code);
-        L->load_bytecode(bytecode, "test");
-        lua_Status status = L->resume();
+        lua_Status status = exec_lua(code);
 
         // Should either error or return inf/nan
         // Behavior depends on implementation
         if (status == LUA_OK)
         {
-            Vector2 result = to_vector2(L->get_lua_state(), -1);
+            Vector2 result = to_vector2(L, -1);
             // Result components should be inf or nan
             CHECK((std::isinf(result.x) || std::isnan(result.x)));
         }
@@ -67,29 +47,25 @@ TEST_CASE("Edge cases: Division by zero")
             return x
         )";
 
-        PackedByteArray bytecode = Luau::compile(code);
-        L->load_bytecode(bytecode, "test");
-        L->resume();
+        exec_lua(code);
 
-        double result = L->tonumber(-1);
+        double result = state->tonumber(-1);
         CHECK(std::isinf(result));
     }
 
-    close_test_state(L);
 }
 
-TEST_CASE("Edge cases: NaN and infinity handling")
+TEST_CASE_FIXTURE(LuaStateFixture, "Edge cases: NaN and infinity handling")
 {
-    LuaState *L = create_test_state();
 
     SUBCASE("Push infinity")
     {
         double inf = std::numeric_limits<double>::infinity();
         Variant inf_var = inf;
 
-        L->pushvariant(inf_var);
+        state->pushvariant(inf_var);
 
-        double retrieved = L->tonumber(-1);
+        double retrieved = state->tonumber(-1);
         CHECK(std::isinf(retrieved));
     }
 
@@ -98,27 +74,25 @@ TEST_CASE("Edge cases: NaN and infinity handling")
         double nan = std::numeric_limits<double>::quiet_NaN();
         Variant nan_var = nan;
 
-        L->pushvariant(nan_var);
+        state->pushvariant(nan_var);
 
-        double retrieved = L->tonumber(-1);
+        double retrieved = state->tonumber(-1);
         CHECK(std::isnan(retrieved));
     }
 
     SUBCASE("Vector with NaN components")
     {
         Vector2 nan_vec(std::numeric_limits<double>::quiet_NaN(), 1.0);
-        push_vector2(L->get_lua_state(), nan_vec);
+        push_vector2(L, nan_vec);
 
         // Should handle gracefully without crashing
         // Exact behavior may vary
     }
 
-    close_test_state(L);
 }
 
-TEST_CASE("Edge cases: Nil handling in structures")
+TEST_CASE_FIXTURE(LuaStateFixture, "Edge cases: Nil handling in structures")
 {
-    LuaState *L = create_test_state();
 
     SUBCASE("Array with explicit nil")
     {
@@ -127,11 +101,9 @@ TEST_CASE("Edge cases: Nil handling in structures")
             return arr
         )";
 
-        PackedByteArray bytecode = Luau::compile(code);
-        L->load_bytecode(bytecode, "test");
-        L->resume();
+        exec_lua(code);
 
-        Array arr = L->toarray(-1);
+        Array arr = state->toarray(-1);
 
         // Array length in Lua stops at first nil
         // Behavior may vary: could be length 2 or skip the nil
@@ -149,11 +121,9 @@ TEST_CASE("Edge cases: Nil handling in structures")
             return dict
         )";
 
-        PackedByteArray bytecode = Luau::compile(code);
-        L->load_bytecode(bytecode, "test");
-        L->resume();
+        exec_lua(code);
 
-        Dictionary dict = L->todictionary(-1);
+        Dictionary dict = state->todictionary(-1);
 
         // nil values might be omitted from dictionary
         CHECK(dict.has("a"));
@@ -169,32 +139,30 @@ TEST_CASE("Edge cases: Nil handling in structures")
         arr.push_back(3);
 
         Variant var = arr;
-        L->pushvariant(var);
+        state->pushvariant(var);
 
-        Variant retrieved = L->tovariant(-1);
+        Variant retrieved = state->tovariant(-1);
         Array r_arr = retrieved;
 
         // Should handle nil elements
         CHECK(r_arr.size() >= 1);
     }
 
-    close_test_state(L);
 }
 
-TEST_CASE("Edge cases: Empty and single-element collections")
+TEST_CASE_FIXTURE(LuaStateFixture, "Edge cases: Empty and single-element collections")
 {
-    LuaState *L = create_test_state();
 
     SUBCASE("Single element array")
     {
         Array arr;
         arr.push_back(42);
 
-        L->pusharray(arr);
-        L->setglobal("single");
+        state->pusharray(arr);
+        state->setglobal("single");
 
-        L->getglobal("single");
-        Array retrieved = L->toarray(-1);
+        state->getglobal("single");
+        Array retrieved = state->toarray(-1);
 
         CHECK(retrieved.size() == 1);
         CHECK((int)retrieved[0] == 42);
@@ -205,11 +173,11 @@ TEST_CASE("Edge cases: Empty and single-element collections")
         Dictionary dict;
         dict["only"] = "value";
 
-        L->pushdictionary(dict);
-        L->setglobal("single");
+        state->pushdictionary(dict);
+        state->setglobal("single");
 
-        L->getglobal("single");
-        Dictionary retrieved = L->todictionary(-1);
+        state->getglobal("single");
+        Dictionary retrieved = state->todictionary(-1);
 
         CHECK(retrieved.size() == 1);
         CHECK((String)retrieved["only"] == "value");
@@ -226,9 +194,9 @@ TEST_CASE("Edge cases: Empty and single-element collections")
         Array level1;
         level1.push_back(level2);
 
-        L->pusharray(level1);
+        state->pusharray(level1);
 
-        Variant var = L->tovariant(-1);
+        Variant var = state->tovariant(-1);
         Array l1 = var;
         Array l2 = l1[0];
         Array l3 = l2[0];
@@ -236,19 +204,17 @@ TEST_CASE("Edge cases: Empty and single-element collections")
         CHECK((int)l3[0] == 999);
     }
 
-    close_test_state(L);
 }
 
-TEST_CASE("Edge cases: Type mismatches")
+TEST_CASE_FIXTURE(LuaStateFixture, "Edge cases: Type mismatches")
 {
-    LuaState *L = create_test_state();
 
     SUBCASE("Try to use number as Vector2")
     {
-        L->pushnumber(42);
+        state->pushnumber(42);
 
         // Attempting to convert number to Vector2 should fail gracefully
-        bool is_vec = is_vector2(L->get_lua_state(), -1);
+        bool is_vec = is_vector2(L, -1);
         CHECK_FALSE(is_vec);
 
         // to_vector2 on non-vector should return zero or default
@@ -257,10 +223,10 @@ TEST_CASE("Edge cases: Type mismatches")
 
     SUBCASE("Try to use string as table")
     {
-        L->pushstring("not a table");
+        state->pushstring("not a table");
 
-        CHECK_FALSE(L->istable(-1));
-        CHECK(L->isstring(-1));
+        CHECK_FALSE(state->istable(-1));
+        CHECK(state->isstring(-1));
 
         // toarray on non-table should return empty or error
         // (implementation specific)
@@ -277,41 +243,37 @@ TEST_CASE("Edge cases: Type mismatches")
 
         // This test just verifies that valid operations work
         // Invalid operations would be caught by Luau's type system or runtime
-        PackedByteArray bytecode = Luau::compile(code);
-        L->load_bytecode(bytecode, "test");
-        lua_Status status = L->resume();
+        lua_Status status = exec_lua(code);
 
         CHECK(status == LUA_OK);
     }
 
-    close_test_state(L);
 }
 
-TEST_CASE("Edge cases: Stack management")
+TEST_CASE_FIXTURE(LuaStateFixture, "Edge cases: Stack management")
 {
-    LuaState *L = create_test_state();
 
     SUBCASE("Push many values")
     {
 
-        int initial_top = L->gettop();
-        L->checkstack(100);
+        int initial_top = state->gettop();
+        state->checkstack(100);
 
         for (int i = 0; i < 100; i++)
         {
-            L->pushinteger(i);
+            state->pushinteger(i);
         }
 
-        CHECK(L->gettop() == initial_top + 100);
+        CHECK(state->gettop() == initial_top + 100);
 
         // Pop all
-        L->settop(initial_top);
-        CHECK(L->gettop() == initial_top);
+        state->settop(initial_top);
+        CHECK(state->gettop() == initial_top);
     }
 
     SUBCASE("Nested table creation doesn't leak stack")
     {
-        int initial_top = L->gettop();
+        int initial_top = state->gettop();
 
         Array nested;
         for (int i = 0; i < 10; i++)
@@ -321,35 +283,33 @@ TEST_CASE("Edge cases: Stack management")
             nested.push_back(inner);
         }
 
-        L->pusharray(nested);
-        L->setglobal("nested");
+        state->pusharray(nested);
+        state->setglobal("nested");
 
-        CHECK(L->gettop() == initial_top);
+        CHECK(state->gettop() == initial_top);
     }
 
     SUBCASE("Multiple variant conversions")
     {
-        int initial_top = L->gettop();
+        int initial_top = state->gettop();
 
         for (int i = 0; i < 50; i++)
         {
             Variant var = i;
-            L->pushvariant(var);
-            Variant retrieved = L->tovariant(-1);
-            L->pop(1);
+            state->pushvariant(var);
+            Variant retrieved = state->tovariant(-1);
+            state->pop(1);
 
             CHECK((int)retrieved == i);
         }
 
-        CHECK(L->gettop() == initial_top);
+        CHECK(state->gettop() == initial_top);
     }
 
-    close_test_state(L);
 }
 
-TEST_CASE("Edge cases: Unicode and special strings")
+TEST_CASE_FIXTURE(LuaStateFixture, "Edge cases: Unicode and special strings")
 {
-    LuaState *L = create_test_state();
 
     SUBCASE("Very long string")
     {
@@ -360,9 +320,9 @@ TEST_CASE("Edge cases: Unicode and special strings")
         }
 
         Variant var = long_str;
-        L->pushvariant(var);
+        state->pushvariant(var);
 
-        Variant retrieved = L->tovariant(-1);
+        Variant retrieved = state->tovariant(-1);
         String r_str = retrieved;
 
         CHECK(r_str.length() == 10000);
@@ -371,9 +331,9 @@ TEST_CASE("Edge cases: Unicode and special strings")
     SUBCASE("Emoji in strings")
     {
         String emoji = "Hello 👋 World 🌍";
-        L->pushstring(emoji);
+        state->pushstring(emoji);
 
-        String retrieved = L->tostring(-1);
+        String retrieved = state->tostring(-1);
         CHECK(retrieved == emoji);
     }
 
@@ -382,56 +342,54 @@ TEST_CASE("Edge cases: Unicode and special strings")
         // Godot strings can contain null bytes, Lua strings can too
         String with_null = String("Hello") + String::chr(0) + String("World");
 
-        L->pushstring(with_null);
+        state->pushstring(with_null);
 
         // Lua should preserve the full string with null byte
-        String retrieved = L->tostring(-1);
+        String retrieved = state->tostring(-1);
         // Exact behavior depends on implementation
         // Some implementations may truncate at null byte
     }
 
     SUBCASE("Empty string vs nil")
     {
-        L->pushstring("");
-        CHECK(L->isstring(-1));
-        CHECK_FALSE(L->isnil(-1));
+        state->pushstring("");
+        CHECK(state->isstring(-1));
+        CHECK_FALSE(state->isnil(-1));
 
-        String empty = L->tostring(-1);
+        String empty = state->tostring(-1);
         CHECK(empty == "");
         CHECK(empty.length() == 0);
     }
 
-    close_test_state(L);
 }
 
-TEST_CASE("Edge cases: Boundary values for integers")
+TEST_CASE_FIXTURE(LuaStateFixture, "Edge cases: Boundary values for integers")
 {
-    LuaState *L = create_test_state();
 
     SUBCASE("Max 32-bit integer")
     {
         int max_int = 2147483647;
-        L->pushinteger(max_int);
+        state->pushinteger(max_int);
 
-        int retrieved = L->tointeger(-1);
+        int retrieved = state->tointeger(-1);
         CHECK(retrieved == max_int);
     }
 
     SUBCASE("Min 32-bit integer")
     {
         int min_int = -2147483648;
-        L->pushinteger(min_int);
+        state->pushinteger(min_int);
 
-        int retrieved = L->tointeger(-1);
+        int retrieved = state->tointeger(-1);
         CHECK(retrieved == min_int);
     }
 
     SUBCASE("Zero integer")
     {
-        L->pushinteger(0);
+        state->pushinteger(0);
 
-        CHECK(L->tointeger(-1) == 0);
-        CHECK_FALSE(L->toboolean(-1)); // 0 is falsy in Lua
+        CHECK(state->tointeger(-1) == 0);
+        CHECK_FALSE(state->toboolean(-1)); // 0 is falsy in Lua
     }
 
     SUBCASE("Large array indices")
@@ -442,29 +400,25 @@ TEST_CASE("Edge cases: Boundary values for integers")
             return t
         )";
 
-        PackedByteArray bytecode = Luau::compile(code);
-        L->load_bytecode(bytecode, "test");
-        L->resume();
+        exec_lua(code);
 
         // Table with sparse indices should convert to dictionary
-        CHECK(L->isdictionary(-1));
-        CHECK_FALSE(L->isarray(-1));
+        CHECK(state->isdictionary(-1));
+        CHECK_FALSE(state->isarray(-1));
     }
 
-    close_test_state(L);
 }
 
-TEST_CASE("Edge cases: Color clamping and ranges")
+TEST_CASE_FIXTURE(LuaStateFixture, "Edge cases: Color clamping and ranges")
 {
-    LuaState *L = create_test_state();
 
     SUBCASE("Color with values > 1.0")
     {
         Color bright(2.0, 3.0, 4.0, 5.0);
-        push_color(L->get_lua_state(), bright);
+        push_color(L, bright);
 
         // Colors with values > 1.0 are valid (HDR)
-        Color retrieved = to_color(L->get_lua_state(), -1);
+        Color retrieved = to_color(L, -1);
         CHECK(retrieved.r == doctest::Approx(2.0));
         CHECK(retrieved.a == doctest::Approx(5.0));
     }
@@ -472,9 +426,9 @@ TEST_CASE("Edge cases: Color clamping and ranges")
     SUBCASE("Color with negative values")
     {
         Color negative(-0.5, -1.0, 0.5, 1.0);
-        push_color(L->get_lua_state(), negative);
+        push_color(L, negative);
 
-        Color retrieved = to_color(L->get_lua_state(), -1);
+        Color retrieved = to_color(L, -1);
         // Negative values might be preserved or clamped
         // depending on implementation
         CHECK(retrieved.b == doctest::Approx(0.5));
@@ -483,19 +437,17 @@ TEST_CASE("Edge cases: Color clamping and ranges")
     SUBCASE("Zero color")
     {
         Color zero(0, 0, 0, 0);
-        push_color(L->get_lua_state(), zero);
+        push_color(L, zero);
 
-        Color retrieved = to_color(L->get_lua_state(), -1);
+        Color retrieved = to_color(L, -1);
         CHECK(retrieved.r == doctest::Approx(0.0));
         CHECK(retrieved.a == doctest::Approx(0.0));
     }
 
-    close_test_state(L);
 }
 
-TEST_CASE("Edge cases: Vector operations edge cases")
+TEST_CASE_FIXTURE(LuaStateFixture, "Edge cases: Vector operations edge cases")
 {
-    LuaState *L = create_test_state();
 
     SUBCASE("Zero vector operations")
     {
@@ -507,18 +459,16 @@ TEST_CASE("Edge cases: Vector operations edge cases")
             return sum, product
         )";
 
-        PackedByteArray bytecode = Luau::compile(code);
-        L->load_bytecode(bytecode, "test");
-        L->resume();
+        exec_lua(code);
 
         // Should return 2 values
-        CHECK(L->gettop() >= 2);
+        CHECK(state->gettop() >= 2);
 
-        Vector2 product = to_vector2(L->get_lua_state(), -1);
+        Vector2 product = to_vector2(L, -1);
         CHECK(product.x == doctest::Approx(0.0));
         CHECK(product.y == doctest::Approx(0.0));
 
-        Vector2 sum = to_vector2(L->get_lua_state(), -2);
+        Vector2 sum = to_vector2(L, -2);
         CHECK(sum.x == doctest::Approx(5.0));
         CHECK(sum.y == doctest::Approx(5.0));
     }
@@ -526,9 +476,9 @@ TEST_CASE("Edge cases: Vector operations edge cases")
     SUBCASE("Very large vector components")
     {
         Vector3 huge(1e10, 1e15, 1e20);
-        push_vector3(L->get_lua_state(), huge);
+        push_vector3(L, huge);
 
-        Vector3 retrieved = to_vector3(L->get_lua_state(), -1);
+        Vector3 retrieved = to_vector3(L, -1);
         CHECK(retrieved.x == doctest::Approx(1e10));
         CHECK(retrieved.y == doctest::Approx(1e15));
         CHECK(retrieved.z == doctest::Approx(1e20));
@@ -544,22 +494,18 @@ TEST_CASE("Edge cases: Vector operations edge cases")
             return v1
         )";
 
-        PackedByteArray bytecode = Luau::compile(code);
-        L->load_bytecode(bytecode, "test");
-        lua_Status status = L->resume();
+        lua_Status status = exec_lua(code);
 
         CHECK(status == LUA_OK);
 
-        Vector2i v = to_vector2i(L->get_lua_state(), -1);
+        Vector2i v = to_vector2i(L, -1);
         CHECK(v.x == 2147483647);
     }
 
-    close_test_state(L);
 }
 
-TEST_CASE("Edge cases: Table iteration edge cases")
+TEST_CASE_FIXTURE(LuaStateFixture, "Edge cases: Table iteration edge cases")
 {
-    LuaState *L = create_test_state();
 
     SUBCASE("Table with only numeric key 0")
     {
@@ -568,13 +514,11 @@ TEST_CASE("Edge cases: Table iteration edge cases")
             return t
         )";
 
-        PackedByteArray bytecode = Luau::compile(code);
-        L->load_bytecode(bytecode, "test");
-        L->resume();
+        exec_lua(code);
 
         // Key 0 doesn't make it an array (arrays start at 1)
-        CHECK(L->isdictionary(-1));
-        CHECK_FALSE(L->isarray(-1));
+        CHECK(state->isdictionary(-1));
+        CHECK_FALSE(state->isarray(-1));
     }
 
     SUBCASE("Table with negative indices")
@@ -584,16 +528,13 @@ TEST_CASE("Edge cases: Table iteration edge cases")
             return t
         )";
 
-        PackedByteArray bytecode = Luau::compile(code);
-        L->load_bytecode(bytecode, "test");
-        L->resume();
+        exec_lua(code);
 
-        CHECK(L->isdictionary(-1));
+        CHECK(state->isdictionary(-1));
 
-        Dictionary dict = L->todictionary(-1);
+        Dictionary dict = state->todictionary(-1);
         CHECK(dict.has(-1));
         CHECK(dict.has(1));
     }
 
-    close_test_state(L);
 }

@@ -2,34 +2,14 @@
 // Tests array conversions, nested arrays, and type handling
 
 #include "doctest.h"
-#include "lua_state.h"
-#include "luau.h"
+#include "test_fixtures.h"
 #include <godot_cpp/variant/array.hpp>
 #include <godot_cpp/variant/variant.hpp>
-#include <godot_cpp/core/memory.hpp>
-#include <lua.h>
-#include <lualib.h>
 
 using namespace godot;
 
-// Helper to create a LuaState with all libs
-static LuaState *create_test_state()
+TEST_CASE_FIXTURE(LuaStateFixture, "Array: Simple array conversion Godot -> Lua")
 {
-    LuaState *state = memnew(LuaState);
-    state->openlibs(LuaState::LIB_ALL);
-    return state;
-}
-
-static void close_test_state(LuaState *state)
-{
-    memdelete(state);
-}
-
-TEST_CASE("Array: Simple array conversion Godot -> Lua")
-{
-    LuaState *state = create_test_state();
-    lua_State *L = state->get_lua_state();
-
     SUBCASE("Integer array")
     {
         Array arr;
@@ -96,13 +76,10 @@ TEST_CASE("Array: Simple array conversion Godot -> Lua")
         CHECK(lua_objlen(L, -1) == 0);
     }
 
-    close_test_state(state);
 }
 
-TEST_CASE("Array: Lua table -> Godot Array conversion")
+TEST_CASE_FIXTURE(LuaStateFixture, "Array: Lua table -> Godot Array conversion")
 {
-    LuaState *state = create_test_state();
-    lua_State *L = state->get_lua_state();
 
     SUBCASE("Simple numeric table")
     {
@@ -129,13 +106,10 @@ TEST_CASE("Array: Lua table -> Godot Array conversion")
         CHECK(lua_objlen(L, -1) == 3);
     }
 
-    close_test_state(state);
 }
 
-TEST_CASE("Array: Nested arrays")
+TEST_CASE_FIXTURE(LuaStateFixture, "Array: Nested arrays")
 {
-    LuaState *state = create_test_state();
-    lua_State *L = state->get_lua_state();
 
     SUBCASE("2D array")
     {
@@ -198,12 +172,10 @@ TEST_CASE("Array: Nested arrays")
         CHECK(lua_tonumber(L, -1) == 100);
     }
 
-    close_test_state(state);
 }
 
-TEST_CASE("Array: Round-trip conversion")
+TEST_CASE_FIXTURE(LuaStateFixture, "Array: Round-trip conversion")
 {
-    LuaState *state = create_test_state();
 
     SUBCASE("Simple array round-trip")
     {
@@ -273,12 +245,10 @@ TEST_CASE("Array: Round-trip conversion")
         CHECK((int)retrieved[1] == 99);
     }
 
-    close_test_state(state);
 }
 
-TEST_CASE("Array: Array vs Dictionary detection")
+TEST_CASE_FIXTURE(LuaStateFixture, "Array: Array vs Dictionary detection")
 {
-    LuaState *state = create_test_state();
 
     SUBCASE("Consecutive integer keys = array")
     {
@@ -346,12 +316,10 @@ TEST_CASE("Array: Array vs Dictionary detection")
         CHECK(state->isdictionary(-1));
     }
 
-    close_test_state(state);
 }
 
-TEST_CASE("Array: Edge cases")
+TEST_CASE_FIXTURE(LuaStateFixture, "Array: Edge cases")
 {
-    LuaState *state = create_test_state();
 
     SUBCASE("Array with nil values")
     {
@@ -391,5 +359,4 @@ TEST_CASE("Array: Edge cases")
         CHECK((int)retrieved[999] == 999);
     }
 
-    close_test_state(state);
 }
