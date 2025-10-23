@@ -105,6 +105,7 @@ jobs:
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
+        if: github.event_name != 'pull_request'
         with:
           name: luau-gdextension-${{ matrix.identifier }}
           path: |
