@@ -21,7 +21,6 @@
 #include "lua_callable.h"
 #include <godot_cpp/variant/array.hpp>
 #include <cstdio>
-#include <new> // For placement new
 
 using namespace godot;
 
@@ -2374,7 +2373,7 @@ void godot::push_callable(lua_State *L, const Callable &value)
     // Not a LuaCallable or from a different state - wrap as userdata
     // Use placement new since Callable has a destructor
     void *userdata = lua_newuserdatataggedwithmetatable(L, sizeof(Callable), LUA_TAG_CALLABLE);
-    new (userdata) Callable(value); // Placement new
+    memnew_placement(userdata, Callable(value)); // Placement new
 }
 
 // =============================================================================
