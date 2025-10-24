@@ -11,7 +11,7 @@ var L: LuaState
 
 func before_each() -> void:
 	L = LuaState.new()
-	L.openlibs()  # Load all libraries including Godot types
+	L.openlibs() # Load all libraries including Godot types
 
 func after_each() -> void:
 	if L:
@@ -87,9 +87,9 @@ func test_lua_function_multiple_return_values() -> void:
 	var lua_func: Callable = L.tovariant(-1)
 	L.pop(1)
 
-	# Should return first value and warn about multiple returns (warning is expected)
 	var result: Variant = lua_func.call()
-	assert_eq(result, 1, "Should return first value when function returns multiple (others are discarded with warning)")
+	assert_engine_error("LuaCallable: Lua function returned 3 values, returning only the first.")
+	assert_eq(result, 1, "Should return first value when function returns multiple")
 	assert_stack_balanced()
 
 func test_lua_function_with_godot_types() -> void:
@@ -128,8 +128,8 @@ func test_lua_function_error_handling() -> void:
 	var lua_func: Callable = L.tovariant(-1)
 	L.pop(1)
 
-	# Should print error and return nil (error is expected)
 	var result: Variant = lua_func.call()
+	assert_engine_error("LuaCallable: Unhandled error during call to Lua function")
 	assert_null(result, "Erroring Lua function should return null on error")
 	assert_stack_balanced()
 
@@ -285,7 +285,7 @@ func test_callable_argument_count_validation() -> void:
 	L.setglobal("add")
 
 	# Try calling with wrong number of arguments
-	var code: String = "return add(1)"  # Missing one argument
+	var code: String = "return add(1)" # Missing one argument
 	var bytecode: PackedByteArray = Luau.compile(code)
 	L.load_bytecode(bytecode, "test")
 	var status: int = L.resume()
