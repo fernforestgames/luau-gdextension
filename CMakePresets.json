@@ -29,7 +29,8 @@
       "generator": "Visual Studio 17 2022",
       "$comment": "Output dir set to prevent MSVC from adding Debug/Release subdirectories",
       "cacheVariables": {
-        "CMAKE_LIBRARY_OUTPUT_DIRECTORY": "${sourceDir}/build/bin"
+        "CMAKE_LIBRARY_OUTPUT_DIRECTORY": "${sourceDir}/build/bin",
+        "LIBRARY_SUFFIX": "dll"
       }
     },
     {
@@ -40,7 +41,8 @@
       "$comment": "Output dir set to prevent MSVC from adding Debug/Release subdirectories",
       "cacheVariables": {
         "CMAKE_LIBRARY_OUTPUT_DIRECTORY_DEBUG": "${sourceDir}/build/bin",
-        "CMAKE_MSVC_RUNTIME_LIBRARY": "MultiThreadedDebugDLL"
+        "CMAKE_MSVC_RUNTIME_LIBRARY": "MultiThreadedDebugDLL",
+        "BUILD_TESTING": "ON"
       }
     },
     {
@@ -50,9 +52,9 @@
       ],
       "$comment": "Output dir set to prevent MSVC from adding Debug/Release subdirectories",
       "cacheVariables": {
-        "$comment": "Prevent MSVC from adding Debug/Release subdirectories",
         "CMAKE_LIBRARY_OUTPUT_DIRECTORY_RELEASE": "${sourceDir}/build/bin",
-        "CMAKE_MSVC_RUNTIME_LIBRARY": "MultiThreadedDLL"
+        "CMAKE_MSVC_RUNTIME_LIBRARY": "MultiThreadedDLL",
+        "BUILD_TESTING": "OFF"
       }
     },
     {
@@ -63,7 +65,8 @@
       ],
       "$comment": "Forcing PIC on when compiling static library dependencies",
       "cacheVariables": {
-        "CMAKE_POSITION_INDEPENDENT_CODE": "TRUE"
+        "CMAKE_POSITION_INDEPENDENT_CODE": "TRUE",
+        "LIBRARY_SUFFIX": "so"
       }
     },
     {
@@ -72,7 +75,8 @@
         "linux-x86_64"
       ],
       "cacheVariables": {
-        "CMAKE_BUILD_TYPE": "Debug"
+        "CMAKE_BUILD_TYPE": "Debug",
+        "BUILD_TESTING": "ON"
       }
     },
     {
@@ -81,7 +85,8 @@
         "linux-x86_64"
       ],
       "cacheVariables": {
-        "CMAKE_BUILD_TYPE": "Release"
+        "CMAKE_BUILD_TYPE": "Release",
+        "BUILD_TESTING": "OFF"
       }
     },
     {
@@ -98,7 +103,7 @@
       "$comment": "Forcing PIC on when compiling static library dependencies",
       "cacheVariables": {
         "CMAKE_POSITION_INDEPENDENT_CODE": "TRUE",
-        "CMAKE_SHARED_MODULE_SUFFIX": "dylib"
+        "LIBRARY_SUFFIX": "dylib"
       }
     },
     {
@@ -107,7 +112,8 @@
         "macos-arm64"
       ],
       "cacheVariables": {
-        "CMAKE_BUILD_TYPE": "Debug"
+        "CMAKE_BUILD_TYPE": "Debug",
+        "BUILD_TESTING": "ON"
       }
     },
     {
@@ -116,7 +122,8 @@
         "macos-arm64"
       ],
       "cacheVariables": {
-        "CMAKE_BUILD_TYPE": "Release"
+        "CMAKE_BUILD_TYPE": "Release",
+        "BUILD_TESTING": "OFF"
       }
     }
   ],
@@ -150,6 +157,40 @@
       "name": "macos-arm64-release",
       "configurePreset": "macos-arm64-release",
       "configuration": "Release"
+    }
+  ],
+  "testPresets": [
+    {
+      "name": "default",
+      "hidden": true,
+      "output": {
+        "outputOnFailure": true,
+        "verbosity": "verbose"
+      }
+    },
+    {
+      "name": "windows-x86_64",
+      "inherits": [
+        "default"
+      ],
+      "configurePreset": "windows-x86_64-debug",
+      "configuration": "Debug"
+    },
+    {
+      "name": "linux-x86_64",
+      "inherits": [
+        "default"
+      ],
+      "configurePreset": "linux-x86_64-debug",
+      "configuration": "Debug"
+    },
+    {
+      "name": "macos-arm64",
+      "inherits": [
+        "default"
+      ],
+      "configurePreset": "macos-arm64-debug",
+      "configuration": "Debug"
     }
   ]
 }

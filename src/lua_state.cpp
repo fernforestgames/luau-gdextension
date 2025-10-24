@@ -37,6 +37,7 @@ void LuaState::_bind_methods()
     ClassDB::bind_method(D_METHOD("close"), &LuaState::close);
 
     ClassDB::bind_method(D_METHOD("load_bytecode", "bytecode", "chunk_name"), &LuaState::load_bytecode);
+    ClassDB::bind_method(D_METHOD("loadstring", "code", "chunk_name"), &LuaState::loadstring);
     ClassDB::bind_method(D_METHOD("resume"), &LuaState::resume);
 
     ClassDB::bind_method(D_METHOD("singlestep", "enable"), &LuaState::singlestep);
@@ -45,6 +46,7 @@ void LuaState::_bind_methods()
     // Stack manipulation
     ClassDB::bind_method(D_METHOD("gettop"), &LuaState::gettop);
     ClassDB::bind_method(D_METHOD("settop", "index"), &LuaState::settop);
+    ClassDB::bind_method(D_METHOD("checkstack", "extra"), &LuaState::checkstack);
     ClassDB::bind_method(D_METHOD("pop", "n"), &LuaState::pop);
     ClassDB::bind_method(D_METHOD("pushvalue", "index"), &LuaState::pushvalue);
     ClassDB::bind_method(D_METHOD("remove", "index"), &LuaState::remove);
@@ -160,7 +162,7 @@ LuaState::LuaState()
     // It must be created here (not in lua_godotlib) so it's available
     // even if the Godot library hasn't been loaded
     luaL_newmetatable(L, GODOT_DICTIONARY_MT);
-    lua_pop(L, 1);  // Pop the metatable, it's already stored in registry
+    lua_pop(L, 1); // Pop the metatable, it's already stored in registry
 }
 
 LuaState::~LuaState()
@@ -235,6 +237,33 @@ lua_Status LuaState::load_bytecode(const PackedByteArray &bytecode, const String
     return static_cast<lua_Status>(status);
 }
 
+lua_Status LuaState::loadstring(const String &code, const String &chunk_name)
+{
+    ERR_FAIL_NULL_V_MSG(L, LUA_ERRMEM, "Lua state is null. Cannot load string.");
+    return load_bytecode(Luau::compile(code), chunk_name);
+}
+
+lua_Status LuaState::dostring(const String &code, const String &chunk_name)
+{
+    ERR_FAIL_NULL_V_MSG(L, LUA_ERRMEM, "Lua state is null. Cannot run string.");
+
+    lua_Status status = loadstring(code, chunk_name);
+    if (status != LUA_OK)
+    {
+        return status;
+    }
+
+    // Execute the loaded chunk
+    if (lua_pcall(L, 0, LUA_MULTRET, 0))
+    {
+        return LUA_ERRRUN;
+    }
+    else
+    {
+        return LUA_OK;
+    }
+}
+
 lua_Status LuaState::resume()
 {
     ERR_FAIL_NULL_V_MSG(L, LUA_ERRMEM, "Lua state is null. Cannot resume execution.");
@@ -283,9 +312,9 @@ bool LuaState::isarray(int index)
     {
         luaL_getmetatable(L, GODOT_DICTIONARY_MT);
         bool is_dict = lua_rawequal(L, -1, -2);
-        pop(2);  // Pop both metatables
+        pop(2); // Pop both metatables
         if (is_dict)
-            return false;  // Has dictionary metatable, so not an array
+            return false; // Has dictionary metatable, so not an array
     }
 
     // Check if table has consecutive integer keys starting from 1
@@ -358,9 +387,9 @@ bool LuaState::isdictionary(int index)
     {
         luaL_getmetatable(L, GODOT_DICTIONARY_MT);
         bool is_dict = lua_rawequal(L, -1, -2);
-        pop(2);  // Pop both metatables
+        pop(2); // Pop both metatables
         if (is_dict)
-            return true;  // Has dictionary metatable
+            return true; // Has dictionary metatable
     }
 
     // Otherwise, check if it's not an array
@@ -437,9 +466,9 @@ Variant LuaState::tovariant(int index)
         double num = tonumber(index);
         int int_val = static_cast<int>(num);
         if (num == static_cast<double>(int_val))
-            return Variant(int_val);  // Return as integer
+            return Variant(int_val); // Return as integer
         else
-            return Variant(num);      // Return as float
+            return Variant(num); // Return as float
     }
 
     case LUA_TSTRING:
@@ -461,13 +490,22 @@ Variant LuaState::tovariant(int index)
     case LUA_TFUNCTION:
     {
         // Create a reference to the function in the registry
-        pushvalue(index); // Duplicate the function on the stack
-        int func_ref = lua_ref(L, -1);
-        pop(1); // Pop the duplicated function
+        int func_ref = lua_ref(L, index);
+
+        String funcname;
+        lua_Debug ar;
+        if (lua_getinfo(L, index, "n", &ar))
+        {
+            funcname = ar.name;
+        }
+        else
+        {
+            funcname = "<unknown>";
+        }
 
         // Create a LuaCallable wrapping this function
         // Pass raw 'this' pointer - LuaCallable will handle manual refcounting
-        LuaCallable *lua_callable = memnew(LuaCallable(this, func_ref));
+        LuaCallable *lua_callable = memnew(LuaCallable(this, funcname, func_ref));
 
         // Return as Callable Variant
         return Variant(Callable(lua_callable));
@@ -690,6 +728,12 @@ void LuaState::settop(int index)
 {
     ERR_FAIL_NULL_MSG(L, "Lua state is null. Cannot set stack top.");
     lua_settop(L, index);
+}
+
+bool LuaState::checkstack(int size)
+{
+    ERR_FAIL_NULL_V_MSG(L, false, "Lua state is null. Cannot manipulate stack size.");
+    return lua_checkstack(L, size) != 0;
 }
 
 void LuaState::pop(int n)

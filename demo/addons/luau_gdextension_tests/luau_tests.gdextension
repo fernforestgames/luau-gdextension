@@ -1,0 +1,11 @@
+[configuration]
+
+entry_symbol = "gdluau_tests_entrypoint"
+compatibility_minimum = "4.5"
+reloadable = true
+
+[libraries]
+
+macos = "bin/libgdluau_tests.darwin.arm64.dylib"
+windows.x86_64 = "bin/gdluau_tests.windows.amd64.dll"
+linux.x86_64 = "bin/libgdluau_tests.linux.x86_64.so"

@@ -33,7 +33,9 @@ This project has comprehensive automated tests for all Godot-Luau bridging
 functionality:
 
 ```bash
-godot --headless --path demo/ -- --run-tests
+ctest --preset windows-x86_64
+ctest --preset linux-x86_64
+ctest --preset macos-arm64
 ```
 
 **📖 For detailed testing documentation, see

@@ -49,6 +49,8 @@ namespace godot
         void open_library(lua_CFunction func, const char *name);
 
         lua_Status load_bytecode(const PackedByteArray &bytecode, const String &chunk_name);
+        lua_Status loadstring(const String &code, const String &chunk_name);
+        lua_Status dostring(const String &code, const String &chunk_name);
         lua_Status resume();
 
         void singlestep(bool enable);
@@ -57,6 +59,7 @@ namespace godot
         // Stack manipulation
         int gettop() const;
         void settop(int index);
+        bool checkstack(int extra);
         void pop(int n);
         void pushvalue(int index);
         void remove(int index);

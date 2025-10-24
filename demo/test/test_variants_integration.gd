@@ -3,20 +3,24 @@ extends GutTest
 
 var L: LuaState
 
-func before_each():
+func before_each() -> void:
 	L = LuaState.new()
 	L.openlibs()
 
-func after_each():
+func after_each() -> void:
 	if L:
 		L.close()
 		L = null
+
+# Helper to verify Lua stack is balanced
+func assert_stack_balanced(expected_top: int = 0) -> void:
+	assert_eq(L.gettop(), expected_top, "Lua stack should be balanced at %d, but is %d" % [expected_top, L.gettop()])
 
 # ============================================================================
 # Primitive Type Tests
 # ============================================================================
 
-func test_nil_variant():
+func test_nil_variant() -> void:
 	var nil_var = null
 	L.pushvariant(nil_var)
 
@@ -25,7 +29,7 @@ func test_nil_variant():
 	var retrieved = L.tovariant(-1)
 	assert_null(retrieved, "Should retrieve as null")
 
-func test_boolean_true():
+func test_boolean_true() -> void:
 	var bool_var = true
 	L.pushvariant(bool_var)
 
@@ -36,7 +40,7 @@ func test_boolean_true():
 	assert_typeof(retrieved, TYPE_BOOL)
 	assert_true(retrieved)
 
-func test_boolean_false():
+func test_boolean_false() -> void:
 	var bool_var = false
 	L.pushvariant(bool_var)
 
@@ -46,7 +50,7 @@ func test_boolean_false():
 	var retrieved = L.tovariant(-1)
 	assert_false(retrieved)
 
-func test_integer():
+func test_integer() -> void:
 	var int_var = 42
 	L.pushvariant(int_var)
 
@@ -56,7 +60,7 @@ func test_integer():
 	var retrieved = L.tovariant(-1)
 	assert_eq(int(retrieved), 42)
 
-func test_float():
+func test_float() -> void:
 	var float_var = 3.14159
 	L.pushvariant(float_var)
 
@@ -66,28 +70,28 @@ func test_float():
 	var retrieved = L.tovariant(-1)
 	assert_almost_eq(float(retrieved), 3.14159, 0.00001)
 
-func test_negative_numbers():
+func test_negative_numbers() -> void:
 	var neg_int = -100
 	L.pushvariant(neg_int)
 
 	var retrieved = L.tovariant(-1)
 	assert_eq(int(retrieved), -100)
 
-func test_zero():
+func test_zero() -> void:
 	var zero = 0
 	L.pushvariant(zero)
 
 	var retrieved = L.tovariant(-1)
 	assert_eq(int(retrieved), 0)
 
-func test_very_large_integer():
+func test_very_large_integer() -> void:
 	var large = 2147483647  # Max 32-bit int
 	L.pushvariant(large)
 
 	var retrieved = L.tovariant(-1)
 	assert_eq(int(retrieved), 2147483647)
 
-func test_very_small_float():
+func test_very_small_float() -> void:
 	var small = 0.000001
 	L.pushvariant(small)
 
@@ -98,7 +102,7 @@ func test_very_small_float():
 # String Tests
 # ============================================================================
 
-func test_simple_string():
+func test_simple_string() -> void:
 	var str_var = "hello world"
 	L.pushvariant(str_var)
 
@@ -109,7 +113,7 @@ func test_simple_string():
 	assert_typeof(retrieved, TYPE_STRING)
 	assert_eq(retrieved, "hello world")
 
-func test_empty_string():
+func test_empty_string() -> void:
 	var empty = ""
 	L.pushvariant(empty)
 
@@ -119,21 +123,21 @@ func test_empty_string():
 	var retrieved = L.tovariant(-1)
 	assert_eq(retrieved, "")
 
-func test_string_with_special_characters():
+func test_string_with_special_characters() -> void:
 	var special = "Hello\nWorld\t!"
 	L.pushvariant(special)
 
 	var retrieved = L.tovariant(-1)
 	assert_eq(retrieved, "Hello\nWorld\t!")
 
-func test_unicode_string():
+func test_unicode_string() -> void:
 	var unicode = "こんにちは 世界 🌍"
 	L.pushvariant(unicode)
 
 	var retrieved = L.tovariant(-1)
 	assert_eq(retrieved, "こんにちは 世界 🌍")
 
-func test_very_long_string():
+func test_very_long_string() -> void:
 	var long_str = ""
 	for i in range(1000):
 		long_str += "x"
@@ -147,7 +151,7 @@ func test_very_long_string():
 # Math Type Variant Tests
 # ============================================================================
 
-func test_vector2_variant():
+func test_vector2_variant() -> void:
 	var vec = Vector2(3.5, 4.5)
 
 	L.pushvariant(vec)
@@ -157,7 +161,7 @@ func test_vector2_variant():
 	assert_almost_eq(retrieved.x, 3.5, 0.001)
 	assert_almost_eq(retrieved.y, 4.5, 0.001)
 
-func test_vector2i_variant():
+func test_vector2i_variant() -> void:
 	var vec = Vector2i(10, 20)
 
 	L.pushvariant(vec)
@@ -167,7 +171,7 @@ func test_vector2i_variant():
 	assert_eq(retrieved.x, 10)
 	assert_eq(retrieved.y, 20)
 
-func test_vector3_variant():
+func test_vector3_variant() -> void:
 	var vec = Vector3(1.0, 2.0, 3.0)
 
 	L.pushvariant(vec)
@@ -178,7 +182,7 @@ func test_vector3_variant():
 	assert_almost_eq(retrieved.y, 2.0, 0.001)
 	assert_almost_eq(retrieved.z, 3.0, 0.001)
 
-func test_vector3i_variant():
+func test_vector3i_variant() -> void:
 	var vec = Vector3i(100, 200, 300)
 
 	L.pushvariant(vec)
@@ -189,7 +193,7 @@ func test_vector3i_variant():
 	assert_eq(retrieved.y, 200)
 	assert_eq(retrieved.z, 300)
 
-func test_color_variant():
+func test_color_variant() -> void:
 	var col = Color(1.0, 0.5, 0.0, 0.8)
 
 	L.pushvariant(col)
@@ -201,7 +205,7 @@ func test_color_variant():
 	assert_almost_eq(retrieved.b, 0.0, 0.001)
 	assert_almost_eq(retrieved.a, 0.8, 0.001)
 
-func test_vector4_variant():
+func test_vector4_variant() -> void:
 	var vec = Vector4(1.5, 2.5, 3.5, 4.5)
 
 	L.pushvariant(vec)
@@ -213,7 +217,7 @@ func test_vector4_variant():
 	assert_almost_eq(retrieved.z, 3.5, 0.001)
 	assert_almost_eq(retrieved.w, 4.5, 0.001)
 
-func test_vector4i_variant():
+func test_vector4i_variant() -> void:
 	var vec = Vector4i(10, 20, 30, 40)
 
 	L.pushvariant(vec)
@@ -225,7 +229,7 @@ func test_vector4i_variant():
 	assert_eq(retrieved.z, 30)
 	assert_eq(retrieved.w, 40)
 
-func test_rect2_variant():
+func test_rect2_variant() -> void:
 	var rect = Rect2(10.0, 20.0, 100.0, 200.0)
 
 	L.pushvariant(rect)
@@ -237,7 +241,7 @@ func test_rect2_variant():
 	assert_almost_eq(retrieved.size.x, 100.0, 0.001)
 	assert_almost_eq(retrieved.size.y, 200.0, 0.001)
 
-func test_rect2i_variant():
+func test_rect2i_variant() -> void:
 	var rect = Rect2i(5, 10, 50, 100)
 
 	L.pushvariant(rect)
@@ -249,7 +253,7 @@ func test_rect2i_variant():
 	assert_eq(retrieved.size.x, 50)
 	assert_eq(retrieved.size.y, 100)
 
-func test_aabb_variant():
+func test_aabb_variant() -> void:
 	var box = AABB(Vector3(1, 2, 3), Vector3(10, 20, 30))
 
 	L.pushvariant(box)
@@ -263,7 +267,7 @@ func test_aabb_variant():
 	assert_almost_eq(retrieved.size.y, 20.0, 0.001)
 	assert_almost_eq(retrieved.size.z, 30.0, 0.001)
 
-func test_plane_variant():
+func test_plane_variant() -> void:
 	var plane = Plane(1.0, 0.0, 0.0, 5.0)
 
 	L.pushvariant(plane)
@@ -275,7 +279,7 @@ func test_plane_variant():
 	assert_almost_eq(retrieved.normal.z, 0.0, 0.001)
 	assert_almost_eq(retrieved.d, 5.0, 0.001)
 
-func test_quaternion_variant():
+func test_quaternion_variant() -> void:
 	var quat = Quaternion(0.0, 0.0, 0.0, 1.0)
 
 	L.pushvariant(quat)
@@ -287,7 +291,7 @@ func test_quaternion_variant():
 	assert_almost_eq(retrieved.z, 0.0, 0.001)
 	assert_almost_eq(retrieved.w, 1.0, 0.001)
 
-func test_basis_variant():
+func test_basis_variant() -> void:
 	var basis = Basis()  # Identity
 
 	L.pushvariant(basis)
@@ -296,7 +300,7 @@ func test_basis_variant():
 	assert_typeof(retrieved, TYPE_BASIS)
 	assert_eq(retrieved, Basis())
 
-func test_transform2d_variant():
+func test_transform2d_variant() -> void:
 	var transform = Transform2D()  # Identity
 
 	L.pushvariant(transform)
@@ -305,7 +309,7 @@ func test_transform2d_variant():
 	assert_typeof(retrieved, TYPE_TRANSFORM2D)
 	assert_eq(retrieved, Transform2D())
 
-func test_transform3d_variant():
+func test_transform3d_variant() -> void:
 	var transform = Transform3D()  # Identity
 
 	L.pushvariant(transform)
@@ -314,7 +318,7 @@ func test_transform3d_variant():
 	assert_typeof(retrieved, TYPE_TRANSFORM3D)
 	assert_eq(retrieved, Transform3D())
 
-func test_projection_variant():
+func test_projection_variant() -> void:
 	var projection = Projection()  # Identity
 
 	L.pushvariant(projection)
@@ -327,7 +331,7 @@ func test_projection_variant():
 # Collection Variant Tests
 # ============================================================================
 
-func test_array_variant():
+func test_array_variant() -> void:
 	var arr = [1, "two", 3.0]
 
 	L.pushvariant(arr)
@@ -342,7 +346,7 @@ func test_array_variant():
 	assert_eq(arr_result[1], "two")
 	assert_almost_eq(float(arr_result[2]), 3.0, 0.001)
 
-func test_dictionary_variant():
+func test_dictionary_variant() -> void:
 	var dict = {"name": "test", "value": 42}
 
 	L.pushvariant(dict)
@@ -355,7 +359,7 @@ func test_dictionary_variant():
 	assert_eq(dict_result["name"], "test")
 	assert_eq(dict_result["value"], 42)
 
-func test_empty_array_variant():
+func test_empty_array_variant() -> void:
 	var empty = []
 	L.pushvariant(empty)
 
@@ -363,7 +367,7 @@ func test_empty_array_variant():
 	var arr = retrieved as Array
 	assert_eq(arr.size(), 0)
 
-func test_empty_dictionary_variant():
+func test_empty_dictionary_variant() -> void:
 	var empty = {}
 	L.pushvariant(empty)
 
@@ -375,7 +379,7 @@ func test_empty_dictionary_variant():
 # Nested Structure Variant Tests
 # ============================================================================
 
-func test_nested_array_variant():
+func test_nested_array_variant() -> void:
 	var nested = [[1, 2], [3, 4]]
 	L.pushvariant(nested)
 
@@ -392,7 +396,7 @@ func test_nested_array_variant():
 	assert_eq(inner2[0], 3)
 	assert_eq(inner2[1], 4)
 
-func test_complex_nested_variant():
+func test_complex_nested_variant() -> void:
 	var complex = {
 		"items": [10, 20, 30],
 		"meta": {"count": 3},
@@ -412,7 +416,7 @@ func test_complex_nested_variant():
 	var meta = dict["meta"] as Dictionary
 	assert_eq(meta["count"], 3)
 
-func test_array_with_mixed_types_including_math():
+func test_array_with_mixed_types_including_math() -> void:
 	var arr = [42, Vector2(1, 2), "text", Color(1, 0, 0, 1)]
 	L.pushvariant(arr)
 
@@ -436,18 +440,18 @@ func test_array_with_mixed_types_including_math():
 # Round-trip Through Lua Execution
 # ============================================================================
 
-func test_modify_variant_in_lua():
+func test_modify_variant_in_lua() -> void:
 	var original = [1, 2]
 	L.pushvariant(original)
 	L.setglobal("arr")
 
-	var code = """
+	var code: String = """
 	table.insert(arr, 3)
 	table.insert(arr, 4)
 	return arr
 	"""
 
-	var bytecode = Luau.compile(code)
+	var bytecode: PackedByteArray = Luau.compile(code)
 	L.load_bytecode(bytecode, "test")
 	L.resume()
 
@@ -458,8 +462,8 @@ func test_modify_variant_in_lua():
 	assert_eq(result_arr[2], 3)
 	assert_eq(result_arr[3], 4)
 
-func test_create_complex_structure_in_lua():
-	var code = """
+func test_create_complex_structure_in_lua() -> void:
+	var code: String = """
 	return {
 		position = Vector2(100, 200),
 		color = Color(1, 0, 0, 1),
@@ -471,7 +475,7 @@ func test_create_complex_structure_in_lua():
 	}
 	"""
 
-	var bytecode = Luau.compile(code)
+	var bytecode: PackedByteArray = Luau.compile(code)
 	L.load_bytecode(bytecode, "test")
 	L.resume()
 
@@ -499,7 +503,7 @@ func test_create_complex_structure_in_lua():
 # Type Edge Cases
 # ============================================================================
 
-func test_multiple_nil_variants():
+func test_multiple_nil_variants() -> void:
 	L.pushvariant(null)
 	L.pushvariant(null)
 	L.pushvariant(null)
@@ -509,7 +513,7 @@ func test_multiple_nil_variants():
 	assert_true(L.isnil(-2))
 	assert_true(L.isnil(-3))
 
-func test_boolean_vs_nil():
+func test_boolean_vs_nil() -> void:
 	L.pushvariant(false)
 	assert_true(L.isboolean(-1), "False should be boolean")
 	assert_false(L.isnil(-1), "False should not be nil")
@@ -519,13 +523,13 @@ func test_boolean_vs_nil():
 	assert_false(L.isboolean(-1), "Nil should not be boolean")
 	assert_true(L.isnil(-1), "Null should be nil")
 
-func test_zero_vs_nil():
+func test_zero_vs_nil() -> void:
 	L.pushvariant(0)
 	assert_true(L.isnumber(-1), "Zero should be number")
 	assert_false(L.isnil(-1), "Zero should not be nil")
 	assert_eq(L.tointeger(-1), 0)
 
-func test_empty_string_vs_nil():
+func test_empty_string_vs_nil() -> void:
 	L.pushvariant("")
 	assert_true(L.isstring(-1), "Empty string should be string")
 	assert_false(L.isnil(-1), "Empty string should not be nil")

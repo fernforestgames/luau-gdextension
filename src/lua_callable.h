@@ -13,11 +13,12 @@ namespace godot
     class LuaCallable : public CallableCustom
     {
     private:
-        LuaState *state;      // Raw pointer with manual reference counting
-        int func_ref;         // Reference to Lua function in registry
+        LuaState *state;  // Raw pointer with manual reference counting
+        int func_ref;     // Reference to Lua function in registry
+        String func_name; // Optional function name for debugging
 
     public:
-        LuaCallable(LuaState *p_state, int p_func_ref);
+        LuaCallable(LuaState *p_state, const String &p_func_name, int p_func_ref);
         ~LuaCallable();
 
         // CallableCustom interface

@@ -3,20 +3,24 @@ extends GutTest
 
 var L: LuaState
 
-func before_each():
+func before_each() -> void:
 	L = LuaState.new()
 	L.openlibs()
 
-func after_each():
+func after_each() -> void:
 	if L:
 		L.close()
 		L = null
+
+# Helper to verify Lua stack is balanced
+func assert_stack_balanced(expected_top: int = 0) -> void:
+	assert_eq(L.gettop(), expected_top, "Lua stack should be balanced at %d, but is %d" % [expected_top, L.gettop()])
 
 # ============================================================================
 # Array Tests
 # ============================================================================
 
-func test_simple_array_round_trip():
+func test_simple_array_round_trip() -> void:
 	var original = [1, 2, 3, 4]
 	L.pushvariant(original)
 	L.setglobal("arr")
@@ -32,7 +36,7 @@ func test_simple_array_round_trip():
 	assert_eq(retrieved[2], 3)
 	assert_eq(retrieved[3], 4)
 
-func test_mixed_type_array():
+func test_mixed_type_array() -> void:
 	var original = [42, "hello", true, 3.14]
 	L.pushvariant(original)
 	L.setglobal("mixed")
@@ -47,7 +51,7 @@ func test_mixed_type_array():
 	assert_eq(retrieved[2], true)
 	assert_almost_eq(float(retrieved[3]), 3.14, 0.001)
 
-func test_empty_array():
+func test_empty_array() -> void:
 	var empty = []
 	L.pushvariant(empty)
 
@@ -57,7 +61,7 @@ func test_empty_array():
 	assert_typeof(retrieved, TYPE_ARRAY)
 	assert_eq(retrieved.size(), 0)
 
-func test_nested_arrays():
+func test_nested_arrays() -> void:
 	var nested = [[1, 2], [3, 4], [5, 6]]
 	L.pushvariant(nested)
 	L.setglobal("nested")
@@ -78,18 +82,18 @@ func test_nested_arrays():
 	assert_eq(third[0], 5)
 	assert_eq(third[1], 6)
 
-func test_array_manipulation_in_lua():
+func test_array_manipulation_in_lua() -> void:
 	var original = [10, 20, 30]
 	L.pushvariant(original)
 	L.setglobal("arr")
 
-	var code = """
+	var code: String = """
 	table.insert(arr, 40)
 	table.insert(arr, 50)
 	return arr
 	"""
 
-	var bytecode = Luau.compile(code)
+	var bytecode: PackedByteArray = Luau.compile(code)
 	L.load_bytecode(bytecode, "test")
 	L.resume()
 
@@ -98,12 +102,12 @@ func test_array_manipulation_in_lua():
 	assert_eq(result[3], 40)
 	assert_eq(result[4], 50)
 
-func test_array_creation_in_lua():
-	var code = """
+func test_array_creation_in_lua() -> void:
+	var code: String = """
 	return {100, 200, 300, 400}
 	"""
 
-	var bytecode = Luau.compile(code)
+	var bytecode: PackedByteArray = Luau.compile(code)
 	L.load_bytecode(bytecode, "test")
 	L.resume()
 
@@ -112,7 +116,7 @@ func test_array_creation_in_lua():
 	assert_eq(result[0], 100)
 	assert_eq(result[3], 400)
 
-func test_array_vs_dictionary_detection():
+func test_array_vs_dictionary_detection() -> void:
 	# Consecutive integer keys starting at 1 = array
 	var code1 = "return {10, 20, 30}"
 	var bytecode1 = Luau.compile(code1)
@@ -142,7 +146,7 @@ func test_array_vs_dictionary_detection():
 	assert_false(L.isarray(-1), "String keys = dictionary")
 	assert_true(L.isdictionary(-1))
 
-func test_large_array():
+func test_large_array() -> void:
 	var large = []
 	for i in range(1000):
 		large.append(i)
@@ -160,7 +164,7 @@ func test_large_array():
 # Dictionary Tests
 # ============================================================================
 
-func test_simple_dictionary_round_trip():
+func test_simple_dictionary_round_trip() -> void:
 	var original = {"name": "test", "value": 42, "active": true}
 	L.pushvariant(original)
 	L.setglobal("dict")
@@ -178,7 +182,7 @@ func test_simple_dictionary_round_trip():
 	assert_eq(retrieved["value"], 42)
 	assert_eq(retrieved["active"], true)
 
-func test_empty_dictionary():
+func test_empty_dictionary() -> void:
 	var empty = {}
 	L.pushvariant(empty)
 
@@ -188,7 +192,7 @@ func test_empty_dictionary():
 	assert_typeof(retrieved, TYPE_DICTIONARY)
 	assert_eq(retrieved.size(), 0)
 
-func test_integer_keyed_dictionary():
+func test_integer_keyed_dictionary() -> void:
 	var dict = {1: "one", 2: "two", 100: "hundred"}
 	L.pushvariant(dict)
 	L.setglobal("dict")
@@ -201,7 +205,7 @@ func test_integer_keyed_dictionary():
 	assert_eq(retrieved[2], "two")
 	assert_eq(retrieved[100], "hundred")
 
-func test_nested_dictionaries():
+func test_nested_dictionaries() -> void:
 	var nested = {
 		"user": {"name": "Bob", "age": 25},
 		"settings": {"volume": 80, "fullscreen": true}
@@ -226,8 +230,8 @@ func test_nested_dictionaries():
 	assert_eq(settings["volume"], 80)
 	assert_eq(settings["fullscreen"], true)
 
-func test_dictionary_from_lua():
-	var code = """
+func test_dictionary_from_lua() -> void:
+	var code: String = """
 	return {
 		name = "Alice",
 		age = 30,
@@ -235,7 +239,7 @@ func test_dictionary_from_lua():
 	}
 	"""
 
-	var bytecode = Luau.compile(code)
+	var bytecode: PackedByteArray = Luau.compile(code)
 	L.load_bytecode(bytecode, "test")
 	L.resume()
 
@@ -246,8 +250,8 @@ func test_dictionary_from_lua():
 	assert_eq(dict["age"], 30)
 	assert_eq(dict["active"], true)
 
-func test_mixed_key_types_from_lua():
-	var code = """
+func test_mixed_key_types_from_lua() -> void:
+	var code: String = """
 	return {
 		name = "test",
 		[1] = "first",
@@ -256,7 +260,7 @@ func test_mixed_key_types_from_lua():
 	}
 	"""
 
-	var bytecode = Luau.compile(code)
+	var bytecode: PackedByteArray = Luau.compile(code)
 	L.load_bytecode(bytecode, "test")
 	L.resume()
 
@@ -267,7 +271,7 @@ func test_mixed_key_types_from_lua():
 	assert_true(dict.has(2))
 	assert_true(dict.has("count"))
 
-func test_large_dictionary():
+func test_large_dictionary() -> void:
 	var large = {}
 	for i in range(100):
 		large["key" + str(i)] = i
@@ -285,7 +289,7 @@ func test_large_dictionary():
 # Mixed Collections Tests
 # ============================================================================
 
-func test_dictionary_containing_arrays():
+func test_dictionary_containing_arrays() -> void:
 	var data = {
 		"items": [1, 2, 3],
 		"count": 3
@@ -294,14 +298,14 @@ func test_dictionary_containing_arrays():
 	L.pushvariant(data)
 	L.setglobal("data")
 
-	var code = """
+	var code: String = """
 	items = data.items
 	first = items[1]
 	count = data.count
 	return first, count
 	"""
 
-	var bytecode = Luau.compile(code)
+	var bytecode: PackedByteArray = Luau.compile(code)
 	L.load_bytecode(bytecode, "test")
 	L.resume()
 
@@ -311,7 +315,7 @@ func test_dictionary_containing_arrays():
 	assert_eq(first, 1)
 	assert_eq(count, 3)
 
-func test_array_containing_dictionaries():
+func test_array_containing_dictionaries() -> void:
 	var items = [
 		{"id": 1, "name": "Item A"},
 		{"id": 2, "name": "Item B"}
@@ -320,14 +324,14 @@ func test_array_containing_dictionaries():
 	L.pushvariant(items)
 	L.setglobal("items")
 
-	var code = """
+	var code: String = """
 	first_item = items[1]
 	first_name = first_item.name
 	second_id = items[2].id
 	return first_name, second_id
 	"""
 
-	var bytecode = Luau.compile(code)
+	var bytecode: PackedByteArray = Luau.compile(code)
 	L.load_bytecode(bytecode, "test")
 	L.resume()
 
@@ -337,7 +341,7 @@ func test_array_containing_dictionaries():
 	assert_eq(first_name, "Item A")
 	assert_eq(second_id, 2)
 
-func test_deeply_nested_structures():
+func test_deeply_nested_structures() -> void:
 	var complex = {
 		"level1": {
 			"level2": {
@@ -358,8 +362,8 @@ func test_deeply_nested_structures():
 	assert_eq(level3.size(), 3)
 	assert_eq(level3[0], 1)
 
-func test_complex_structure_from_lua():
-	var code = """
+func test_complex_structure_from_lua() -> void:
+	var code: String = """
 	return {
 		position = Vector2(100, 200),
 		items = {10, 20, 30},
@@ -370,7 +374,7 @@ func test_complex_structure_from_lua():
 	}
 	"""
 
-	var bytecode = Luau.compile(code)
+	var bytecode: PackedByteArray = Luau.compile(code)
 	L.load_bytecode(bytecode, "test")
 	L.resume()
 
@@ -397,7 +401,7 @@ func test_complex_structure_from_lua():
 # Edge Cases
 # ============================================================================
 
-func test_special_string_keys():
+func test_special_string_keys() -> void:
 	var dict = {
 		"with space": 1,
 		"with.dot": 2,
@@ -414,10 +418,10 @@ func test_special_string_keys():
 	assert_eq(retrieved["with-dash"], 3)
 	assert_eq(retrieved[""], 4)
 
-func test_table_with_zero_index():
-	var code = "return {[0] = 'zero', [1] = 'one'}"
+func test_table_with_zero_index() -> void:
+	var code: String = "return {[0] = 'zero', [1] = 'one'}"
 
-	var bytecode = Luau.compile(code)
+	var bytecode: PackedByteArray = Luau.compile(code)
 	L.load_bytecode(bytecode, "test")
 	L.resume()
 
@@ -429,10 +433,10 @@ func test_table_with_zero_index():
 	assert_eq(dict[0], "zero")
 	assert_eq(dict[1], "one")
 
-func test_table_with_negative_indices():
-	var code = "return {[-1] = 'neg', [1] = 'pos'}"
+func test_table_with_negative_indices() -> void:
+	var code: String = "return {[-1] = 'neg', [1] = 'pos'}"
 
-	var bytecode = Luau.compile(code)
+	var bytecode: PackedByteArray = Luau.compile(code)
 	L.load_bytecode(bytecode, "test")
 	L.resume()
 
