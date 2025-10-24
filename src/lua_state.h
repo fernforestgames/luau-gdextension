@@ -74,13 +74,10 @@ namespace godot
         bool isfunction(int index) const;
         bool isuserdata(int index) const;
         bool isboolean(int index) const;
-        bool isarray(int index);      // requires manipulating the stack, so cannot be const
-        bool isdictionary(int index); // requires manipulating the stack, so cannot be const
         int type(int index) const;
         String type_name(int type_id) const;
 
         // Value access
-        String tostring(int index);
         double tonumber(int index);
         int tointeger(int index);
         bool toboolean(int index);
@@ -89,7 +86,6 @@ namespace godot
         void pushnil();
         void pushnumber(double n);
         void pushinteger(int n);
-        void pushstring(const String &s);
         void pushboolean(bool b);
 
         // Table operations
@@ -118,11 +114,15 @@ namespace godot
         int gc(lua_GCOp what, int data);
 
         // Godot integration helpers
+        bool isarray(int index);      // requires manipulating the stack, so cannot be const
+        bool isdictionary(int index); // requires manipulating the stack, so cannot be const
         Array toarray(int index);
         Dictionary todictionary(int index);
+        String tostring(int index);
         Variant tovariant(int index);
         void pusharray(const Array &arr);
         void pushdictionary(const Dictionary &dict);
+        void pushstring(const String &s);
         void pushvariant(const Variant &value);
 
         // Internal state accessor (for LuaCallable and other internal use)
