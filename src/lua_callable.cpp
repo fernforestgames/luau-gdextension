@@ -139,11 +139,10 @@ void LuaCallable::call(const Variant **p_arguments, int p_argcount, Variant &r_r
     {
         // Error occurred
         const char *error_msg = lua_tostring(L, -1);
-        ERR_PRINT(vformat("LuaCallable: Error calling Lua function %s: %s", func_name, error_msg ? error_msg : "Unknown error"));
+        ERR_PRINT(vformat("LuaCallable: Unhandled error during call to Lua function %s: %s", func_name, error_msg ? error_msg : "Unknown error"));
         lua_pop(L, 1); // Pop error message
 
-        // This isn't a legal error value, but none of the existing errors fits well
-        r_call_error.error = GDEXTENSION_CALL_ERROR_INVALID_METHOD; // static_cast<GDExtensionCallErrorType>(-1);
+        // Don't set r_call_error, to prevent a fatal script error.
         return;
     }
 
