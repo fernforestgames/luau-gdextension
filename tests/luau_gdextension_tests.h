@@ -24,4 +24,12 @@ public:
 	// Returns Dictionary with: {success: bool}
 	// Also prints detailed test output to stdout
 	static Dictionary run();
+
+	// List all available test cases
+	// Returns Dictionary with: {tests: Array[String]}
+	static Dictionary list_tests();
+
+	// Run a single test case by name
+	// Returns Dictionary with: {success: bool}
+	static Dictionary run_single(const String &test_case);
 };
