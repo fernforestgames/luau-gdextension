@@ -24,6 +24,15 @@
 
 using namespace godot;
 
+// Forward declaration for LuaState (needed for creating LuaCallable in to_variant)
+namespace godot
+{
+    class LuaState;
+}
+
+// Metatable name for marking tables that come from Godot Dictionaries
+static const char *GODOT_DICTIONARY_MT = "__godot_dictionary_mt";
+
 // =============================================================================
 // Vector2
 // =============================================================================
@@ -2040,172 +2049,21 @@ static int callable_call(lua_State *L)
         return 0;
     }
 
-    // Convert Lua arguments to Godot Variant array
+    // Convert Lua arguments to Godot Variant array using to_variant
     Array args;
     args.resize(arg_count);
 
-    // Need access to LuaState to convert arguments
-    // We can't easily get the LuaState from here, so we'll use a workaround
-    // by manually converting basic types
     for (int i = 0; i < arg_count; i++)
     {
         int idx = i + 2; // Skip self (1) and start from argument 1 (2)
-        int type = lua_type(L, idx);
-
-        switch (type)
-        {
-        case LUA_TNIL:
-            args[i] = Variant();
-            break;
-        case LUA_TBOOLEAN:
-            args[i] = Variant(lua_toboolean(L, idx) != 0);
-            break;
-        case LUA_TNUMBER:
-            args[i] = Variant(lua_tonumber(L, idx));
-            break;
-        case LUA_TSTRING:
-        {
-            size_t len;
-            const char *str = lua_tolstring(L, idx, &len);
-            args[i] = Variant(String::utf8(str, len));
-            break;
-        }
-        case LUA_TVECTOR:
-        {
-            const float *v = lua_tovector(L, idx);
-            args[i] = Variant(Vector3(v[0], v[1], v[2]));
-            break;
-        }
-        case LUA_TFUNCTION:
-        {
-            // Convert Lua function to LuaCallable
-            // Get the LuaState pointer from the registry
-            lua_getfield(L, LUA_REGISTRYINDEX, GDLUAU_STATE_REGISTRY_KEY);
-            LuaState *state = static_cast<LuaState *>(lua_tolightuserdata(L, -1));
-            lua_pop(L, 1);
-
-            if (!state)
-            {
-                luaL_error(L, "Failed to get LuaState from registry");
-                return 0;
-            }
-
-            // Validate the function before storing
-            if (!lua_isfunction(L, idx))
-            {
-                luaL_error(L, "Argument %d is not a valid function", i + 1);
-                return 0;
-            }
-
-            String funcname;
-            lua_Debug ar;
-            if (lua_getinfo(L, idx, "n", &ar))
-            {
-                funcname = ar.name;
-            }
-            else
-            {
-                funcname = "<unknown>";
-            }
-
-            // Store function in registry and create LuaCallable
-            // In Luau, lua_ref takes a stack index and stores that value in the registry
-            int func_ref = lua_ref(L, idx);
-
-            if (func_ref == LUA_NOREF || func_ref == LUA_REFNIL)
-            {
-                luaL_error(L, "Failed to create reference for Lua function");
-                return 0;
-            }
-
-            // Create LuaCallable wrapper
-            Callable lua_callable = Callable(memnew(LuaCallable(state, funcname, func_ref)));
-            args[i] = lua_callable;
-            break;
-        }
-        case LUA_TUSERDATA:
-        {
-            // Check for math types
-            int tag = lua_userdatatag(L, idx);
-            switch (tag)
-            {
-            case LUA_TAG_VECTOR2:
-                args[i] = Variant(to_vector2(L, idx));
-                break;
-            case LUA_TAG_VECTOR2I:
-                args[i] = Variant(to_vector2i(L, idx));
-                break;
-            case LUA_TAG_VECTOR3I:
-                args[i] = Variant(to_vector3i(L, idx));
-                break;
-            case LUA_TAG_VECTOR4:
-                args[i] = Variant(to_vector4(L, idx));
-                break;
-            case LUA_TAG_VECTOR4I:
-                args[i] = Variant(to_vector4i(L, idx));
-                break;
-            case LUA_TAG_COLOR:
-                args[i] = Variant(to_color(L, idx));
-                break;
-            case LUA_TAG_RECT2:
-                args[i] = Variant(to_rect2(L, idx));
-                break;
-            case LUA_TAG_RECT2I:
-                args[i] = Variant(to_rect2i(L, idx));
-                break;
-            case LUA_TAG_AABB:
-                args[i] = Variant(to_aabb(L, idx));
-                break;
-            case LUA_TAG_PLANE:
-                args[i] = Variant(to_plane(L, idx));
-                break;
-            case LUA_TAG_QUATERNION:
-                args[i] = Variant(to_quaternion(L, idx));
-                break;
-            case LUA_TAG_BASIS:
-                args[i] = Variant(to_basis(L, idx));
-                break;
-            case LUA_TAG_TRANSFORM2D:
-                args[i] = Variant(to_transform2d(L, idx));
-                break;
-            case LUA_TAG_TRANSFORM3D:
-                args[i] = Variant(to_transform3d(L, idx));
-                break;
-            case LUA_TAG_PROJECTION:
-                args[i] = Variant(to_projection(L, idx));
-                break;
-            case LUA_TAG_CALLABLE:
-                args[i] = Variant(to_callable(L, idx));
-                break;
-            default:
-                luaL_error(L, "Unsupported argument type: userdata with tag %d", tag);
-                return 0;
-            }
-            break;
-        }
-        default:
-            luaL_error(L, "Unsupported argument type: %s", lua_typename(L, type));
-            return 0;
-        }
+        args[i] = to_variant(L, idx);
     }
 
     // Call the Callable with array of arguments
     Variant result = callable->callv(args);
 
-    // Convert result back to Lua using LuaState::pushvariant for full type support
-    // Get the LuaState pointer from the registry
-    lua_getfield(L, LUA_REGISTRYINDEX, GDLUAU_STATE_REGISTRY_KEY);
-    LuaState *state = static_cast<LuaState *>(lua_tolightuserdata(L, -1));
-    lua_pop(L, 1);
-
-    if (!state)
-    {
-        luaL_error(L, "Failed to get LuaState from registry for result conversion");
-        return 0;
-    }
-
-    // Use LuaState's pushvariant which handles all types correctly
-    state->pushvariant(result);
+    // Convert result back to Lua using push_variant
+    push_variant(L, result);
 
     return 1;
 }
@@ -2589,11 +2447,454 @@ Callable godot::to_callable(lua_State *L, int index)
 }
 
 // =============================================================================
+// Array/Dictionary/Variant conversion helpers
+// =============================================================================
+
+bool godot::is_array(lua_State *L, int index)
+{
+    if (!lua_istable(L, index))
+        return false;
+
+    // Normalize negative indices
+    int abs_index = index < 0 ? lua_gettop(L) + index + 1 : index;
+
+    // Check if table has the dictionary marker metatable
+    if (lua_getmetatable(L, abs_index))
+    {
+        luaL_getmetatable(L, GODOT_DICTIONARY_MT);
+        bool is_dict = lua_rawequal(L, -1, -2);
+        lua_pop(L, 2); // Pop both metatables
+        if (is_dict)
+            return false; // Has dictionary marker
+    }
+
+    // Check if table has consecutive integer keys starting from 1
+    int n = 0;
+    lua_pushnil(L);
+    while (lua_next(L, abs_index) != 0)
+    {
+        // Key is at -2, value is at -1
+        if (!lua_isnumber(L, -2))
+        {
+            // Non-numeric key, not an array
+            lua_pop(L, 2); // Pop key and value
+            return false;
+        }
+
+        double key_num = lua_tonumber(L, -2);
+        int key_int = static_cast<int>(key_num);
+
+        // Check if key is an integer
+        if (key_num != static_cast<double>(key_int))
+        {
+            // Key is not an integer, not an array
+            lua_pop(L, 2); // Pop key and value
+            return false;
+        }
+
+        // Arrays must start at 1 in Lua, so any key < 1 means it's a dictionary
+        if (key_int < 1)
+        {
+            lua_pop(L, 2); // Pop key and value
+            return false;
+        }
+
+        // Keep track of max key
+        if (key_int > n)
+            n = key_int;
+
+        // Pop value, keep key for next iteration
+        lua_pop(L, 1);
+    }
+
+    // Check if all keys from 1 to n are present
+    for (int i = 1; i <= n; i++)
+    {
+        lua_rawgeti(L, abs_index, i);
+        if (lua_isnil(L, -1))
+        {
+            // Gap in sequence, not an array
+            lua_pop(L, 1);
+            return false;
+        }
+        lua_pop(L, 1);
+    }
+
+    return true;
+}
+
+bool godot::is_dictionary(lua_State *L, int index)
+{
+    if (!lua_istable(L, index))
+        return false;
+
+    // Normalize negative indices
+    int abs_index = index < 0 ? lua_gettop(L) + index + 1 : index;
+
+    // Check if this table has the dictionary marker metatable
+    if (lua_getmetatable(L, abs_index))
+    {
+        luaL_getmetatable(L, GODOT_DICTIONARY_MT);
+        bool is_dict = lua_rawequal(L, -1, -2);
+        lua_pop(L, 2); // Pop both metatables
+        if (is_dict)
+            return true; // Has dictionary metatable
+    }
+
+    return !is_array(L, index);
+}
+
+Array godot::to_array(lua_State *L, int index)
+{
+    ERR_FAIL_COND_V_MSG(!lua_istable(L, index), Array(), "Value at index is not a table.");
+
+    Array arr;
+
+    // Normalize negative indices
+    int abs_index = index < 0 ? lua_gettop(L) + index + 1 : index;
+
+    // Get array length
+    int len = lua_objlen(L, abs_index);
+
+    // Convert each element
+    for (int i = 1; i <= len; i++)
+    {
+        lua_rawgeti(L, abs_index, i);
+        arr.append(to_variant(L, -1));
+        lua_pop(L, 1);
+    }
+
+    return arr;
+}
+
+Dictionary godot::to_dictionary(lua_State *L, int index)
+{
+    ERR_FAIL_COND_V_MSG(!lua_istable(L, index), Dictionary(), "Value at index is not a table.");
+
+    Dictionary dict;
+
+    // Normalize negative indices
+    int abs_index = index < 0 ? lua_gettop(L) + index + 1 : index;
+
+    // Push nil as the first key for lua_next
+    lua_pushnil(L);
+
+    // Iterate over the table
+    while (lua_next(L, abs_index) != 0)
+    {
+        Variant key = to_variant(L, -2);
+        Variant value = to_variant(L, -1);
+
+        dict[key] = value;
+
+        // Remove value, keep key for next iteration
+        lua_pop(L, 1);
+    }
+
+    return dict;
+}
+
+String godot::to_string(lua_State *L, int index)
+{
+    size_t len;
+    const char *str = lua_tolstring(L, index, &len);
+    return String::utf8(str, len);
+}
+
+Variant godot::to_variant(lua_State *L, int index)
+{
+    int type_id = lua_type(L, index);
+
+    switch (type_id)
+    {
+    case LUA_TNIL:
+        return Variant();
+
+    case LUA_TBOOLEAN:
+        return Variant(lua_toboolean(L, index) != 0);
+
+    case LUA_TNUMBER:
+    {
+        // Check if the number is actually an integer
+        double num = lua_tonumber(L, index);
+        int int_val = static_cast<int>(num);
+        if (num == static_cast<double>(int_val))
+            return Variant(int_val); // Return as integer
+        else
+            return Variant(num); // Return as float
+    }
+
+    case LUA_TSTRING:
+    {
+        size_t len;
+        const char *str = lua_tolstring(L, index, &len);
+        return Variant(String::utf8(str, len));
+    }
+
+    case LUA_TTABLE:
+    {
+        // Check if the table is array-like
+        if (is_array(L, index))
+            return Variant(to_array(L, index));
+        else
+            return Variant(to_dictionary(L, index));
+    }
+
+    case LUA_TVECTOR:
+        // Luau's native vector type (used for Vector3)
+        return Variant(to_vector3(L, index));
+
+    case LUA_TFUNCTION:
+    {
+        // Create a reference to the function in the registry
+        int func_ref = lua_ref(L, index);
+
+        String funcname;
+        lua_Debug ar;
+        if (lua_getinfo(L, index, "n", &ar))
+        {
+            funcname = ar.name;
+        }
+        else
+        {
+            funcname = "<unknown>";
+        }
+
+        // Need to get the LuaState pointer to create the LuaCallable
+        lua_getfield(L, LUA_REGISTRYINDEX, GDLUAU_STATE_REGISTRY_KEY);
+        LuaState *state = static_cast<LuaState *>(lua_tolightuserdata(L, -1));
+        lua_pop(L, 1);
+
+        ERR_FAIL_NULL_V_MSG(state, Variant(), "Failed to get LuaState from registry");
+
+        // Create LuaCallable wrapper
+        Callable lua_callable = Callable(memnew(LuaCallable(state, funcname, func_ref)));
+        return Variant(lua_callable);
+    }
+
+    case LUA_TUSERDATA:
+    {
+        // Check for math types
+        if (is_vector2(L, index))
+            return Variant(to_vector2(L, index));
+        else if (is_vector2i(L, index))
+            return Variant(to_vector2i(L, index));
+        else if (is_vector3(L, index))
+            return Variant(to_vector3(L, index));
+        else if (is_vector3i(L, index))
+            return Variant(to_vector3i(L, index));
+        else if (is_vector4(L, index))
+            return Variant(to_vector4(L, index));
+        else if (is_vector4i(L, index))
+            return Variant(to_vector4i(L, index));
+        else if (is_color(L, index))
+            return Variant(to_color(L, index));
+        else if (is_rect2(L, index))
+            return Variant(to_rect2(L, index));
+        else if (is_rect2i(L, index))
+            return Variant(to_rect2i(L, index));
+        else if (is_aabb(L, index))
+            return Variant(to_aabb(L, index));
+        else if (is_plane(L, index))
+            return Variant(to_plane(L, index));
+        else if (is_quaternion(L, index))
+            return Variant(to_quaternion(L, index));
+        else if (is_basis(L, index))
+            return Variant(to_basis(L, index));
+        else if (is_transform2d(L, index))
+            return Variant(to_transform2d(L, index));
+        else if (is_transform3d(L, index))
+            return Variant(to_transform3d(L, index));
+        else if (is_projection(L, index))
+            return Variant(to_projection(L, index));
+        else if (is_callable(L, index))
+            return Variant(to_callable(L, index));
+
+        ERR_PRINT("Cannot convert Lua userdata to Variant (unknown type).");
+        return Variant();
+    }
+
+    case LUA_TTHREAD:
+        ERR_PRINT("Cannot convert Lua thread to Variant.");
+        return Variant();
+
+    default:
+    {
+        ERR_PRINT(vformat("Unsupported Lua type %s at index %d.", lua_typename(L, type_id), index));
+        return Variant();
+    }
+    }
+}
+
+void godot::push_array(lua_State *L, const Array &arr)
+{
+    lua_createtable(L, arr.size(), 0);
+
+    // Lua arrays are 1-indexed
+    for (int i = 0; i < arr.size(); i++)
+    {
+        push_variant(L, arr[i]);
+        lua_rawseti(L, -2, i + 1);
+    }
+}
+
+void godot::push_dictionary(lua_State *L, const Dictionary &dict)
+{
+    lua_createtable(L, 0, dict.size());
+
+    Array keys = dict.keys();
+    for (int i = 0; i < keys.size(); i++)
+    {
+        Variant key = keys[i];
+        Variant val = dict[key];
+
+        // Push key and value
+        push_variant(L, key);
+        push_variant(L, val);
+
+        // Set table[key] = value
+        lua_settable(L, -3);
+    }
+
+    // Set the dictionary marker metatable
+    luaL_getmetatable(L, GODOT_DICTIONARY_MT);
+    lua_setmetatable(L, -2);
+}
+
+void godot::push_string(lua_State *L, const String &value)
+{
+    CharString utf8 = value.utf8();
+    lua_pushlstring(L, utf8.get_data(), utf8.length());
+}
+
+void godot::push_variant(lua_State *L, const Variant &value)
+{
+    Variant::Type variant_type = value.get_type();
+
+    switch (variant_type)
+    {
+    case Variant::NIL:
+        lua_pushnil(L);
+        break;
+
+    case Variant::BOOL:
+        lua_pushboolean(L, static_cast<bool>(value));
+        break;
+
+    case Variant::INT:
+        lua_pushinteger(L, static_cast<int>(value));
+        break;
+
+    case Variant::FLOAT:
+        lua_pushnumber(L, static_cast<double>(value));
+        break;
+
+    case Variant::STRING:
+    case Variant::STRING_NAME:
+    {
+        String str = value;
+        CharString utf8 = str.utf8();
+        lua_pushlstring(L, utf8.get_data(), utf8.length());
+        break;
+    }
+
+    case Variant::ARRAY:
+        push_array(L, value);
+        break;
+
+    case Variant::DICTIONARY:
+        push_dictionary(L, value);
+        break;
+
+    case Variant::VECTOR2:
+        push_vector2(L, value);
+        break;
+
+    case Variant::VECTOR2I:
+        push_vector2i(L, value);
+        break;
+
+    case Variant::VECTOR3:
+        push_vector3(L, value);
+        break;
+
+    case Variant::VECTOR3I:
+        push_vector3i(L, value);
+        break;
+
+    case Variant::COLOR:
+        push_color(L, value);
+        break;
+
+    case Variant::VECTOR4:
+        push_vector4(L, value);
+        break;
+
+    case Variant::VECTOR4I:
+        push_vector4i(L, value);
+        break;
+
+    case Variant::RECT2:
+        push_rect2(L, value);
+        break;
+
+    case Variant::RECT2I:
+        push_rect2i(L, value);
+        break;
+
+    case Variant::AABB:
+        push_aabb(L, value);
+        break;
+
+    case Variant::PLANE:
+        push_plane(L, value);
+        break;
+
+    case Variant::QUATERNION:
+        push_quaternion(L, value);
+        break;
+
+    case Variant::BASIS:
+        push_basis(L, value);
+        break;
+
+    case Variant::TRANSFORM2D:
+        push_transform2d(L, value);
+        break;
+
+    case Variant::TRANSFORM3D:
+        push_transform3d(L, value);
+        break;
+
+    case Variant::PROJECTION:
+        push_projection(L, value);
+        break;
+
+    case Variant::CALLABLE:
+        push_callable(L, value);
+        break;
+
+    default:
+    {
+        // For unsupported types, convert to string representation
+        String str = value;
+        CharString utf8 = str.utf8();
+        lua_pushlstring(L, utf8.get_data(), utf8.length());
+        ERR_PRINT(vformat("Variant type %d not directly supported. Converted to string: %s", variant_type, str));
+    }
+    }
+}
+
+// =============================================================================
 // Library Entry Point
 // =============================================================================
 
 int luaopen_godot(lua_State *L)
 {
+    // Register dictionary marker metatable (empty, just used as a marker)
+    luaL_newmetatable(L, GODOT_DICTIONARY_MT);
+    lua_pop(L, 1);
+
     // Register all math type metatables
     register_vector2_metatable(L);
     register_vector2i_metatable(L);
