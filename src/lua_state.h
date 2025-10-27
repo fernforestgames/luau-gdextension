@@ -51,7 +51,7 @@ namespace godot
         lua_Status load_bytecode(const PackedByteArray &bytecode, const String &chunk_name);
         lua_Status loadstring(const String &code, const String &chunk_name);
         lua_Status dostring(const String &code, const String &chunk_name);
-        lua_Status resume();
+        lua_Status resume(int narg = 0);
 
         void singlestep(bool enable);
         void pause(); // a.k.a. break

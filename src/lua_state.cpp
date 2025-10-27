@@ -35,7 +35,7 @@ void LuaState::_bind_methods()
 
     ClassDB::bind_method(D_METHOD("load_bytecode", "bytecode", "chunk_name"), &LuaState::load_bytecode);
     ClassDB::bind_method(D_METHOD("loadstring", "code", "chunk_name"), &LuaState::loadstring);
-    ClassDB::bind_method(D_METHOD("resume"), &LuaState::resume);
+    ClassDB::bind_method(D_METHOD("resume", "narg"), &LuaState::resume, DEFVAL(0));
 
     ClassDB::bind_method(D_METHOD("singlestep", "enable"), &LuaState::singlestep);
     ClassDB::bind_method(D_METHOD("pause"), &LuaState::pause);
@@ -254,11 +254,11 @@ lua_Status LuaState::dostring(const String &code, const String &chunk_name)
     }
 }
 
-lua_Status LuaState::resume()
+lua_Status LuaState::resume(int narg)
 {
     ERR_FAIL_NULL_V_MSG(L, LUA_ERRMEM, "Lua state is null. Cannot resume execution.");
 
-    int status = lua_resume(L, nullptr, 0);
+    int status = lua_resume(L, nullptr, narg);
     return static_cast<lua_Status>(status);
 }
 
