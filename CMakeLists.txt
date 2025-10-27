@@ -93,6 +93,16 @@ add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
     COMMENT "Copying extension library to demo addons"
 )
 
+# Copy PDB files if COPY_PDB_FILE is enabled (Windows debug builds)
+if(COPY_PDB_FILE)
+    add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different
+            $<TARGET_PDB_FILE:${PROJECT_NAME}>
+            "${CMAKE_CURRENT_SOURCE_DIR}/demo/addons/luau_gdextension/bin/$<TARGET_PDB_FILE_NAME:${PROJECT_NAME}>"
+        COMMENT "Copying PDB file to demo addons"
+    )
+endif()
+
 # ============================================================================
 # Test Library (separate shared library, only when BUILD_TESTING=ON)
 # ============================================================================
@@ -140,6 +150,16 @@ if(BUILD_TESTING)
             "${CMAKE_CURRENT_SOURCE_DIR}/demo/addons/luau_gdextension_tests/bin/$<TARGET_FILE_NAME:${PROJECT_NAME}_tests>"
         COMMENT "Copying test library to demo addons"
     )
+
+    # Copy PDB files if COPY_PDB_FILE is enabled (Windows debug builds)
+    if(COPY_PDB_FILE)
+        add_custom_command(TARGET ${PROJECT_NAME}_tests POST_BUILD
+            COMMAND ${CMAKE_COMMAND} -E copy_if_different
+                $<TARGET_PDB_FILE:${PROJECT_NAME}_tests>
+                "${CMAKE_CURRENT_SOURCE_DIR}/demo/addons/luau_gdextension_tests/bin/$<TARGET_PDB_FILE_NAME:${PROJECT_NAME}_tests>"
+            COMMENT "Copying test PDB file to demo addons"
+        )
+    endif()
 
     # Add CTest for running Godot tests
     # Note: Godot executable must be in PATH or specified via GODOT_EXECUTABLE env var
