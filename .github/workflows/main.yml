@@ -11,6 +11,10 @@ on:
 
   pull_request:
 
+  release:
+    types:
+      - published
+
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
@@ -24,8 +28,9 @@ permissions:
 
 jobs:
   build:
-    runs-on: ${{ matrix.os }}
     name: ${{ matrix.name }}
+    runs-on: ${{ matrix.os }}
+
     strategy:
       fail-fast: false
       matrix:
@@ -114,14 +119,41 @@ jobs:
             demo/addons/luau_gdextension/**
             !demo/addons/luau_gdextension/**/*_tests*
 
-  merge:
+  merge-build-artifacts:
     runs-on: ubuntu-latest
     needs: build
-    if: github.event_name != 'pull_request'
+    if: github.event_name == 'push'
+
     steps:
-      - name: Merge Artifacts
+      - name: Merge artifacts
         uses: actions/upload-artifact/merge@v4
         with:
           name: luau-gdextension
           pattern: luau-gdextension-*
           delete-merged: true
+  
+  upload-release-artifacts:
+    runs-on: ubuntu-latest
+    needs: build
+    if: github.event_name == 'release'
+
+    permissions:
+      contents: write
+
+    steps:
+      - name: Download merged artifacts
+        uses: actions/download-artifact@v5
+        with:
+          pattern: luau-gdextension-*
+          merge-multiple: true
+          path: addons/luau_gdextension/
+
+      - name: Zip release
+        run: |
+          zip -r addons-luau-gdextension.zip addons/
+
+      - name: Upload release asset
+        run: |
+          gh release upload "${{ github.event.release.tag_name }}" addons-luau-gdextension.zip
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
