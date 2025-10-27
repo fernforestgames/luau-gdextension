@@ -110,9 +110,12 @@ jobs:
         if: github.event_name != 'pull_request'
         with:
           name: luau-gdextension-${{ matrix.platform }}-${{ matrix.configuration }}
+          # Preserve addons/luau_gdextension/ part of the path
           path: |
-            demo/addons/luau_gdextension/**
-            !demo/addons/luau_gdextension/**/*_tests*
+            demo/addons/**
+            !demo/addons/gut/**
+            !demo/addons/luau_gdextension_tests/**
+          if-no-files-found: error
 
   merge:
     runs-on: ubuntu-latest
