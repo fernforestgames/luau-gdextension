@@ -35,6 +35,7 @@ void LuaState::_bind_methods()
 
     ClassDB::bind_method(D_METHOD("load_bytecode", "bytecode", "chunk_name"), &LuaState::load_bytecode);
     ClassDB::bind_method(D_METHOD("loadstring", "code", "chunk_name"), &LuaState::loadstring);
+    ClassDB::bind_method(D_METHOD("dostring", "code", "chunk_name"), &LuaState::dostring);
     ClassDB::bind_method(D_METHOD("resume", "narg"), &LuaState::resume, DEFVAL(0));
 
     ClassDB::bind_method(D_METHOD("singlestep", "enable"), &LuaState::singlestep);
@@ -58,6 +59,7 @@ void LuaState::_bind_methods()
     ClassDB::bind_method(D_METHOD("isfunction", "index"), &LuaState::isfunction);
     ClassDB::bind_method(D_METHOD("isuserdata", "index"), &LuaState::isuserdata);
     ClassDB::bind_method(D_METHOD("isboolean", "index"), &LuaState::isboolean);
+    ClassDB::bind_method(D_METHOD("isthread", "index"), &LuaState::isthread);
     ClassDB::bind_method(D_METHOD("isarray", "index"), &LuaState::isarray);
     ClassDB::bind_method(D_METHOD("isdictionary", "index"), &LuaState::isdictionary);
     ClassDB::bind_method(D_METHOD("type", "index"), &LuaState::type);
@@ -75,6 +77,7 @@ void LuaState::_bind_methods()
     ClassDB::bind_method(D_METHOD("pushinteger", "n"), &LuaState::pushinteger);
     ClassDB::bind_method(D_METHOD("pushstring", "s"), &LuaState::pushstring);
     ClassDB::bind_method(D_METHOD("pushboolean", "b"), &LuaState::pushboolean);
+    ClassDB::bind_method(D_METHOD("pushthread"), &LuaState::pushthread);
 
     // Table operations
     ClassDB::bind_method(D_METHOD("newtable"), &LuaState::newtable);
@@ -97,6 +100,11 @@ void LuaState::_bind_methods()
     // Function calls
     ClassDB::bind_method(D_METHOD("call", "nargs", "nresults"), &LuaState::call);
     ClassDB::bind_method(D_METHOD("pcall", "nargs", "nresults", "errfunc"), &LuaState::pcall);
+
+    // Thread operations
+    ClassDB::bind_method(D_METHOD("newthread"), &LuaState::newthread);
+    ClassDB::bind_method(D_METHOD("tothread", "index"), &LuaState::tothread);
+    ClassDB::bind_method(D_METHOD("mainthread"), &LuaState::mainthread);
 
     // Garbage collection
     ClassDB::bind_method(D_METHOD("gc", "what", "data"), &LuaState::gc);
@@ -145,10 +153,26 @@ void LuaState::_bind_methods()
 }
 
 LuaState::LuaState()
+    : main_thread()
 {
     L = luaL_newstate();
     ERR_FAIL_NULL_MSG(L, "Failed to create new Lua state.");
 
+    set_callbacks();
+}
+
+// Private constructor for thread states
+LuaState::LuaState(lua_State *thread_L, Ref<LuaState> main_thread)
+    : L(thread_L), main_thread(main_thread)
+{
+    ERR_FAIL_NULL_MSG(thread_L, "Thread lua_State* is null.");
+    ERR_FAIL_NULL_MSG(main_thread, "Main LuaState is null.");
+
+    set_callbacks();
+}
+
+void LuaState::set_callbacks()
+{
     lua_Callbacks *callbacks = lua_callbacks(L);
     callbacks->userdata = this;
     callbacks->debugstep = callback_debugstep;
@@ -157,7 +181,12 @@ LuaState::LuaState()
 
 LuaState::~LuaState()
 {
-    close();
+    // Only close the main thread
+    // Other threads are managed by Lua's GC, not manually closed
+    if (main_thread.is_null())
+    {
+        close();
+    }
 }
 
 void LuaState::open_library(lua_CFunction func, const char *name)
@@ -169,7 +198,12 @@ void LuaState::open_library(lua_CFunction func, const char *name)
 
 void LuaState::openlibs(int libs)
 {
-    ERR_FAIL_NULL_MSG(L, "Lua state is null. Cannot open libraries.");
+    ERR_FAIL_COND_MSG(!is_valid_state(), "Lua state is invalid. Cannot open libraries.");
+
+    if (main_thread.is_valid())
+    {
+        WARN_PRINT("Calling LuaState.openlibs() on a Lua thread will affect all threads in the same VM. Libraries should be opened on the main thread before creating threads.");
+    }
 
     // Open individual libraries based on flags
     if (libs & LIB_BASE)
@@ -206,22 +240,40 @@ void LuaState::openlibs(int libs)
 
 void LuaState::sandbox()
 {
-    ERR_FAIL_NULL_MSG(L, "Lua state is null. Cannot sandbox.");
+    ERR_FAIL_COND_MSG(!is_valid_state(), "Lua state is invalid. Cannot sandbox.");
+
+    if (main_thread.is_valid())
+    {
+        WARN_PRINT("Calling LuaState.sandbox() on a Lua thread will affect all threads in the same VM. Sandboxing should usually be done on the main thread before creating threads.");
+    }
+
     luaL_sandbox(L);
 }
 
 void LuaState::close()
 {
-    if (L)
+    if (!L)
     {
-        lua_close(L);
-        L = nullptr;
+        return;
     }
+
+    if (main_thread.is_valid())
+    {
+        WARN_PRINT("LuaState.close() should not be called on Lua threads. Threads will be automatically GC'd.");
+        L = nullptr;
+        main_thread.unref();
+        return;
+    }
+
+    // This is the main thread - close it
+    // This will invalidate all thread lua_State* pointers created from this state
+    lua_close(L);
+    L = nullptr;
 }
 
 lua_Status LuaState::load_bytecode(const PackedByteArray &bytecode, const String &chunk_name)
 {
-    ERR_FAIL_NULL_V_MSG(L, LUA_ERRMEM, "Lua state is null. Cannot load bytecode.");
+    ERR_FAIL_COND_V_MSG(!is_valid_state(), LUA_ERRMEM, "Lua state is invalid. Cannot load bytecode.");
 
     int status = luau_load(L, chunk_name.utf8(), reinterpret_cast<const char *>(bytecode.ptr()), bytecode.size(), 0);
     return static_cast<lua_Status>(status);
@@ -229,13 +281,13 @@ lua_Status LuaState::load_bytecode(const PackedByteArray &bytecode, const String
 
 lua_Status LuaState::loadstring(const String &code, const String &chunk_name)
 {
-    ERR_FAIL_NULL_V_MSG(L, LUA_ERRMEM, "Lua state is null. Cannot load string.");
+    ERR_FAIL_COND_V_MSG(!is_valid_state(), LUA_ERRMEM, "Lua state is invalid. Cannot load string.");
     return load_bytecode(Luau::compile(code), chunk_name);
 }
 
 lua_Status LuaState::dostring(const String &code, const String &chunk_name)
 {
-    ERR_FAIL_NULL_V_MSG(L, LUA_ERRMEM, "Lua state is null. Cannot run string.");
+    ERR_FAIL_COND_V_MSG(!is_valid_state(), LUA_ERRMEM, "Lua state is invalid. Cannot run string.");
 
     lua_Status status = loadstring(code, chunk_name);
     if (status != LUA_OK)
@@ -256,7 +308,7 @@ lua_Status LuaState::dostring(const String &code, const String &chunk_name)
 
 lua_Status LuaState::resume(int narg)
 {
-    ERR_FAIL_NULL_V_MSG(L, LUA_ERRMEM, "Lua state is null. Cannot resume execution.");
+    ERR_FAIL_COND_V_MSG(!is_valid_state(), LUA_ERRMEM, "Lua state is invalid. Cannot resume execution.");
 
     int status = lua_resume(L, nullptr, narg);
     return static_cast<lua_Status>(status);
@@ -264,221 +316,254 @@ lua_Status LuaState::resume(int narg)
 
 void LuaState::singlestep(bool enable)
 {
-    ERR_FAIL_NULL_MSG(L, "Lua state is null. Cannot set singlestep mode.");
+    ERR_FAIL_COND_MSG(!is_valid_state(), "Lua state is invalid. Cannot set singlestep mode.");
     lua_singlestep(L, enable);
 }
 
 void LuaState::pause()
 {
-    ERR_FAIL_NULL_MSG(L, "Lua state is null. Cannot pause.");
+    ERR_FAIL_COND_MSG(!is_valid_state(), "Lua state is invalid. Cannot pause.");
     lua_break(L);
 }
 
 void LuaState::getglobal(const String &key)
 {
-    ERR_FAIL_NULL_MSG(L, "Lua state is null. Cannot get global variable.");
+    ERR_FAIL_COND_MSG(!is_valid_state(), "Lua state is invalid. Cannot get global variable.");
     lua_getglobal(L, key.utf8());
 }
 
 void LuaState::setglobal(const String &key)
 {
-    ERR_FAIL_NULL_MSG(L, "Lua state is null. Cannot set global variable.");
+    ERR_FAIL_COND_MSG(!is_valid_state(), "Lua state is invalid. Cannot set global variable.");
+
+    if (main_thread.is_valid())
+    {
+        WARN_PRINT("Calling LuaState.setglobal() on a Lua thread will affect all threads in the same VM.");
+    }
+
     lua_setglobal(L, key.utf8());
 }
 
 bool LuaState::isarray(int index)
 {
-    ERR_FAIL_NULL_V_MSG(L, false, "Lua state is null. Cannot check if table is array-like.");
+    ERR_FAIL_COND_V_MSG(!is_valid_state(), false, "Lua state is invalid. Cannot check if table is array-like.");
     return is_array(L, index);
 }
 
 bool LuaState::isdictionary(int index)
 {
-    ERR_FAIL_NULL_V_MSG(L, false, "Lua state is null. Cannot check if table is dictionary.");
+    ERR_FAIL_COND_V_MSG(!is_valid_state(), false, "Lua state is invalid. Cannot check if table is dictionary.");
     return is_dictionary(L, index);
 }
 
 Array LuaState::toarray(int index)
 {
-    ERR_FAIL_NULL_V_MSG(L, Array(), "Lua state is null. Cannot convert to Array.");
+    ERR_FAIL_COND_V_MSG(!is_valid_state(), Array(), "Lua state is invalid. Cannot convert to Array.");
     return to_array(L, index);
 }
 
 Dictionary LuaState::todictionary(int index)
 {
-    ERR_FAIL_NULL_V_MSG(L, Dictionary(), "Lua state is null. Cannot convert to Dictionary.");
+    ERR_FAIL_COND_V_MSG(!is_valid_state(), Dictionary(), "Lua state is invalid. Cannot convert to Dictionary.");
     return to_dictionary(L, index);
 }
 
 Variant LuaState::tovariant(int index)
 {
-    ERR_FAIL_NULL_V_MSG(L, Variant(), "Lua state is null. Cannot convert to Variant.");
+    ERR_FAIL_COND_V_MSG(!is_valid_state(), Variant(), "Lua state is invalid. Cannot convert to Variant.");
     return to_variant(L, index);
 }
 
 void LuaState::pusharray(const Array &arr)
 {
-    ERR_FAIL_NULL_MSG(L, "Lua state is null. Cannot push Array.");
+    ERR_FAIL_COND_MSG(!is_valid_state(), "Lua state is invalid. Cannot push Array.");
     push_array(L, arr);
 }
 
 void LuaState::pushdictionary(const Dictionary &dict)
 {
-    ERR_FAIL_NULL_MSG(L, "Lua state is null. Cannot push Dictionary.");
+    ERR_FAIL_COND_MSG(!is_valid_state(), "Lua state is invalid. Cannot push Dictionary.");
     push_dictionary(L, dict);
 }
 
 void LuaState::pushvariant(const Variant &value)
 {
-    ERR_FAIL_NULL_MSG(L, "Lua state is null. Cannot push Variant.");
+    ERR_FAIL_COND_MSG(!is_valid_state(), "Lua state is invalid. Cannot push Variant.");
     push_variant(L, value);
+}
+
+lua_State *LuaState::get_lua_state() const
+{
+    return L;
 }
 
 // Stack manipulation
 int LuaState::gettop() const
 {
-    ERR_FAIL_NULL_V_MSG(L, 0, "Lua state is null. Cannot get stack top.");
+    ERR_FAIL_COND_V_MSG(!is_valid_state(), 0, "Lua state is invalid. Cannot get stack top.");
     return lua_gettop(L);
 }
 
 void LuaState::settop(int index)
 {
-    ERR_FAIL_NULL_MSG(L, "Lua state is null. Cannot set stack top.");
+    ERR_FAIL_COND_MSG(!is_valid_state(), "Lua state is invalid. Cannot set stack top.");
     lua_settop(L, index);
 }
 
 bool LuaState::checkstack(int size)
 {
-    ERR_FAIL_NULL_V_MSG(L, false, "Lua state is null. Cannot manipulate stack size.");
+    ERR_FAIL_COND_V_MSG(!is_valid_state(), false, "Lua state is invalid. Cannot manipulate stack size.");
     return lua_checkstack(L, size) != 0;
 }
 
 void LuaState::pop(int n)
 {
-    ERR_FAIL_NULL_MSG(L, "Lua state is null. Cannot pop stack.");
+    ERR_FAIL_COND_MSG(!is_valid_state(), "Lua state is invalid. Cannot pop stack.");
     lua_pop(L, n);
 }
 
 void LuaState::pushvalue(int index)
 {
-    ERR_FAIL_NULL_MSG(L, "Lua state is null. Cannot push value.");
+    ERR_FAIL_COND_MSG(!is_valid_state(), "Lua state is invalid. Cannot push value.");
     lua_pushvalue(L, index);
 }
 
 void LuaState::remove(int index)
 {
-    ERR_FAIL_NULL_MSG(L, "Lua state is null. Cannot remove value.");
+    ERR_FAIL_COND_MSG(!is_valid_state(), "Lua state is invalid. Cannot remove value.");
     lua_remove(L, index);
 }
 
 void LuaState::insert(int index)
 {
-    ERR_FAIL_NULL_MSG(L, "Lua state is null. Cannot insert value.");
+    ERR_FAIL_COND_MSG(!is_valid_state(), "Lua state is invalid. Cannot insert value.");
     lua_insert(L, index);
 }
 
 void LuaState::replace(int index)
 {
-    ERR_FAIL_NULL_MSG(L, "Lua state is null. Cannot replace value.");
+    ERR_FAIL_COND_MSG(!is_valid_state(), "Lua state is invalid. Cannot replace value.");
     lua_replace(L, index);
 }
 
 // Type checking
 bool LuaState::isnil(int index) const
 {
-    ERR_FAIL_NULL_V_MSG(L, false, "Lua state is null. Cannot check type.");
+    ERR_FAIL_COND_V_MSG(!is_valid_state(), false, "Lua state is invalid. Cannot check type.");
     return lua_isnil(L, index);
 }
 
 bool LuaState::isnumber(int index) const
 {
-    ERR_FAIL_NULL_V_MSG(L, false, "Lua state is null. Cannot check type.");
+    ERR_FAIL_COND_V_MSG(!is_valid_state(), false, "Lua state is invalid. Cannot check type.");
     return lua_isnumber(L, index) != 0;
 }
 
 bool LuaState::isstring(int index) const
 {
-    ERR_FAIL_NULL_V_MSG(L, false, "Lua state is null. Cannot check type.");
+    ERR_FAIL_COND_V_MSG(!is_valid_state(), false, "Lua state is invalid. Cannot check type.");
     return lua_isstring(L, index) != 0;
 }
 
 bool LuaState::istable(int index) const
 {
-    ERR_FAIL_NULL_V_MSG(L, false, "Lua state is null. Cannot check type.");
+    ERR_FAIL_COND_V_MSG(!is_valid_state(), false, "Lua state is invalid. Cannot check type.");
     return lua_istable(L, index);
 }
 
 bool LuaState::isfunction(int index) const
 {
-    ERR_FAIL_NULL_V_MSG(L, false, "Lua state is null. Cannot check type.");
+    ERR_FAIL_COND_V_MSG(!is_valid_state(), false, "Lua state is invalid. Cannot check type.");
     return lua_isfunction(L, index);
 }
 
 bool LuaState::isuserdata(int index) const
 {
-    ERR_FAIL_NULL_V_MSG(L, false, "Lua state is null. Cannot check type.");
+    ERR_FAIL_COND_V_MSG(!is_valid_state(), false, "Lua state is invalid. Cannot check type.");
     return lua_isuserdata(L, index) != 0;
 }
 
 bool LuaState::isboolean(int index) const
 {
-    ERR_FAIL_NULL_V_MSG(L, false, "Lua state is null. Cannot check type.");
+    ERR_FAIL_COND_V_MSG(!is_valid_state(), false, "Lua state is invalid. Cannot check type.");
     return lua_isboolean(L, index);
+}
+
+bool LuaState::isthread(int index) const
+{
+    ERR_FAIL_COND_V_MSG(!is_valid_state(), false, "Lua state is invalid. Cannot check type.");
+    return lua_isthread(L, index);
 }
 
 int LuaState::type(int index) const
 {
-    ERR_FAIL_NULL_V_MSG(L, LUA_TNONE, "Lua state is null. Cannot get type.");
+    ERR_FAIL_COND_V_MSG(!is_valid_state(), LUA_TNONE, "Lua state is invalid. Cannot get type.");
     return lua_type(L, index);
 }
 
 String LuaState::type_name(int type_id) const
 {
-    ERR_FAIL_NULL_V_MSG(L, String(), "Lua state is null. Cannot get type name.");
+    ERR_FAIL_COND_V_MSG(!is_valid_state(), String(), "Lua state is invalid. Cannot get type name.");
     return String(lua_typename(L, type_id));
 }
 
 // Value access
 String LuaState::tostring(int index)
 {
-    ERR_FAIL_NULL_V_MSG(L, String(), "Lua state is null. Cannot convert to string.");
+    ERR_FAIL_COND_V_MSG(!is_valid_state(), String(), "Lua state is invalid. Cannot convert to string.");
     return godot::to_string(L, index);
 }
 
 double LuaState::tonumber(int index)
 {
-    ERR_FAIL_NULL_V_MSG(L, 0.0, "Lua state is null. Cannot convert to number.");
+    ERR_FAIL_COND_V_MSG(!is_valid_state(), 0.0, "Lua state is invalid. Cannot convert to number.");
     return lua_tonumber(L, index);
 }
 
 int LuaState::tointeger(int index)
 {
-    ERR_FAIL_NULL_V_MSG(L, 0, "Lua state is null. Cannot convert to integer.");
+    ERR_FAIL_COND_V_MSG(!is_valid_state(), 0, "Lua state is invalid. Cannot convert to integer.");
     return lua_tointeger(L, index);
 }
 
 bool LuaState::toboolean(int index)
 {
-    ERR_FAIL_NULL_V_MSG(L, false, "Lua state is null. Cannot convert to boolean.");
+    ERR_FAIL_COND_V_MSG(!is_valid_state(), false, "Lua state is invalid. Cannot convert to boolean.");
     return lua_toboolean(L, index) != 0;
+}
+
+bool LuaState::is_valid_state() const
+{
+    if (!L)
+    {
+        return false;
+    }
+
+    // If this is a thread, check if parent is still valid
+    if (main_thread.is_valid())
+    {
+        return main_thread->get_lua_state() != nullptr;
+    }
+
+    return true;
 }
 
 // Push operations
 void LuaState::pushnil()
 {
-    ERR_FAIL_NULL_MSG(L, "Lua state is null. Cannot push nil.");
+    ERR_FAIL_COND_MSG(!is_valid_state(), "Lua state is invalid. Cannot push nil.");
     lua_pushnil(L);
 }
 
 void LuaState::pushnumber(double n)
 {
-    ERR_FAIL_NULL_MSG(L, "Lua state is null. Cannot push number.");
+    ERR_FAIL_COND_MSG(!is_valid_state(), "Lua state is invalid. Cannot push number.");
     lua_pushnumber(L, n);
 }
 
 void LuaState::pushinteger(int n)
 {
-    ERR_FAIL_NULL_MSG(L, "Lua state is null. Cannot push integer.");
+    ERR_FAIL_COND_MSG(!is_valid_state(), "Lua state is invalid. Cannot push integer.");
     lua_pushinteger(L, n);
 }
 
@@ -489,101 +574,151 @@ void LuaState::pushstring(const String &s)
 
 void LuaState::pushboolean(bool b)
 {
-    ERR_FAIL_NULL_MSG(L, "Lua state is null. Cannot push boolean.");
+    ERR_FAIL_COND_MSG(!is_valid_state(), "Lua state is invalid. Cannot push boolean.");
     lua_pushboolean(L, b ? 1 : 0);
+}
+
+bool LuaState::pushthread()
+{
+    ERR_FAIL_COND_V_MSG(!is_valid_state(), false, "Lua state is invalid. Cannot push thread.");
+
+    bool expected_main_thread = main_thread.is_null();
+    bool is_main_thread = lua_pushthread(L) != 0;
+    if (is_main_thread != expected_main_thread)
+    {
+        ERR_PRINT("LuaState.pushthread() inconsistency: Lua and GDExtension disagree about which is the main thread.");
+    }
+
+    return is_main_thread;
 }
 
 // Table operations
 void LuaState::newtable()
 {
-    ERR_FAIL_NULL_MSG(L, "Lua state is null. Cannot create table.");
+    ERR_FAIL_COND_MSG(!is_valid_state(), "Lua state is invalid. Cannot create table.");
     lua_newtable(L);
 }
 
 void LuaState::createtable(int narr, int nrec)
 {
-    ERR_FAIL_NULL_MSG(L, "Lua state is null. Cannot create table.");
+    ERR_FAIL_COND_MSG(!is_valid_state(), "Lua state is invalid. Cannot create table.");
     lua_createtable(L, narr, nrec);
 }
 
 void LuaState::gettable(int index)
 {
-    ERR_FAIL_NULL_MSG(L, "Lua state is null. Cannot get table value.");
+    ERR_FAIL_COND_MSG(!is_valid_state(), "Lua state is invalid. Cannot get table value.");
     lua_gettable(L, index);
 }
 
 void LuaState::settable(int index)
 {
-    ERR_FAIL_NULL_MSG(L, "Lua state is null. Cannot set table value.");
+    ERR_FAIL_COND_MSG(!is_valid_state(), "Lua state is invalid. Cannot set table value.");
     lua_settable(L, index);
 }
 
 void LuaState::getfield(int index, const String &key)
 {
-    ERR_FAIL_NULL_MSG(L, "Lua state is null. Cannot get field.");
+    ERR_FAIL_COND_MSG(!is_valid_state(), "Lua state is invalid. Cannot get field.");
     lua_getfield(L, index, key.utf8());
 }
 
 void LuaState::setfield(int index, const String &key)
 {
-    ERR_FAIL_NULL_MSG(L, "Lua state is null. Cannot set field.");
+    ERR_FAIL_COND_MSG(!is_valid_state(), "Lua state is invalid. Cannot set field.");
     lua_setfield(L, index, key.utf8());
 }
 
 void LuaState::rawget(int index)
 {
-    ERR_FAIL_NULL_MSG(L, "Lua state is null. Cannot raw get.");
+    ERR_FAIL_COND_MSG(!is_valid_state(), "Lua state is invalid. Cannot raw get.");
     lua_rawget(L, index);
 }
 
 void LuaState::rawset(int index)
 {
-    ERR_FAIL_NULL_MSG(L, "Lua state is null. Cannot raw set.");
+    ERR_FAIL_COND_MSG(!is_valid_state(), "Lua state is invalid. Cannot raw set.");
     lua_rawset(L, index);
 }
 
 void LuaState::rawgeti(int index, int n)
 {
-    ERR_FAIL_NULL_MSG(L, "Lua state is null. Cannot raw get index.");
+    ERR_FAIL_COND_MSG(!is_valid_state(), "Lua state is invalid. Cannot raw get index.");
     lua_rawgeti(L, index, n);
 }
 
 void LuaState::rawseti(int index, int n)
 {
-    ERR_FAIL_NULL_MSG(L, "Lua state is null. Cannot raw set index.");
+    ERR_FAIL_COND_MSG(!is_valid_state(), "Lua state is invalid. Cannot raw set index.");
     lua_rawseti(L, index, n);
 }
 
 // Metatable operations
 bool LuaState::getmetatable(int index)
 {
-    ERR_FAIL_NULL_V_MSG(L, false, "Lua state is null. Cannot get metatable.");
+    ERR_FAIL_COND_V_MSG(!is_valid_state(), false, "Lua state is invalid. Cannot get metatable.");
     return lua_getmetatable(L, index) != 0;
 }
 
 bool LuaState::setmetatable(int index)
 {
-    ERR_FAIL_NULL_V_MSG(L, false, "Lua state is null. Cannot set metatable.");
+    ERR_FAIL_COND_V_MSG(!is_valid_state(), false, "Lua state is invalid. Cannot set metatable.");
     return lua_setmetatable(L, index) != 0;
 }
 
 // Function calls
 void LuaState::call(int nargs, int nresults)
 {
-    ERR_FAIL_NULL_MSG(L, "Lua state is null. Cannot call function.");
+    ERR_FAIL_COND_MSG(!is_valid_state(), "Lua state is invalid. Cannot call function.");
     lua_call(L, nargs, nresults);
 }
 
 lua_Status LuaState::pcall(int nargs, int nresults, int errfunc)
 {
-    ERR_FAIL_NULL_V_MSG(L, LUA_ERRMEM, "Lua state is null. Cannot pcall function.");
+    ERR_FAIL_COND_V_MSG(!is_valid_state(), LUA_ERRMEM, "Lua state is invalid. Cannot pcall function.");
     int status = lua_pcall(L, nargs, nresults, errfunc);
     return static_cast<lua_Status>(status);
+}
+
+// Thread operations
+Ref<LuaState> LuaState::bind_thread(lua_State *thread_L) const
+{
+    ERR_FAIL_NULL_V_MSG(thread_L, Ref<LuaState>(), "Failed to bind thread.");
+
+    LuaState *thread_state = memnew(LuaState(thread_L, main_thread.is_valid() ? main_thread : Ref<LuaState>(this)));
+    return Ref<LuaState>(thread_state);
+}
+
+Ref<LuaState> LuaState::newthread()
+{
+    ERR_FAIL_COND_V_MSG(!is_valid_state(), Ref<LuaState>(), "Lua state is invalid. Cannot create thread.");
+
+    // Create a new thread and push it onto the stack
+    lua_State *thread_L = lua_newthread(L);
+    ERR_FAIL_NULL_V_MSG(thread_L, Ref<LuaState>(), "Failed to create new Lua thread.");
+
+    return bind_thread(thread_L);
+}
+
+Ref<LuaState> LuaState::tothread(int index)
+{
+    ERR_FAIL_COND_V_MSG(!is_valid_state(), Ref<LuaState>(), "Lua state is invalid. Cannot convert to thread.");
+    ERR_FAIL_COND_V_MSG(!isthread(index), Ref<LuaState>(), "Stack value at index is not a thread.");
+
+    lua_State *thread_L = lua_tothread(L, index);
+    ERR_FAIL_NULL_V_MSG(thread_L, Ref<LuaState>(), "Failed to get thread lua_State*.");
+
+    return bind_thread(thread_L);
+}
+
+Ref<LuaState> LuaState::mainthread()
+{
+    return main_thread.is_valid() ? main_thread : Ref<LuaState>(this);
 }
 
 // Garbage collection
 int LuaState::gc(lua_GCOp what, int data)
 {
-    ERR_FAIL_NULL_V_MSG(L, 0, "Lua state is null. Cannot control GC.");
+    ERR_FAIL_COND_V_MSG(!is_valid_state(), 0, "Lua state is invalid. Cannot control GC.");
     return lua_gc(L, what, data);
 }

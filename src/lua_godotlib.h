@@ -5,8 +5,8 @@
 
 namespace godot
 {
-    // Userdata tags for each math type
-    enum LuaMathTag
+    // Userdata tags for each Godot type
+    enum LuaGodotTag
     {
         LUA_TAG_VECTOR2 = 1,
         LUA_TAG_VECTOR2I,

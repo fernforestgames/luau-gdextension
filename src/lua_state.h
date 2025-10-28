@@ -13,6 +13,17 @@ namespace godot
 
     private:
         lua_State *L;
+        Ref<LuaState> main_thread; // only set for non-main threads
+
+        // Private constructor for threads created by lua_newthread
+        LuaState(lua_State *thread_L, Ref<LuaState> main_thread);
+
+        void set_callbacks();
+
+        // Helper to check if this state is still valid (checks if parent is closed for threads)
+        bool is_valid_state() const;
+
+        Ref<LuaState> bind_thread(lua_State *thread_L) const;
 
     protected:
         static void _bind_methods();
@@ -74,6 +85,7 @@ namespace godot
         bool isfunction(int index) const;
         bool isuserdata(int index) const;
         bool isboolean(int index) const;
+        bool isthread(int index) const;
         int type(int index) const;
         String type_name(int type_id) const;
 
@@ -87,6 +99,7 @@ namespace godot
         void pushnumber(double n);
         void pushinteger(int n);
         void pushboolean(bool b);
+        bool pushthread(); // returns true if the thread is the main thread
 
         // Table operations
         void newtable();
@@ -110,6 +123,11 @@ namespace godot
         void call(int nargs, int nresults);
         lua_Status pcall(int nargs, int nresults, int errfunc);
 
+        // Thread operations
+        Ref<LuaState> newthread();
+        Ref<LuaState> tothread(int index);
+        Ref<LuaState> mainthread();
+
         // Garbage collection
         int gc(lua_GCOp what, int data);
 
@@ -126,7 +144,7 @@ namespace godot
         void pushvariant(const Variant &value);
 
         // Internal state accessor (for LuaCallable and other internal use)
-        lua_State *get_lua_state() const { return L; }
+        lua_State *get_lua_state() const;
 
         // Exposed inside Godot:
         //  signal step(state: LuaState)

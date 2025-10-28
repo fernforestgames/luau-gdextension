@@ -20,6 +20,10 @@ derivative) into Godot Engine.
 - `LuaCallable` in `lua_callable.h/cpp`: Wraps Lua functions as Godot Callables,
   enabling bidirectional callable bridging between Godot and Luau. Uses manual
   reference counting to manage LuaState lifetime.
+- **Lua threads**: LuaState supports Lua threads (coroutines) via `newthread()`
+  and `tothread()` methods. Thread LuaState instances share globals with the
+  parent but have independent stacks. Thread lifecycles are managed via Godot's
+  reference counting.
 
 ## Project Structure
 
@@ -98,7 +102,14 @@ sample Luau script.
   - Godot Callables → Lua: Stored as userdata with `__call` metamethod
   - Error handling: Prints errors and returns nil on failure
   - Multiple returns: Returns first value with warning
-- All Lua execution happens on the main thread
+- **Thread support:** Lua threads (coroutines) for cooperative multitasking:
+  - `newthread()` creates a thread and pushes it to the stack
+  - `tothread(index)` converts stack value to a LuaState wrapper
+  - Threads keep parent alive via reference counting
+  - Explicit `parent.close()` invalidates all child threads
+  - Threads share global state but have independent execution stacks
+  - Creating new wrapper from same thread is safe (independent ref counting)
+- All Lua execution happens on on a single OS thread (Lua threads are cooperative, not OS threads)
 
 ## Testing
 
@@ -157,6 +168,7 @@ execution via Godot with `--run-tests` flag.
 - ✅ Variant conversions (all supported types)
 - ✅ Array vs Dictionary detection logic
 - ✅ Callable bridging (Lua functions ↔ Godot Callables)
+- ✅ Lua threads (coroutine support, lifecycle management)
 - ✅ Edge cases and error handling
 
 See `tests/README.md` for detailed testing documentation and best practices.
@@ -183,6 +195,42 @@ func _on_step(state: LuaState) -> void:
     state.resume.call_deferred()  # Correct
     # state.resume()  # WRONG - will crash
 ```
+
+### Lua Thread Usage
+
+**Creating and using threads:**
+
+```gdscript
+var state = LuaState.new()
+state.openlibs()
+state.dostring("function coro() coroutine.yield(1); return 2 end")
+
+# Create thread
+var thread = state.newthread()  # Pushes thread to stack
+state.pop(1)  # Clean up stack
+
+# Execute coroutine in thread
+thread.getglobal("coro")
+assert(thread.resume(0) == LUA_YIELD)  # Yields 1
+print(thread.tonumber(-1))  # Prints 1
+thread.pop(1)
+
+assert(thread.resume(0) == LUA_OK)  # Returns 2
+print(thread.tonumber(-1))  # Prints 2
+```
+
+**Important thread lifecycle rules:**
+
+1. **Shared globals, separate stacks**: Threads share the global environment but
+   have independent execution stacks
+2. **Reference counting**: Threads keep the parent state alive via reference
+   counting, preventing premature GC
+3. **Explicit close**: Calling `parent.close()` explicitly invalidates ALL child
+   threads, even if they're still referenced
+4. **Don't close threads**: Calling `thread.close()` warns and invalidates the
+   pointer but doesn't affect the parent
+5. **Multiple wrappers OK**: Creating multiple LuaState wrappers for the same
+   thread is safe - they each independently ref-count the parent
 
 ## Documentation Resources
 

@@ -1,4 +1,5 @@
 #include "lua_godotlib.h"
+#include "lua_state.h"
 #include <godot_cpp/core/error_macros.hpp>
 #include <lualib.h>
 #include <godot_cpp/variant/vector2.hpp>
@@ -24,14 +25,17 @@
 
 using namespace godot;
 
-// Forward declaration for LuaState (needed for creating LuaCallable in to_variant)
-namespace godot
-{
-    class LuaState;
-}
-
 // Metatable name for marking tables that come from Godot Dictionaries
 static const char *GODOT_DICTIONARY_MT = "__godot_dictionary_mt";
+
+static Ref<LuaState> get_godot_lua_state(lua_State *L)
+{
+    lua_getfield(L, LUA_REGISTRYINDEX, GDLUAU_STATE_REGISTRY_KEY);
+    LuaState *state = static_cast<LuaState *>(lua_tolightuserdata(L, -1));
+    lua_pop(L, 1);
+
+    return Ref(state);
+}
 
 // =============================================================================
 // Vector2
@@ -2660,15 +2664,11 @@ Variant godot::to_variant(lua_State *L, int index)
             funcname = "<unknown>";
         }
 
-        // Need to get the LuaState pointer to create the LuaCallable
-        lua_getfield(L, LUA_REGISTRYINDEX, GDLUAU_STATE_REGISTRY_KEY);
-        LuaState *state = static_cast<LuaState *>(lua_tolightuserdata(L, -1));
-        lua_pop(L, 1);
-
+        Ref<LuaState> state = get_godot_lua_state(L);
         ERR_FAIL_NULL_V_MSG(state, Variant(), "Failed to get LuaState from registry");
 
         // Create LuaCallable wrapper
-        Callable lua_callable = Callable(memnew(LuaCallable(state, funcname, func_ref)));
+        Callable lua_callable = Callable(memnew(LuaCallable(*state, funcname, func_ref)));
         return Variant(lua_callable);
     }
 
@@ -2715,8 +2715,11 @@ Variant godot::to_variant(lua_State *L, int index)
     }
 
     case LUA_TTHREAD:
-        ERR_PRINT("Cannot convert Lua thread to Variant.");
-        return Variant();
+    {
+        Ref<LuaState> state = get_godot_lua_state(L);
+        ERR_FAIL_NULL_V_MSG(state, Variant(), "Failed to get LuaState from registry");
+        return Variant(state);
+    }
 
     default:
     {
@@ -2793,8 +2796,7 @@ void godot::push_variant(lua_State *L, const Variant &value)
     case Variant::STRING_NAME:
     {
         String str = value;
-        CharString utf8 = str.utf8();
-        lua_pushlstring(L, utf8.get_data(), utf8.length());
+        push_string(L, str);
         break;
     }
 
@@ -2874,12 +2876,36 @@ void godot::push_variant(lua_State *L, const Variant &value)
         push_callable(L, value);
         break;
 
+    case Variant::OBJECT:
+    {
+        Object *obj = value;
+        if (obj)
+        {
+            LuaState *state = Object::cast_to<LuaState>(obj);
+            if (state)
+            {
+                ERR_FAIL_COND_MSG(state->get_lua_state() != L, "Cannot push Object of type LuaState from a different Lua state.");
+                lua_pushthread(L);
+            }
+            else
+            {
+                String str = value;
+                push_string(L, str);
+                ERR_PRINT(vformat("Cannot push Object of type %s to Lua. Converted to string: %s", obj->get_class(), str));
+            }
+        }
+        else
+        {
+            lua_pushnil(L);
+        }
+        break;
+    }
+
     default:
     {
         // For unsupported types, convert to string representation
         String str = value;
-        CharString utf8 = str.utf8();
-        lua_pushlstring(L, utf8.get_data(), utf8.length());
+        push_string(L, str);
         ERR_PRINT(vformat("Variant type %d not directly supported. Converted to string: %s", variant_type, str));
     }
     }
