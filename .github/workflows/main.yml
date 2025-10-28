@@ -87,7 +87,7 @@ jobs:
           unzip -q godot.zip
           mv Godot_v4.5.1-stable_linux.x86_64 "$RUNNER_TEMP/godot"
           echo "GODOT_EXECUTABLE=$RUNNER_TEMP/godot" >> $GITHUB_ENV
-      
+
       - name: Install Godot (macOS)
         if: runner.os == 'macOS'
         run: |
@@ -106,7 +106,7 @@ jobs:
         run: ls -la demo/addons/*/bin/
 
       - name: Run tests
-        if: matrix.configuration == 'debug'
+        if: matrix.configuration == 'release'
         run: |
           ctest --preset ${{ matrix.platform }}
 
@@ -131,7 +131,7 @@ jobs:
           name: luau-gdextension
           pattern: luau-gdextension-*
           delete-merged: true
-  
+
   upload-release-artifacts:
     runs-on: ubuntu-latest
     needs: build
