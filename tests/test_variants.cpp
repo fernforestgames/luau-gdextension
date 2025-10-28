@@ -99,7 +99,6 @@ TEST_CASE_FIXTURE(LuaStateFixture, "Variant: Primitive type conversions")
         int value = retrieved;
         CHECK(value == 0);
     }
-
 }
 
 TEST_CASE_FIXTURE(LuaStateFixture, "Variant: String conversions")
@@ -159,7 +158,6 @@ TEST_CASE_FIXTURE(LuaStateFixture, "Variant: String conversions")
         String str = retrieved;
         CHECK(str == "test_name");
     }
-
 }
 
 TEST_CASE_FIXTURE(LuaStateFixture, "Variant: Math type conversions")
@@ -169,7 +167,7 @@ TEST_CASE_FIXTURE(LuaStateFixture, "Variant: Math type conversions")
     {
         Variant vec = Vector2(3.5, 4.5);
         state->pushvariant(vec);
-        CHECK(is_vector2((lua_State *)nullptr, -1));
+        CHECK(is_vector2(L, -1));
 
         Variant retrieved = state->tovariant(-1);
         CHECK(retrieved.get_type() == Variant::VECTOR2);
@@ -196,7 +194,7 @@ TEST_CASE_FIXTURE(LuaStateFixture, "Variant: Math type conversions")
     {
         Variant vec = Vector3(1.0, 2.0, 3.0);
         state->pushvariant(vec);
-        CHECK(is_vector3((lua_State *)nullptr, -1));
+        CHECK(is_vector3(L, -1));
 
         Variant retrieved = state->tovariant(-1);
         CHECK(retrieved.get_type() == Variant::VECTOR3);
@@ -235,7 +233,6 @@ TEST_CASE_FIXTURE(LuaStateFixture, "Variant: Math type conversions")
         CHECK(c.b == doctest::Approx(0.0));
         CHECK(c.a == doctest::Approx(0.8));
     }
-
 }
 
 TEST_CASE_FIXTURE(LuaStateFixture, "Variant: Collection conversions")
@@ -305,7 +302,6 @@ TEST_CASE_FIXTURE(LuaStateFixture, "Variant: Collection conversions")
         Dictionary retrieved_dict = retrieved;
         CHECK(retrieved_dict.size() == 0);
     }
-
 }
 
 TEST_CASE_FIXTURE(LuaStateFixture, "Variant: Nested structure conversions")
@@ -399,7 +395,6 @@ TEST_CASE_FIXTURE(LuaStateFixture, "Variant: Nested structure conversions")
         CHECK(c.r == doctest::Approx(1.0));
         CHECK(c.a == doctest::Approx(1.0));
     }
-
 }
 
 TEST_CASE_FIXTURE(LuaStateFixture, "Variant: Round-trip through Lua execution")
@@ -467,7 +462,6 @@ TEST_CASE_FIXTURE(LuaStateFixture, "Variant: Round-trip through Lua execution")
         CHECK((String)meta["name"] == "entity");
         CHECK((bool)meta["active"] == true);
     }
-
 }
 
 TEST_CASE_FIXTURE(LuaStateFixture, "Variant: Type edge cases")
@@ -515,5 +509,4 @@ TEST_CASE_FIXTURE(LuaStateFixture, "Variant: Type edge cases")
         CHECK(state->isnil(-2));
         CHECK(state->isnil(-3));
     }
-
 }
