@@ -59,19 +59,14 @@ struct RawLuaStateFixture
 // Provides higher-level GDExtension API
 struct LuaStateFixture
 {
-    LuaState *state;
+    Ref<LuaState> state;
     lua_State *L; // Convenience pointer to underlying lua_State
 
     LuaStateFixture()
     {
-        state = memnew(LuaState);
+        state = Ref<LuaState>(memnew(LuaState));
         state->openlibs(LuaState::LIB_ALL);
         L = state->get_lua_state();
-    }
-
-    ~LuaStateFixture()
-    {
-        memdelete(state);
     }
 
     // Helper to execute Luau code and return status

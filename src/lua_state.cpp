@@ -685,8 +685,8 @@ Ref<LuaState> LuaState::bind_thread(lua_State *thread_L) const
 {
     ERR_FAIL_NULL_V_MSG(thread_L, Ref<LuaState>(), "Failed to bind thread.");
 
-    LuaState *thread_state = memnew(LuaState(thread_L, main_thread.is_valid() ? main_thread : Ref<LuaState>(this)));
-    return Ref<LuaState>(thread_state);
+    Ref<LuaState> thread_state = memnew(LuaState(thread_L, main_thread.is_valid() ? main_thread : Ref<LuaState>(this)));
+    return thread_state;
 }
 
 Ref<LuaState> LuaState::newthread()
