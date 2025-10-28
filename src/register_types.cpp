@@ -2,10 +2,13 @@
 
 #include "lua_state.h"
 #include "luau.h"
+#include "luau_script.h"
 
 #include <gdextension_interface.h>
 #include <godot_cpp/core/defs.hpp>
 #include <godot_cpp/godot.hpp>
+#include <godot_cpp/classes/resource_loader.hpp>
+#include <godot_cpp/classes/resource_saver.hpp>
 #include <Luau/Common.h>
 
 using namespace godot;
@@ -15,6 +18,9 @@ static int assertionHandler(const char *expr, const char *file, int line, const 
     ERR_PRINT(vformat("Luau assertion failed: %s, function %s, file %s, line %d", expr, function, file, line));
     return 1;
 }
+
+static Ref<ResourceFormatLoaderLuauScript> resource_loader_luau;
+static Ref<ResourceFormatSaverLuauScript> resource_saver_luau;
 
 void initialize_gdluau(ModuleInitializationLevel p_level)
 {
@@ -31,6 +37,16 @@ void initialize_gdluau(ModuleInitializationLevel p_level)
 
     GDREGISTER_RUNTIME_CLASS(godot::Luau);
     GDREGISTER_RUNTIME_CLASS(LuaState);
+    GDREGISTER_RUNTIME_CLASS(LuauScript);
+    GDREGISTER_RUNTIME_CLASS(ResourceFormatLoaderLuauScript);
+    GDREGISTER_RUNTIME_CLASS(ResourceFormatSaverLuauScript);
+
+    // Register resource loader and saver for .lua and .luau files
+    resource_loader_luau.instantiate();
+    ResourceLoader::get_singleton()->add_resource_format_loader(resource_loader_luau);
+
+    resource_saver_luau.instantiate();
+    ResourceSaver::get_singleton()->add_resource_format_saver(resource_saver_luau);
 }
 
 void uninitialize_gdluau(ModuleInitializationLevel p_level)
@@ -39,6 +55,13 @@ void uninitialize_gdluau(ModuleInitializationLevel p_level)
     {
         return;
     }
+
+    // Unregister resource loader and saver
+    ResourceLoader::get_singleton()->remove_resource_format_loader(resource_loader_luau);
+    resource_loader_luau.unref();
+
+    ResourceSaver::get_singleton()->remove_resource_format_saver(resource_saver_luau);
+    resource_saver_luau.unref();
 }
 
 extern "C"
