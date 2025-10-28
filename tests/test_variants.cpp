@@ -148,15 +148,26 @@ TEST_CASE_FIXTURE(LuaStateFixture, "Variant: String conversions")
 
     SUBCASE("StringName")
     {
+        // StringName converts to Lua string (for performance)
+        // On round-trip, it becomes a String, not StringName
         Variant strname = StringName("test_name");
         state->pushvariant(strname);
 
         CHECK(state->isstring(-1));
 
+        // Round-trip converts StringName → String
         Variant retrieved = state->tovariant(-1);
-        // Should convert to string
-        String str = retrieved;
-        CHECK(str == "test_name");
+        CHECK(retrieved.get_type() == Variant::STRING);
+        CHECK((String)retrieved == "test_name");
+
+        // Empty StringName
+        state->pushvariant(Variant(StringName()));
+        CHECK(state->isstring(-1));
+        CHECK((String)state->tovariant(-1) == "");
+
+        // StringName with special characters
+        state->pushvariant(Variant(StringName("_ready")));
+        CHECK((String)state->tovariant(-1) == "_ready");
     }
 }
 
