@@ -55,7 +55,7 @@
       "cacheVariables": {
         "CMAKE_LIBRARY_OUTPUT_DIRECTORY_RELEASE": "${sourceDir}/build/bin",
         "CMAKE_MSVC_RUNTIME_LIBRARY": "MultiThreadedDLL",
-        "BUILD_TESTING": "ON",
+        "BUILD_TESTING": "OFF",
         "COPY_PDB_FILE": "OFF"
       }
     },
@@ -88,7 +88,7 @@
       ],
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "Release",
-        "BUILD_TESTING": "ON"
+        "BUILD_TESTING": "OFF"
       }
     },
     {
@@ -125,7 +125,7 @@
       ],
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "Release",
-        "BUILD_TESTING": "ON"
+        "BUILD_TESTING": "OFF"
       }
     }
   ],
@@ -175,24 +175,24 @@
       "inherits": [
         "default"
       ],
-      "configurePreset": "windows-x86_64-release",
-      "configuration": "Release"
+      "configurePreset": "windows-x86_64-debug",
+      "configuration": "Debug"
     },
     {
       "name": "linux-x86_64",
       "inherits": [
         "default"
       ],
-      "configurePreset": "linux-x86_64-release",
-      "configuration": "Release"
+      "configurePreset": "linux-x86_64-debug",
+      "configuration": "Debug"
     },
     {
       "name": "macos-arm64",
       "inherits": [
         "default"
       ],
-      "configurePreset": "macos-arm64-release",
-      "configuration": "Release"
+      "configurePreset": "macos-arm64-debug",
+      "configuration": "Debug"
     }
   ]
 }
