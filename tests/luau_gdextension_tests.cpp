@@ -31,7 +31,7 @@ Dictionary LuauGDExtensionTests::run()
 	context.setOption("no-breaks", true);  // Don't break on failures
 	context.setOption("no-colors", false); // Enable colors in output
 	context.setOption("duration", true);   // Show test durations
-	context.setOption("test-case", "*Edge cases: Stack management*");
+	// Run all tests (no filter)
 
 	// Run all tests - doctest outputs results to stdout
 	int result = context.run();
