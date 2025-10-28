@@ -55,7 +55,8 @@
       "cacheVariables": {
         "CMAKE_LIBRARY_OUTPUT_DIRECTORY_RELEASE": "${sourceDir}/build/bin",
         "CMAKE_MSVC_RUNTIME_LIBRARY": "MultiThreadedDLL",
-        "BUILD_TESTING": "ON"
+        "BUILD_TESTING": "ON",
+        "COPY_PDB_FILE": "OFF"
       }
     },
     {
