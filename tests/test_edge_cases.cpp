@@ -52,7 +52,6 @@ TEST_CASE_FIXTURE(LuaStateFixture, "Edge cases: Division by zero")
         double result = state->tonumber(-1);
         CHECK(std::isinf(result));
     }
-
 }
 
 TEST_CASE_FIXTURE(LuaStateFixture, "Edge cases: NaN and infinity handling")
@@ -88,7 +87,6 @@ TEST_CASE_FIXTURE(LuaStateFixture, "Edge cases: NaN and infinity handling")
         // Should handle gracefully without crashing
         // Exact behavior may vary
     }
-
 }
 
 TEST_CASE_FIXTURE(LuaStateFixture, "Edge cases: Nil handling in structures")
@@ -125,10 +123,10 @@ TEST_CASE_FIXTURE(LuaStateFixture, "Edge cases: Nil handling in structures")
 
         Dictionary dict = state->todictionary(-1);
 
-        // nil values might be omitted from dictionary
+        // nil values will be omitted from dictionary
         CHECK(dict.has("a"));
+        CHECK_FALSE(dict.has("b"));
         CHECK(dict.has("c"));
-        // "b" may or may not be present
     }
 
     SUBCASE("Push nil variant in array")
@@ -142,12 +140,13 @@ TEST_CASE_FIXTURE(LuaStateFixture, "Edge cases: Nil handling in structures")
         state->pushvariant(var);
 
         Variant retrieved = state->tovariant(-1);
-        Array r_arr = retrieved;
 
-        // Should handle nil elements
-        CHECK(r_arr.size() >= 1);
+        // Now that the indices are not contiguous, it will be read as a dictionary
+        CHECK(retrieved.get_type() == Variant::Type::DICTIONARY);
+
+        Dictionary r_dict = retrieved;
+        CHECK(r_dict.size() == 2);
     }
-
 }
 
 TEST_CASE_FIXTURE(LuaStateFixture, "Edge cases: Empty and single-element collections")
@@ -203,7 +202,6 @@ TEST_CASE_FIXTURE(LuaStateFixture, "Edge cases: Empty and single-element collect
 
         CHECK((int)l3[0] == 999);
     }
-
 }
 
 TEST_CASE_FIXTURE(LuaStateFixture, "Edge cases: Type mismatches")
@@ -247,7 +245,6 @@ TEST_CASE_FIXTURE(LuaStateFixture, "Edge cases: Type mismatches")
 
         CHECK(status == LUA_OK);
     }
-
 }
 
 TEST_CASE_FIXTURE(LuaStateFixture, "Edge cases: Stack management")
@@ -305,7 +302,6 @@ TEST_CASE_FIXTURE(LuaStateFixture, "Edge cases: Stack management")
 
         CHECK(state->gettop() == initial_top);
     }
-
 }
 
 TEST_CASE_FIXTURE(LuaStateFixture, "Edge cases: Unicode and special strings")
@@ -360,7 +356,6 @@ TEST_CASE_FIXTURE(LuaStateFixture, "Edge cases: Unicode and special strings")
         CHECK(empty == "");
         CHECK(empty.length() == 0);
     }
-
 }
 
 TEST_CASE_FIXTURE(LuaStateFixture, "Edge cases: Boundary values for integers")
@@ -389,7 +384,7 @@ TEST_CASE_FIXTURE(LuaStateFixture, "Edge cases: Boundary values for integers")
         state->pushinteger(0);
 
         CHECK(state->tointeger(-1) == 0);
-        CHECK_FALSE(state->toboolean(-1)); // 0 is falsy in Lua
+        CHECK(state->toboolean(-1)); // 0 coerces to `true` in Lua
     }
 
     SUBCASE("Large array indices")
@@ -406,7 +401,6 @@ TEST_CASE_FIXTURE(LuaStateFixture, "Edge cases: Boundary values for integers")
         CHECK(state->isdictionary(-1));
         CHECK_FALSE(state->isarray(-1));
     }
-
 }
 
 TEST_CASE_FIXTURE(LuaStateFixture, "Edge cases: Color clamping and ranges")
@@ -443,7 +437,6 @@ TEST_CASE_FIXTURE(LuaStateFixture, "Edge cases: Color clamping and ranges")
         CHECK(retrieved.r == doctest::Approx(0.0));
         CHECK(retrieved.a == doctest::Approx(0.0));
     }
-
 }
 
 TEST_CASE_FIXTURE(LuaStateFixture, "Edge cases: Vector operations edge cases")
@@ -501,7 +494,6 @@ TEST_CASE_FIXTURE(LuaStateFixture, "Edge cases: Vector operations edge cases")
         Vector2i v = to_vector2i(L, -1);
         CHECK(v.x == 2147483647);
     }
-
 }
 
 TEST_CASE_FIXTURE(LuaStateFixture, "Edge cases: Table iteration edge cases")
@@ -536,5 +528,4 @@ TEST_CASE_FIXTURE(LuaStateFixture, "Edge cases: Table iteration edge cases")
         CHECK(dict.has(-1));
         CHECK(dict.has(1));
     }
-
 }
