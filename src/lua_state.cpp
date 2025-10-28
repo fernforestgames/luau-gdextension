@@ -183,9 +183,9 @@ LuaState::~LuaState()
 {
     // Only close the main thread
     // Other threads are managed by Lua's GC, not manually closed
-    if (main_thread.is_null())
+    if (main_thread.is_null() && L)
     {
-        close();
+        lua_close(L);
     }
 }
 
