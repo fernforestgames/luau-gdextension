@@ -189,6 +189,39 @@ LuaState::~LuaState()
     }
 }
 
+// Helper function to validate stack index is within bounds
+static bool is_valid_index(lua_State *L, int index)
+{
+    if (index == 0)
+    {
+        return false; // Index 0 is never valid in Lua
+    }
+
+    // Pseudo-indices (LUA_REGISTRYINDEX, LUA_ENVIRONINDEX, LUA_GLOBALSINDEX) are always valid
+    if (lua_ispseudo(index))
+    {
+        return true;
+    }
+
+    int top = lua_gettop(L);
+
+    // Positive indices must be <= top
+    if (index > 0)
+    {
+        return index <= top;
+    }
+
+    // Negative indices: -1 is top, -2 is top-1, etc.
+    // Valid range is [-top, -1]
+    return index >= -top;
+}
+
+// Helper to check if we have at least n items on the stack
+static bool has_n_items(lua_State *L, int n)
+{
+    return lua_gettop(L) >= n;
+}
+
 void LuaState::open_library(lua_CFunction func, const char *name)
 {
     lua_pushcfunction(L, func, NULL);
@@ -407,6 +440,14 @@ int LuaState::gettop() const
 void LuaState::settop(int index)
 {
     ERR_FAIL_COND_MSG(!is_valid_state(), "Lua state is invalid. Cannot set stack top.");
+
+    // Validate the index
+    // Positive index: must be <= current top (or top will be extended)
+    // Negative index: must be valid relative to current top
+    // Zero is valid (clears the stack)
+    int top = lua_gettop(L);
+    ERR_FAIL_COND_MSG(index < 0 && -index > top, vformat("LuaState.settop(%d): Invalid negative index. Stack only has %d elements.", index, top));
+
     lua_settop(L, index);
 }
 
@@ -419,30 +460,50 @@ bool LuaState::checkstack(int size)
 void LuaState::pop(int n)
 {
     ERR_FAIL_COND_MSG(!is_valid_state(), "Lua state is invalid. Cannot pop stack.");
+
+    // Validate we have enough items to pop
+    int top = lua_gettop(L);
+    ERR_FAIL_COND_MSG(n < 0, vformat("LuaState.pop(%d): Cannot pop negative number of elements.", n));
+    ERR_FAIL_COND_MSG(n > top, vformat("LuaState.pop(%d): Stack underflow. Stack only has %d elements.", n, top));
+
     lua_pop(L, n);
 }
 
 void LuaState::pushvalue(int index)
 {
     ERR_FAIL_COND_MSG(!is_valid_state(), "Lua state is invalid. Cannot push value.");
+    ERR_FAIL_COND_MSG(!is_valid_index(L, index), vformat("LuaState.pushvalue(%d): Invalid stack index. Stack has %d elements.", index, lua_gettop(L)));
+
     lua_pushvalue(L, index);
 }
 
 void LuaState::remove(int index)
 {
     ERR_FAIL_COND_MSG(!is_valid_state(), "Lua state is invalid. Cannot remove value.");
+    ERR_FAIL_COND_MSG(!is_valid_index(L, index), vformat("LuaState.remove(%d): Invalid stack index. Stack has %d elements.", index, lua_gettop(L)));
+
     lua_remove(L, index);
 }
 
 void LuaState::insert(int index)
 {
     ERR_FAIL_COND_MSG(!is_valid_state(), "Lua state is invalid. Cannot insert value.");
+    ERR_FAIL_COND_MSG(!has_n_items(L, 1), "LuaState.insert(): Stack is empty. Nothing to insert.");
+
+    // For insert, index can be 1 beyond current top (insert at end)
+    int top = lua_gettop(L);
+    ERR_FAIL_COND_MSG(index == 0 || (index > 0 && index > top + 1) || (index < 0 && -index > top),
+                      vformat("LuaState.insert(%d): Invalid stack index. Stack has %d elements.", index, top));
+
     lua_insert(L, index);
 }
 
 void LuaState::replace(int index)
 {
     ERR_FAIL_COND_MSG(!is_valid_state(), "Lua state is invalid. Cannot replace value.");
+    ERR_FAIL_COND_MSG(!has_n_items(L, 1), "LuaState.replace(): Stack is empty. Nothing to replace with.");
+    ERR_FAIL_COND_MSG(!is_valid_index(L, index), vformat("LuaState.replace(%d): Invalid stack index. Stack has %d elements.", index, lua_gettop(L)));
+
     lua_replace(L, index);
 }
 
@@ -552,35 +613,42 @@ bool LuaState::is_valid_state() const
 void LuaState::pushnil()
 {
     ERR_FAIL_COND_MSG(!is_valid_state(), "Lua state is invalid. Cannot push nil.");
+    ERR_FAIL_COND_MSG(!lua_checkstack(L, 1), "LuaState.pushnil(): Stack overflow. Cannot grow stack.");
     lua_pushnil(L);
 }
 
 void LuaState::pushnumber(double n)
 {
     ERR_FAIL_COND_MSG(!is_valid_state(), "Lua state is invalid. Cannot push number.");
+    ERR_FAIL_COND_MSG(!lua_checkstack(L, 1), "LuaState.pushnumber(): Stack overflow. Cannot grow stack.");
     lua_pushnumber(L, n);
 }
 
 void LuaState::pushinteger(int n)
 {
     ERR_FAIL_COND_MSG(!is_valid_state(), "Lua state is invalid. Cannot push integer.");
+    ERR_FAIL_COND_MSG(!lua_checkstack(L, 1), "LuaState.pushinteger(): Stack overflow. Cannot grow stack.");
     lua_pushinteger(L, n);
 }
 
 void LuaState::pushstring(const String &s)
 {
+    ERR_FAIL_COND_MSG(!is_valid_state(), "Lua state is invalid. Cannot push string.");
+    ERR_FAIL_COND_MSG(!lua_checkstack(L, 1), "LuaState.pushstring(): Stack overflow. Cannot grow stack.");
     push_string(L, s);
 }
 
 void LuaState::pushboolean(bool b)
 {
     ERR_FAIL_COND_MSG(!is_valid_state(), "Lua state is invalid. Cannot push boolean.");
+    ERR_FAIL_COND_MSG(!lua_checkstack(L, 1), "LuaState.pushboolean(): Stack overflow. Cannot grow stack.");
     lua_pushboolean(L, b ? 1 : 0);
 }
 
 bool LuaState::pushthread()
 {
     ERR_FAIL_COND_V_MSG(!is_valid_state(), false, "Lua state is invalid. Cannot push thread.");
+    ERR_FAIL_COND_V_MSG(!lua_checkstack(L, 1), false, "LuaState.pushthread(): Stack overflow. Cannot grow stack.");
 
     bool expected_main_thread = main_thread.is_null();
     bool is_main_thread = lua_pushthread(L) != 0;
@@ -596,60 +664,124 @@ bool LuaState::pushthread()
 void LuaState::newtable()
 {
     ERR_FAIL_COND_MSG(!is_valid_state(), "Lua state is invalid. Cannot create table.");
+    ERR_FAIL_COND_MSG(!lua_checkstack(L, 1), "LuaState.newtable(): Stack overflow. Cannot grow stack.");
     lua_newtable(L);
 }
 
 void LuaState::createtable(int narr, int nrec)
 {
     ERR_FAIL_COND_MSG(!is_valid_state(), "Lua state is invalid. Cannot create table.");
+    ERR_FAIL_COND_MSG(!lua_checkstack(L, 1), "LuaState.createtable(): Stack overflow. Cannot grow stack.");
     lua_createtable(L, narr, nrec);
 }
 
 void LuaState::gettable(int index)
 {
     ERR_FAIL_COND_MSG(!is_valid_state(), "Lua state is invalid. Cannot get table value.");
+
+    int top = lua_gettop(L);
+    ERR_FAIL_COND_MSG(top < 1, "LuaState.gettable(): Stack is empty. Need a key on the stack.");
+
+    // The table index must not be the top item (the key at -1)
+    // gettable pops the key and pushes the value, so -1 is replaced
+    ERR_FAIL_COND_MSG(index == -1 || index == top, vformat("LuaState.gettable(%d): Table index cannot be the key (at index %d).", index, top));
+
+    ERR_FAIL_COND_MSG(!is_valid_index(L, index), vformat("LuaState.gettable(%d): Invalid table index. Stack has %d elements.", index, top));
+
     lua_gettable(L, index);
 }
 
 void LuaState::settable(int index)
 {
     ERR_FAIL_COND_MSG(!is_valid_state(), "Lua state is invalid. Cannot set table value.");
+
+    int top = lua_gettop(L);
+    ERR_FAIL_COND_MSG(top < 2, vformat("LuaState.settable(): Need key and value on stack. Stack has %d elements.", top));
+
+    // The table index must not be the top two items (key and value at -2 and -1)
+    // After settable consumes them, those indices would be invalid
+    ERR_FAIL_COND_MSG(index == -1 || index == top, vformat("LuaState.settable(%d): Table index cannot be the value (at index %d).", index, top));
+    ERR_FAIL_COND_MSG(index == -2 || index == top - 1, vformat("LuaState.settable(%d): Table index cannot be the key (at index %d).", index, top - 1));
+
+    ERR_FAIL_COND_MSG(!is_valid_index(L, index), vformat("LuaState.settable(%d): Invalid table index. Stack has %d elements.", index, top));
+
     lua_settable(L, index);
 }
 
 void LuaState::getfield(int index, const String &key)
 {
     ERR_FAIL_COND_MSG(!is_valid_state(), "Lua state is invalid. Cannot get field.");
+    ERR_FAIL_COND_MSG(!is_valid_index(L, index), vformat("LuaState.getfield(%d, \"%s\"): Invalid table index. Stack has %d elements.", index, key, lua_gettop(L)));
+
     lua_getfield(L, index, key.utf8());
 }
 
 void LuaState::setfield(int index, const String &key)
 {
     ERR_FAIL_COND_MSG(!is_valid_state(), "Lua state is invalid. Cannot set field.");
+
+    int top = lua_gettop(L);
+    ERR_FAIL_COND_MSG(top < 1, vformat("LuaState.setfield(): Need value on stack. Stack has %d elements.", top));
+
+    // The table index must not be the top item (the value at -1) since setfield pops it
+    ERR_FAIL_COND_MSG(index == -1 || index == top, vformat("LuaState.setfield(%d, \"%s\"): Table index cannot be the value (at index %d).", index, key, top));
+
+    ERR_FAIL_COND_MSG(!is_valid_index(L, index), vformat("LuaState.setfield(%d, \"%s\"): Invalid table index. Stack has %d elements.", index, key, top));
+
     lua_setfield(L, index, key.utf8());
 }
 
 void LuaState::rawget(int index)
 {
     ERR_FAIL_COND_MSG(!is_valid_state(), "Lua state is invalid. Cannot raw get.");
+
+    int top = lua_gettop(L);
+    ERR_FAIL_COND_MSG(top < 1, "LuaState.rawget(): Stack is empty. Need a key on the stack.");
+
+    // The table index must not be the top item (the key at -1)
+    ERR_FAIL_COND_MSG(index == -1 || index == top, vformat("LuaState.rawget(%d): Table index cannot be the key (at index %d).", index, top));
+
+    ERR_FAIL_COND_MSG(!is_valid_index(L, index), vformat("LuaState.rawget(%d): Invalid table index. Stack has %d elements.", index, top));
+
     lua_rawget(L, index);
 }
 
 void LuaState::rawset(int index)
 {
     ERR_FAIL_COND_MSG(!is_valid_state(), "Lua state is invalid. Cannot raw set.");
+
+    int top = lua_gettop(L);
+    ERR_FAIL_COND_MSG(top < 2, vformat("LuaState.rawset(): Need key and value on stack. Stack has %d elements.", top));
+
+    // The table index must not be the top two items (key and value at -2 and -1)
+    ERR_FAIL_COND_MSG(index == -1 || index == top, vformat("LuaState.rawset(%d): Table index cannot be the value (at index %d).", index, top));
+    ERR_FAIL_COND_MSG(index == -2 || index == top - 1, vformat("LuaState.rawset(%d): Table index cannot be the key (at index %d).", index, top - 1));
+
+    ERR_FAIL_COND_MSG(!is_valid_index(L, index), vformat("LuaState.rawset(%d): Invalid table index. Stack has %d elements.", index, top));
+
     lua_rawset(L, index);
 }
 
 void LuaState::rawgeti(int index, int n)
 {
     ERR_FAIL_COND_MSG(!is_valid_state(), "Lua state is invalid. Cannot raw get index.");
+    ERR_FAIL_COND_MSG(!is_valid_index(L, index), vformat("LuaState.rawgeti(%d, %d): Invalid table index. Stack has %d elements.", index, n, lua_gettop(L)));
+
     lua_rawgeti(L, index, n);
 }
 
 void LuaState::rawseti(int index, int n)
 {
     ERR_FAIL_COND_MSG(!is_valid_state(), "Lua state is invalid. Cannot raw set index.");
+
+    int top = lua_gettop(L);
+    ERR_FAIL_COND_MSG(top < 1, vformat("LuaState.rawseti(): Need value on stack. Stack has %d elements.", top));
+
+    // The table index must not be the top item (the value at -1) since rawseti pops it
+    ERR_FAIL_COND_MSG(index == -1 || index == top, vformat("LuaState.rawseti(%d, %d): Table index cannot be the value (at index %d).", index, n, top));
+
+    ERR_FAIL_COND_MSG(!is_valid_index(L, index), vformat("LuaState.rawseti(%d, %d): Invalid table index. Stack has %d elements.", index, n, top));
+
     lua_rawseti(L, index, n);
 }
 
@@ -657,12 +789,23 @@ void LuaState::rawseti(int index, int n)
 bool LuaState::getmetatable(int index)
 {
     ERR_FAIL_COND_V_MSG(!is_valid_state(), false, "Lua state is invalid. Cannot get metatable.");
+    ERR_FAIL_COND_V_MSG(!is_valid_index(L, index), false, vformat("LuaState.getmetatable(%d): Invalid stack index. Stack has %d elements.", index, lua_gettop(L)));
+
     return lua_getmetatable(L, index) != 0;
 }
 
 bool LuaState::setmetatable(int index)
 {
     ERR_FAIL_COND_V_MSG(!is_valid_state(), false, "Lua state is invalid. Cannot set metatable.");
+
+    int top = lua_gettop(L);
+    ERR_FAIL_COND_V_MSG(top < 1, false, "LuaState.setmetatable(): Stack is empty. Need a metatable on the stack.");
+
+    // The table/object index must not be the top item (the metatable at -1) since setmetatable pops it
+    ERR_FAIL_COND_V_MSG(index == -1 || index == top, false, vformat("LuaState.setmetatable(%d): Index cannot be the metatable (at index %d).", index, top));
+
+    ERR_FAIL_COND_V_MSG(!is_valid_index(L, index), false, vformat("LuaState.setmetatable(%d): Invalid stack index. Stack has %d elements.", index, top));
+
     return lua_setmetatable(L, index) != 0;
 }
 
@@ -670,12 +813,19 @@ bool LuaState::setmetatable(int index)
 void LuaState::call(int nargs, int nresults)
 {
     ERR_FAIL_COND_MSG(!is_valid_state(), "Lua state is invalid. Cannot call function.");
+    ERR_FAIL_COND_MSG(nargs < 0, vformat("LuaState.call(%d, %d): nargs cannot be negative.", nargs, nresults));
+    ERR_FAIL_COND_MSG(!has_n_items(L, nargs + 1), vformat("LuaState.call(%d, %d): Need function + %d arguments on stack. Stack has %d elements.", nargs, nresults, nargs, lua_gettop(L)));
+
     lua_call(L, nargs, nresults);
 }
 
 lua_Status LuaState::pcall(int nargs, int nresults, int errfunc)
 {
     ERR_FAIL_COND_V_MSG(!is_valid_state(), LUA_ERRMEM, "Lua state is invalid. Cannot pcall function.");
+    ERR_FAIL_COND_V_MSG(nargs < 0, LUA_ERRMEM, vformat("LuaState.pcall(%d, %d, %d): nargs cannot be negative.", nargs, nresults, errfunc));
+    ERR_FAIL_COND_V_MSG(!has_n_items(L, nargs + 1), LUA_ERRMEM, vformat("LuaState.pcall(%d, %d, %d): Need function + %d arguments on stack. Stack has %d elements.", nargs, nresults, errfunc, nargs, lua_gettop(L)));
+    ERR_FAIL_COND_V_MSG(errfunc != 0 && !is_valid_index(L, errfunc), LUA_ERRMEM, vformat("LuaState.pcall(%d, %d, %d): Invalid error function index. Stack has %d elements.", nargs, nresults, errfunc, lua_gettop(L)));
+
     int status = lua_pcall(L, nargs, nresults, errfunc);
     return static_cast<lua_Status>(status);
 }

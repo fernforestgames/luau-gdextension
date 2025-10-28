@@ -2122,101 +2122,119 @@ static void register_callable_metatable(lua_State *L)
 
 void godot::push_vector2(lua_State *L, const Vector2 &value)
 {
+    ERR_FAIL_COND_MSG(!lua_checkstack(L, 1), "push_vector2(): Stack overflow. Cannot grow stack.");
     Vector2 *v = static_cast<Vector2 *>(lua_newuserdatataggedwithmetatable(L, sizeof(Vector2), LUA_TAG_VECTOR2));
     *v = value;
 }
 
 void godot::push_vector2i(lua_State *L, const Vector2i &value)
 {
+    ERR_FAIL_COND_MSG(!lua_checkstack(L, 1), "push_vector2i(): Stack overflow. Cannot grow stack.");
     Vector2i *v = static_cast<Vector2i *>(lua_newuserdatataggedwithmetatable(L, sizeof(Vector2i), LUA_TAG_VECTOR2I));
     *v = value;
 }
 
 void godot::push_vector3(lua_State *L, const Vector3 &value)
 {
+    ERR_FAIL_COND_MSG(!lua_checkstack(L, 1), "push_vector3(): Stack overflow. Cannot grow stack.");
     lua_pushvector(L, static_cast<float>(value.x), static_cast<float>(value.y), static_cast<float>(value.z));
 }
 
 void godot::push_vector3i(lua_State *L, const Vector3i &value)
 {
+    ERR_FAIL_COND_MSG(!lua_checkstack(L, 1), "push_vector3i(): Stack overflow. Cannot grow stack.");
     Vector3i *v = static_cast<Vector3i *>(lua_newuserdatataggedwithmetatable(L, sizeof(Vector3i), LUA_TAG_VECTOR3I));
     *v = value;
 }
 
 void godot::push_color(lua_State *L, const Color &value)
 {
+    ERR_FAIL_COND_MSG(!lua_checkstack(L, 1), "push_color(): Stack overflow. Cannot grow stack.");
     Color *c = static_cast<Color *>(lua_newuserdatataggedwithmetatable(L, sizeof(Color), LUA_TAG_COLOR));
     *c = value;
 }
 
 void godot::push_vector4(lua_State *L, const Vector4 &value)
 {
+    ERR_FAIL_COND_MSG(!lua_checkstack(L, 1), "push_vector4(): Stack overflow. Cannot grow stack.");
     Vector4 *v = static_cast<Vector4 *>(lua_newuserdatataggedwithmetatable(L, sizeof(Vector4), LUA_TAG_VECTOR4));
     *v = value;
 }
 
 void godot::push_vector4i(lua_State *L, const Vector4i &value)
 {
+    ERR_FAIL_COND_MSG(!lua_checkstack(L, 1), "push_vector4i(): Stack overflow. Cannot grow stack.");
     Vector4i *v = static_cast<Vector4i *>(lua_newuserdatataggedwithmetatable(L, sizeof(Vector4i), LUA_TAG_VECTOR4I));
     *v = value;
 }
 
 void godot::push_rect2(lua_State *L, const Rect2 &value)
 {
+    ERR_FAIL_COND_MSG(!lua_checkstack(L, 1), "push_rect2(): Stack overflow. Cannot grow stack.");
     Rect2 *r = static_cast<Rect2 *>(lua_newuserdatataggedwithmetatable(L, sizeof(Rect2), LUA_TAG_RECT2));
     *r = value;
 }
 
 void godot::push_rect2i(lua_State *L, const Rect2i &value)
 {
+    ERR_FAIL_COND_MSG(!lua_checkstack(L, 1), "push_rect2i(): Stack overflow. Cannot grow stack.");
     Rect2i *r = static_cast<Rect2i *>(lua_newuserdatataggedwithmetatable(L, sizeof(Rect2i), LUA_TAG_RECT2I));
     *r = value;
 }
 
 void godot::push_aabb(lua_State *L, const AABB &value)
 {
+    ERR_FAIL_COND_MSG(!lua_checkstack(L, 1), "push_aabb(): Stack overflow. Cannot grow stack.");
     AABB *aabb = static_cast<AABB *>(lua_newuserdatataggedwithmetatable(L, sizeof(AABB), LUA_TAG_AABB));
     *aabb = value;
 }
 
 void godot::push_plane(lua_State *L, const Plane &value)
 {
+    ERR_FAIL_COND_MSG(!lua_checkstack(L, 1), "push_plane(): Stack overflow. Cannot grow stack.");
     Plane *p = static_cast<Plane *>(lua_newuserdatataggedwithmetatable(L, sizeof(Plane), LUA_TAG_PLANE));
     *p = value;
 }
 
 void godot::push_quaternion(lua_State *L, const Quaternion &value)
 {
+    ERR_FAIL_COND_MSG(!lua_checkstack(L, 1), "push_quaternion(): Stack overflow. Cannot grow stack.");
     Quaternion *q = static_cast<Quaternion *>(lua_newuserdatataggedwithmetatable(L, sizeof(Quaternion), LUA_TAG_QUATERNION));
     *q = value;
 }
 
 void godot::push_basis(lua_State *L, const Basis &value)
 {
+    ERR_FAIL_COND_MSG(!lua_checkstack(L, 1), "push_basis(): Stack overflow. Cannot grow stack.");
     Basis *b = static_cast<Basis *>(lua_newuserdatataggedwithmetatable(L, sizeof(Basis), LUA_TAG_BASIS));
     *b = value;
 }
 
 void godot::push_transform2d(lua_State *L, const Transform2D &value)
 {
+    ERR_FAIL_COND_MSG(!lua_checkstack(L, 1), "push_transform2d(): Stack overflow. Cannot grow stack.");
     Transform2D *t = static_cast<Transform2D *>(lua_newuserdatataggedwithmetatable(L, sizeof(Transform2D), LUA_TAG_TRANSFORM2D));
     *t = value;
 }
 
 void godot::push_transform3d(lua_State *L, const Transform3D &value)
 {
+    ERR_FAIL_COND_MSG(!lua_checkstack(L, 1), "push_transform3d(): Stack overflow. Cannot grow stack.");
     Transform3D *t = static_cast<Transform3D *>(lua_newuserdatataggedwithmetatable(L, sizeof(Transform3D), LUA_TAG_TRANSFORM3D));
     *t = value;
 }
 
 void godot::push_projection(lua_State *L, const Projection &value)
 {
+    ERR_FAIL_COND_MSG(!lua_checkstack(L, 1), "push_projection(): Stack overflow. Cannot grow stack.");
     Projection *p = static_cast<Projection *>(lua_newuserdatataggedwithmetatable(L, sizeof(Projection), LUA_TAG_PROJECTION));
     *p = value;
 }
 
 void godot::push_callable(lua_State *L, const Callable &value)
 {
+    ERR_FAIL_COND_MSG(!lua_checkstack(L, 1), "push_callable(): Stack overflow. Cannot grow stack.");
+
     // Check if this is a LuaCallable wrapping a Lua function
     // If so, push the original Lua function instead of wrapping it again
     CallableCustom *custom = value.get_custom();
@@ -2731,11 +2749,18 @@ Variant godot::to_variant(lua_State *L, int index)
 
 void godot::push_array(lua_State *L, const Array &arr)
 {
+    // Check stack space: 1 for table + 1 for each iteration (variant push)
+    // We check for 3 slots per iteration to be safe (variant might push nested structures)
+    ERR_FAIL_COND_MSG(!lua_checkstack(L, 1), "push_array(): Stack overflow. Cannot grow stack.");
+
     lua_createtable(L, arr.size(), 0);
 
     // Lua arrays are 1-indexed
     for (int i = 0; i < arr.size(); i++)
     {
+        // Check stack for each iteration: need room for value + rawseti operation
+        ERR_FAIL_COND_MSG(!lua_checkstack(L, 3), vformat("push_array(): Stack overflow at index %d. Cannot grow stack.", i));
+
         push_variant(L, arr[i]);
         lua_rawseti(L, -2, i + 1);
     }
@@ -2743,11 +2768,18 @@ void godot::push_array(lua_State *L, const Array &arr)
 
 void godot::push_dictionary(lua_State *L, const Dictionary &dict)
 {
+    // Check stack space: 1 for table + 3 for metatable operations at end
+    ERR_FAIL_COND_MSG(!lua_checkstack(L, 4), "push_dictionary(): Stack overflow. Cannot grow stack.");
+
     lua_createtable(L, 0, dict.size());
 
     Array keys = dict.keys();
     for (int i = 0; i < keys.size(); i++)
     {
+        // Check stack for each iteration: need room for key + value + settable operation
+        // We check for 5 slots to be safe (nested structures)
+        ERR_FAIL_COND_MSG(!lua_checkstack(L, 5), vformat("push_dictionary(): Stack overflow at index %d. Cannot grow stack.", i));
+
         Variant key = keys[i];
         Variant val = dict[key];
 
@@ -2766,12 +2798,17 @@ void godot::push_dictionary(lua_State *L, const Dictionary &dict)
 
 void godot::push_string(lua_State *L, const String &value)
 {
+    ERR_FAIL_COND_MSG(!lua_checkstack(L, 1), "push_string(): Stack overflow. Cannot grow stack.");
     CharString utf8 = value.utf8();
     lua_pushlstring(L, utf8.get_data(), utf8.length());
 }
 
 void godot::push_variant(lua_State *L, const Variant &value)
 {
+    // Check stack space upfront - we need at least 1 slot, but collections may need more
+    // Individual push functions will check for additional space as needed
+    ERR_FAIL_COND_MSG(!lua_checkstack(L, 1), "push_variant(): Stack overflow. Cannot grow stack.");
+
     Variant::Type variant_type = value.get_type();
 
     switch (variant_type)
