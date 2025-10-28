@@ -23,7 +23,7 @@ namespace godot
         // Helper to check if this state is still valid (checks if parent is closed for threads)
         bool is_valid_state() const;
 
-        Ref<LuaState> bind_thread(lua_State *thread_L) const;
+        Ref<LuaState> bind_thread(lua_State *thread_L);
 
     protected:
         static void _bind_methods();

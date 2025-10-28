@@ -831,7 +831,7 @@ lua_Status LuaState::pcall(int nargs, int nresults, int errfunc)
 }
 
 // Thread operations
-Ref<LuaState> LuaState::bind_thread(lua_State *thread_L) const
+Ref<LuaState> LuaState::bind_thread(lua_State *thread_L)
 {
     ERR_FAIL_NULL_V_MSG(thread_L, Ref<LuaState>(), "Failed to bind thread.");
 
