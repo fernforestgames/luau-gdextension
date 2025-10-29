@@ -13,7 +13,8 @@ derivative) into Godot Engine.
 - `Luau`: Static class that compiles Luau source code to bytecode
 - `LuaState`: Manages a Lua VM instance, executes bytecode, and provides
   debugging support via single-step execution
-- Math type bindings in `lua_math_types.h/cpp`: Bridge between Godot math types
+- `LuauScript`: Resource type for managing Luau scripts as Godot resources
+- Math type bindings in `lua_godotlib.h/cpp`: Bridge between Godot math types
   and Luau. Vector3 uses Luau's native vector type for high performance. Other
   types (Vector2, Vector4, Color, etc.) use userdata with metatables for
   operators and property access.
@@ -31,21 +32,28 @@ derivative) into Godot Engine.
 src/
   luau.h/cpp          - Luau compiler wrapper (static methods)
   lua_state.h/cpp     - Lua VM state management and execution
-  lua_math_types.h/cpp- Godot math type bindings for Luau
   lua_callable.h/cpp  - Callable bridging (Lua functions ↔ Godot Callables)
   lua_godotlib.h/cpp  - Godot type userdata and metatables for Luau
+  luau_script.h/cpp   - LuauScript resource type for managing Luau scripts
   register_types.h/cpp- GDExtension registration
 demo/
   main.gd             - Example integration code
   test_script.luau    - Sample Luau script with math types
+  test_runner.gd      - Entry point that runs tests or demo
+  test_loader.gd      - Loads and runs GDScript integration tests
   addons/
     luau_gdextension/
-      gdextension.json  - GDExtension manifest
+      luau_gdextension.gdextension - GDExtension manifest
       bin/              - Built binaries copied here by CMake
+    luau_gdextension_tests/
+      luau_gdextension_tests.gdextension - Test library manifest
+      bin/              - Test library binaries (Debug builds only)
     gut/                - GUT testing framework for GDScript tests
   test/                 - GDScript integration tests
 tests/
-  test_*.cpp          - C++ unit tests using doctest
+  test_*.cpp          - C++ test cases (math types, arrays, etc.)
+  luau_gdextension_tests.cpp - Main test runner with doctest
+  register_types.h/cpp- Test library registration
   doctest.h           - doctest testing framework header
   README.md           - Detailed testing documentation
 ```
@@ -117,20 +125,19 @@ This project has comprehensive automated tests using CMake's CTest framework.
 
 **Test Infrastructure:**
 
-- **C++ Tests (doctest):** Separate GDExtension (`gdluau_tests`) with bridging
-  layer tests
-  - Located in `tests/tests_runtime.cpp` and `tests/luau_gdextension_tests.cpp`
+- **C++ Tests (doctest):** Embedded in Debug builds of the GDExtension library
+  - Located in `tests/test_*.cpp` (math types, arrays, dictionaries, variants,
+    threads, etc.)
   - Tests both POD types (Vector2, Color) and runtime types (Array, Dictionary,
     Variant)
-  - Built as separate library when `BUILD_TESTING=ON` (enabled in Debug
-    presets)
+  - Built as separate library `gdluau_tests` when `BUILD_TESTING=ON` (enabled
+    in Debug presets)
   - Has its own `.gdextension` file for independent loading
   - Run inside Godot runtime for full engine integration
-- **GDScript Integration Tests (GUT):** High-level tests from Godot's
-  perspective
+- **GDScript Integration Tests:** High-level tests from Godot's perspective
   - Located in `demo/test/test_*_integration.gd`
   - Tests full round-trip conversions and Lua script execution
-  - Run via GUT framework
+  - Run via `test_loader.gd` script
 
 **Building with Tests:**
 
@@ -148,8 +155,7 @@ cmake --build --preset windows-x86_64-release -j
 
 ```bash
 # Using CTest (recommended)
-cd build
-ctest --output-on-failure --verbose
+ctest --preset windows-x86_64   # or linux-x86_64, macos-arm64
 
 # Or directly via Godot
 godot --headless --path demo/ -- --run-tests
@@ -175,9 +181,10 @@ See `tests/README.md` for detailed testing documentation and best practices.
 
 **When Adding New Features:**
 
-1. Write C++ tests in `tests/tests_runtime.cpp`
+1. Write C++ tests in `tests/test_*.cpp` (create new test file or add to
+   existing)
 2. Write GDScript integration tests in `demo/test/`
-3. Run `ctest` to verify all tests pass
+3. Run `ctest --preset <platform>` to verify all tests pass
 4. CI automatically runs tests on push/PR (via CTest)
 
 **Distribution:** When packaging for distribution, simply exclude
