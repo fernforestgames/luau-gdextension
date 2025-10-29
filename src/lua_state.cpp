@@ -29,93 +29,93 @@ static void callback_debugstep(lua_State *L, lua_Debug *ar)
 
 void LuaState::_bind_methods()
 {
-    ClassDB::bind_method(D_METHOD("openlibs", "libs"), &LuaState::openlibs, DEFVAL(LuaState::LIB_ALL));
+    ClassDB::bind_method(D_METHOD("open_libs", "libs"), &LuaState::open_libs, DEFVAL(LuaState::LIB_ALL));
     ClassDB::bind_method(D_METHOD("sandbox"), &LuaState::sandbox);
     ClassDB::bind_method(D_METHOD("close"), &LuaState::close);
 
     ClassDB::bind_method(D_METHOD("load_bytecode", "bytecode", "chunk_name"), &LuaState::load_bytecode);
-    ClassDB::bind_method(D_METHOD("loadstring", "code", "chunk_name"), &LuaState::loadstring);
-    ClassDB::bind_method(D_METHOD("dostring", "code", "chunk_name"), &LuaState::dostring);
+    ClassDB::bind_method(D_METHOD("load_string", "code", "chunk_name"), &LuaState::load_string);
+    ClassDB::bind_method(D_METHOD("do_string", "code", "chunk_name"), &LuaState::do_string);
     ClassDB::bind_method(D_METHOD("resume", "narg"), &LuaState::resume, DEFVAL(0));
 
-    ClassDB::bind_method(D_METHOD("singlestep", "enable"), &LuaState::singlestep);
+    ClassDB::bind_method(D_METHOD("single_step", "enable"), &LuaState::single_step);
     ClassDB::bind_method(D_METHOD("pause"), &LuaState::pause);
 
     // Stack manipulation
-    ClassDB::bind_method(D_METHOD("gettop"), &LuaState::gettop);
-    ClassDB::bind_method(D_METHOD("settop", "index"), &LuaState::settop);
-    ClassDB::bind_method(D_METHOD("checkstack", "extra"), &LuaState::checkstack);
+    ClassDB::bind_method(D_METHOD("get_top"), &LuaState::get_top);
+    ClassDB::bind_method(D_METHOD("set_top", "index"), &LuaState::set_top);
+    ClassDB::bind_method(D_METHOD("check_stack", "extra"), &LuaState::check_stack);
     ClassDB::bind_method(D_METHOD("pop", "n"), &LuaState::pop);
-    ClassDB::bind_method(D_METHOD("pushvalue", "index"), &LuaState::pushvalue);
+    ClassDB::bind_method(D_METHOD("push_value", "index"), &LuaState::push_value);
     ClassDB::bind_method(D_METHOD("remove", "index"), &LuaState::remove);
     ClassDB::bind_method(D_METHOD("insert", "index"), &LuaState::insert);
     ClassDB::bind_method(D_METHOD("replace", "index"), &LuaState::replace);
 
     // Type checking
-    ClassDB::bind_method(D_METHOD("isnil", "index"), &LuaState::isnil);
-    ClassDB::bind_method(D_METHOD("isnumber", "index"), &LuaState::isnumber);
-    ClassDB::bind_method(D_METHOD("isstring", "index"), &LuaState::isstring);
-    ClassDB::bind_method(D_METHOD("istable", "index"), &LuaState::istable);
-    ClassDB::bind_method(D_METHOD("isfunction", "index"), &LuaState::isfunction);
-    ClassDB::bind_method(D_METHOD("isuserdata", "index"), &LuaState::isuserdata);
-    ClassDB::bind_method(D_METHOD("isboolean", "index"), &LuaState::isboolean);
-    ClassDB::bind_method(D_METHOD("isthread", "index"), &LuaState::isthread);
-    ClassDB::bind_method(D_METHOD("isarray", "index"), &LuaState::isarray);
-    ClassDB::bind_method(D_METHOD("isdictionary", "index"), &LuaState::isdictionary);
+    ClassDB::bind_method(D_METHOD("is_nil", "index"), &LuaState::is_nil);
+    ClassDB::bind_method(D_METHOD("is_number", "index"), &LuaState::is_number);
+    ClassDB::bind_method(D_METHOD("is_string", "index"), &LuaState::is_string);
+    ClassDB::bind_method(D_METHOD("is_table", "index"), &LuaState::is_table);
+    ClassDB::bind_method(D_METHOD("is_function", "index"), &LuaState::is_function);
+    ClassDB::bind_method(D_METHOD("is_userdata", "index"), &LuaState::is_userdata);
+    ClassDB::bind_method(D_METHOD("is_boolean", "index"), &LuaState::is_boolean);
+    ClassDB::bind_method(D_METHOD("is_thread", "index"), &LuaState::is_thread);
+    ClassDB::bind_method(D_METHOD("is_array", "index"), &LuaState::is_array);
+    ClassDB::bind_method(D_METHOD("is_dictionary", "index"), &LuaState::is_dictionary);
     ClassDB::bind_method(D_METHOD("type", "index"), &LuaState::type);
     ClassDB::bind_method(D_METHOD("type_name", "type_id"), &LuaState::type_name);
 
     // Value access
-    ClassDB::bind_method(D_METHOD("tostring", "index"), &LuaState::tostring);
-    ClassDB::bind_method(D_METHOD("tonumber", "index"), &LuaState::tonumber);
-    ClassDB::bind_method(D_METHOD("tointeger", "index"), &LuaState::tointeger);
-    ClassDB::bind_method(D_METHOD("toboolean", "index"), &LuaState::toboolean);
+    ClassDB::bind_method(D_METHOD("to_string", "index"), &LuaState::to_string);
+    ClassDB::bind_method(D_METHOD("to_number", "index"), &LuaState::to_number);
+    ClassDB::bind_method(D_METHOD("to_integer", "index"), &LuaState::to_integer);
+    ClassDB::bind_method(D_METHOD("to_boolean", "index"), &LuaState::to_boolean);
 
     // Push operations
-    ClassDB::bind_method(D_METHOD("pushnil"), &LuaState::pushnil);
-    ClassDB::bind_method(D_METHOD("pushnumber", "n"), &LuaState::pushnumber);
-    ClassDB::bind_method(D_METHOD("pushinteger", "n"), &LuaState::pushinteger);
-    ClassDB::bind_method(D_METHOD("pushstring", "s"), &LuaState::pushstring);
-    ClassDB::bind_method(D_METHOD("pushboolean", "b"), &LuaState::pushboolean);
-    ClassDB::bind_method(D_METHOD("pushthread"), &LuaState::pushthread);
+    ClassDB::bind_method(D_METHOD("push_nil"), &LuaState::push_nil);
+    ClassDB::bind_method(D_METHOD("push_number", "n"), &LuaState::push_number);
+    ClassDB::bind_method(D_METHOD("push_integer", "n"), &LuaState::push_integer);
+    ClassDB::bind_method(D_METHOD("push_string", "s"), &LuaState::push_string);
+    ClassDB::bind_method(D_METHOD("push_boolean", "b"), &LuaState::push_boolean);
+    ClassDB::bind_method(D_METHOD("push_thread"), &LuaState::push_thread);
 
     // Table operations
-    ClassDB::bind_method(D_METHOD("newtable"), &LuaState::newtable);
-    ClassDB::bind_method(D_METHOD("createtable", "narr", "nrec"), &LuaState::createtable);
-    ClassDB::bind_method(D_METHOD("gettable", "index"), &LuaState::gettable);
-    ClassDB::bind_method(D_METHOD("settable", "index"), &LuaState::settable);
-    ClassDB::bind_method(D_METHOD("getfield", "index", "key"), &LuaState::getfield);
-    ClassDB::bind_method(D_METHOD("setfield", "index", "key"), &LuaState::setfield);
-    ClassDB::bind_method(D_METHOD("getglobal", "key"), &LuaState::getglobal);
-    ClassDB::bind_method(D_METHOD("setglobal", "key"), &LuaState::setglobal);
-    ClassDB::bind_method(D_METHOD("rawget", "index"), &LuaState::rawget);
-    ClassDB::bind_method(D_METHOD("rawset", "index"), &LuaState::rawset);
-    ClassDB::bind_method(D_METHOD("rawgeti", "index", "n"), &LuaState::rawgeti);
-    ClassDB::bind_method(D_METHOD("rawseti", "index", "n"), &LuaState::rawseti);
+    ClassDB::bind_method(D_METHOD("new_table"), &LuaState::new_table);
+    ClassDB::bind_method(D_METHOD("create_table", "narr", "nrec"), &LuaState::create_table);
+    ClassDB::bind_method(D_METHOD("get_table", "index"), &LuaState::get_table);
+    ClassDB::bind_method(D_METHOD("set_table", "index"), &LuaState::set_table);
+    ClassDB::bind_method(D_METHOD("get_field", "index", "key"), &LuaState::get_field);
+    ClassDB::bind_method(D_METHOD("set_field", "index", "key"), &LuaState::set_field);
+    ClassDB::bind_method(D_METHOD("get_global", "key"), &LuaState::get_global);
+    ClassDB::bind_method(D_METHOD("set_global", "key"), &LuaState::set_global);
+    ClassDB::bind_method(D_METHOD("raw_get", "index"), &LuaState::raw_get);
+    ClassDB::bind_method(D_METHOD("raw_set", "index"), &LuaState::raw_set);
+    ClassDB::bind_method(D_METHOD("raw_geti", "index", "n"), &LuaState::raw_geti);
+    ClassDB::bind_method(D_METHOD("raw_seti", "index", "n"), &LuaState::raw_seti);
 
     // Metatable operations
-    ClassDB::bind_method(D_METHOD("getmetatable", "index"), &LuaState::getmetatable);
-    ClassDB::bind_method(D_METHOD("setmetatable", "index"), &LuaState::setmetatable);
+    ClassDB::bind_method(D_METHOD("get_metatable", "index"), &LuaState::get_metatable);
+    ClassDB::bind_method(D_METHOD("set_metatable", "index"), &LuaState::set_metatable);
 
     // Function calls
     ClassDB::bind_method(D_METHOD("call", "nargs", "nresults"), &LuaState::call);
     ClassDB::bind_method(D_METHOD("pcall", "nargs", "nresults", "errfunc"), &LuaState::pcall);
 
     // Thread operations
-    ClassDB::bind_method(D_METHOD("newthread"), &LuaState::newthread);
-    ClassDB::bind_method(D_METHOD("tothread", "index"), &LuaState::tothread);
-    ClassDB::bind_method(D_METHOD("mainthread"), &LuaState::mainthread);
+    ClassDB::bind_method(D_METHOD("new_thread"), &LuaState::new_thread);
+    ClassDB::bind_method(D_METHOD("to_thread", "index"), &LuaState::to_thread);
+    ClassDB::bind_method(D_METHOD("get_main_thread"), &LuaState::get_main_thread);
 
     // Garbage collection
     ClassDB::bind_method(D_METHOD("gc", "what", "data"), &LuaState::gc);
 
     // Godot integration helpers
-    ClassDB::bind_method(D_METHOD("toarray", "index"), &LuaState::toarray);
-    ClassDB::bind_method(D_METHOD("todictionary", "index"), &LuaState::todictionary);
-    ClassDB::bind_method(D_METHOD("tovariant", "index"), &LuaState::tovariant);
-    ClassDB::bind_method(D_METHOD("pusharray", "value"), &LuaState::pusharray);
-    ClassDB::bind_method(D_METHOD("pushdictionary", "value"), &LuaState::pushdictionary);
-    ClassDB::bind_method(D_METHOD("pushvariant", "value"), &LuaState::pushvariant);
+    ClassDB::bind_method(D_METHOD("to_array", "index"), &LuaState::to_array);
+    ClassDB::bind_method(D_METHOD("to_dictionary", "index"), &LuaState::to_dictionary);
+    ClassDB::bind_method(D_METHOD("to_variant", "index"), &LuaState::to_variant);
+    ClassDB::bind_method(D_METHOD("push_array", "value"), &LuaState::push_array);
+    ClassDB::bind_method(D_METHOD("push_dictionary", "value"), &LuaState::push_dictionary);
+    ClassDB::bind_method(D_METHOD("push_variant", "value"), &LuaState::push_variant);
 
     BIND_ENUM_CONSTANT(LUA_GCSTOP);
     BIND_ENUM_CONSTANT(LUA_GCRESTART);
@@ -229,7 +229,7 @@ void LuaState::open_library(lua_CFunction func, const char *name)
     lua_call(L, 1, 0);
 }
 
-void LuaState::openlibs(int libs)
+void LuaState::open_libs(int libs)
 {
     ERR_FAIL_COND_MSG(!is_valid_state(), "Lua state is invalid. Cannot open libraries.");
 
@@ -312,17 +312,17 @@ lua_Status LuaState::load_bytecode(const PackedByteArray &bytecode, const String
     return static_cast<lua_Status>(status);
 }
 
-lua_Status LuaState::loadstring(const String &code, const String &chunk_name)
+lua_Status LuaState::load_string(const String &code, const String &chunk_name)
 {
     ERR_FAIL_COND_V_MSG(!is_valid_state(), LUA_ERRMEM, "Lua state is invalid. Cannot load string.");
     return load_bytecode(Luau::compile(code), chunk_name);
 }
 
-lua_Status LuaState::dostring(const String &code, const String &chunk_name)
+lua_Status LuaState::do_string(const String &code, const String &chunk_name)
 {
     ERR_FAIL_COND_V_MSG(!is_valid_state(), LUA_ERRMEM, "Lua state is invalid. Cannot run string.");
 
-    lua_Status status = loadstring(code, chunk_name);
+    lua_Status status = load_string(code, chunk_name);
     if (status != LUA_OK)
     {
         return status;
@@ -347,7 +347,7 @@ lua_Status LuaState::resume(int narg)
     return static_cast<lua_Status>(status);
 }
 
-void LuaState::singlestep(bool enable)
+void LuaState::single_step(bool enable)
 {
     ERR_FAIL_COND_MSG(!is_valid_state(), "Lua state is invalid. Cannot set singlestep mode.");
     lua_singlestep(L, enable);
@@ -359,70 +359,70 @@ void LuaState::pause()
     lua_break(L);
 }
 
-void LuaState::getglobal(const String &key)
+void LuaState::get_global(const String &key)
 {
     ERR_FAIL_COND_MSG(!is_valid_state(), "Lua state is invalid. Cannot get global variable.");
     lua_getglobal(L, key.utf8());
 }
 
-void LuaState::setglobal(const String &key)
+void LuaState::set_global(const String &key)
 {
     ERR_FAIL_COND_MSG(!is_valid_state(), "Lua state is invalid. Cannot set global variable.");
 
     if (main_thread.is_valid())
     {
-        WARN_PRINT("Calling LuaState.setglobal() on a Lua thread will affect all threads in the same VM.");
+        WARN_PRINT("Calling LuaState.set_global() on a Lua thread will affect all threads in the same VM.");
     }
 
     lua_setglobal(L, key.utf8());
 }
 
-bool LuaState::isarray(int index)
+bool LuaState::is_array(int index)
 {
     ERR_FAIL_COND_V_MSG(!is_valid_state(), false, "Lua state is invalid. Cannot check if table is array-like.");
-    return is_array(L, index);
+    return godot::is_array(L, index);
 }
 
-bool LuaState::isdictionary(int index)
+bool LuaState::is_dictionary(int index)
 {
     ERR_FAIL_COND_V_MSG(!is_valid_state(), false, "Lua state is invalid. Cannot check if table is dictionary.");
-    return is_dictionary(L, index);
+    return godot::is_dictionary(L, index);
 }
 
-Array LuaState::toarray(int index)
+Array LuaState::to_array(int index)
 {
     ERR_FAIL_COND_V_MSG(!is_valid_state(), Array(), "Lua state is invalid. Cannot convert to Array.");
-    return to_array(L, index);
+    return godot::to_array(L, index);
 }
 
-Dictionary LuaState::todictionary(int index)
+Dictionary LuaState::to_dictionary(int index)
 {
     ERR_FAIL_COND_V_MSG(!is_valid_state(), Dictionary(), "Lua state is invalid. Cannot convert to Dictionary.");
-    return to_dictionary(L, index);
+    return godot::to_dictionary(L, index);
 }
 
-Variant LuaState::tovariant(int index)
+Variant LuaState::to_variant(int index)
 {
     ERR_FAIL_COND_V_MSG(!is_valid_state(), Variant(), "Lua state is invalid. Cannot convert to Variant.");
-    return to_variant(L, index);
+    return godot::to_variant(L, index);
 }
 
-void LuaState::pusharray(const Array &arr)
+void LuaState::push_array(const Array &arr)
 {
     ERR_FAIL_COND_MSG(!is_valid_state(), "Lua state is invalid. Cannot push Array.");
-    push_array(L, arr);
+    godot::push_array(L, arr);
 }
 
-void LuaState::pushdictionary(const Dictionary &dict)
+void LuaState::push_dictionary(const Dictionary &dict)
 {
     ERR_FAIL_COND_MSG(!is_valid_state(), "Lua state is invalid. Cannot push Dictionary.");
-    push_dictionary(L, dict);
+    godot::push_dictionary(L, dict);
 }
 
-void LuaState::pushvariant(const Variant &value)
+void LuaState::push_variant(const Variant &value)
 {
     ERR_FAIL_COND_MSG(!is_valid_state(), "Lua state is invalid. Cannot push Variant.");
-    push_variant(L, value);
+    godot::push_variant(L, value);
 }
 
 lua_State *LuaState::get_lua_state() const
@@ -431,13 +431,13 @@ lua_State *LuaState::get_lua_state() const
 }
 
 // Stack manipulation
-int LuaState::gettop() const
+int LuaState::get_top() const
 {
     ERR_FAIL_COND_V_MSG(!is_valid_state(), 0, "Lua state is invalid. Cannot get stack top.");
     return lua_gettop(L);
 }
 
-void LuaState::settop(int index)
+void LuaState::set_top(int index)
 {
     ERR_FAIL_COND_MSG(!is_valid_state(), "Lua state is invalid. Cannot set stack top.");
 
@@ -451,7 +451,7 @@ void LuaState::settop(int index)
     lua_settop(L, index);
 }
 
-bool LuaState::checkstack(int size)
+bool LuaState::check_stack(int size)
 {
     ERR_FAIL_COND_V_MSG(!is_valid_state(), false, "Lua state is invalid. Cannot manipulate stack size.");
     return lua_checkstack(L, size) != 0;
@@ -469,7 +469,7 @@ void LuaState::pop(int n)
     lua_pop(L, n);
 }
 
-void LuaState::pushvalue(int index)
+void LuaState::push_value(int index)
 {
     ERR_FAIL_COND_MSG(!is_valid_state(), "Lua state is invalid. Cannot push value.");
     ERR_FAIL_COND_MSG(!is_valid_index(L, index), vformat("LuaState.pushvalue(%d): Invalid stack index. Stack has %d elements.", index, lua_gettop(L)));
@@ -508,49 +508,49 @@ void LuaState::replace(int index)
 }
 
 // Type checking
-bool LuaState::isnil(int index) const
+bool LuaState::is_nil(int index) const
 {
     ERR_FAIL_COND_V_MSG(!is_valid_state(), false, "Lua state is invalid. Cannot check type.");
     return lua_isnil(L, index);
 }
 
-bool LuaState::isnumber(int index) const
+bool LuaState::is_number(int index) const
 {
     ERR_FAIL_COND_V_MSG(!is_valid_state(), false, "Lua state is invalid. Cannot check type.");
     return lua_isnumber(L, index) != 0;
 }
 
-bool LuaState::isstring(int index) const
+bool LuaState::is_string(int index) const
 {
     ERR_FAIL_COND_V_MSG(!is_valid_state(), false, "Lua state is invalid. Cannot check type.");
     return lua_isstring(L, index) != 0;
 }
 
-bool LuaState::istable(int index) const
+bool LuaState::is_table(int index) const
 {
     ERR_FAIL_COND_V_MSG(!is_valid_state(), false, "Lua state is invalid. Cannot check type.");
     return lua_istable(L, index);
 }
 
-bool LuaState::isfunction(int index) const
+bool LuaState::is_function(int index) const
 {
     ERR_FAIL_COND_V_MSG(!is_valid_state(), false, "Lua state is invalid. Cannot check type.");
     return lua_isfunction(L, index);
 }
 
-bool LuaState::isuserdata(int index) const
+bool LuaState::is_userdata(int index) const
 {
     ERR_FAIL_COND_V_MSG(!is_valid_state(), false, "Lua state is invalid. Cannot check type.");
     return lua_isuserdata(L, index) != 0;
 }
 
-bool LuaState::isboolean(int index) const
+bool LuaState::is_boolean(int index) const
 {
     ERR_FAIL_COND_V_MSG(!is_valid_state(), false, "Lua state is invalid. Cannot check type.");
     return lua_isboolean(L, index);
 }
 
-bool LuaState::isthread(int index) const
+bool LuaState::is_thread(int index) const
 {
     ERR_FAIL_COND_V_MSG(!is_valid_state(), false, "Lua state is invalid. Cannot check type.");
     return lua_isthread(L, index);
@@ -569,25 +569,25 @@ String LuaState::type_name(int type_id) const
 }
 
 // Value access
-String LuaState::tostring(int index)
+String LuaState::to_string(int index)
 {
     ERR_FAIL_COND_V_MSG(!is_valid_state(), String(), "Lua state is invalid. Cannot convert to string.");
     return godot::to_string(L, index);
 }
 
-double LuaState::tonumber(int index)
+double LuaState::to_number(int index)
 {
     ERR_FAIL_COND_V_MSG(!is_valid_state(), 0.0, "Lua state is invalid. Cannot convert to number.");
     return lua_tonumber(L, index);
 }
 
-int LuaState::tointeger(int index)
+int LuaState::to_integer(int index)
 {
     ERR_FAIL_COND_V_MSG(!is_valid_state(), 0, "Lua state is invalid. Cannot convert to integer.");
     return lua_tointeger(L, index);
 }
 
-bool LuaState::toboolean(int index)
+bool LuaState::to_boolean(int index)
 {
     ERR_FAIL_COND_V_MSG(!is_valid_state(), false, "Lua state is invalid. Cannot convert to boolean.");
     return lua_toboolean(L, index) != 0;
@@ -610,42 +610,42 @@ bool LuaState::is_valid_state() const
 }
 
 // Push operations
-void LuaState::pushnil()
+void LuaState::push_nil()
 {
     ERR_FAIL_COND_MSG(!is_valid_state(), "Lua state is invalid. Cannot push nil.");
     ERR_FAIL_COND_MSG(!lua_checkstack(L, 1), "LuaState.pushnil(): Stack overflow. Cannot grow stack.");
     lua_pushnil(L);
 }
 
-void LuaState::pushnumber(double n)
+void LuaState::push_number(double n)
 {
     ERR_FAIL_COND_MSG(!is_valid_state(), "Lua state is invalid. Cannot push number.");
     ERR_FAIL_COND_MSG(!lua_checkstack(L, 1), "LuaState.pushnumber(): Stack overflow. Cannot grow stack.");
     lua_pushnumber(L, n);
 }
 
-void LuaState::pushinteger(int n)
+void LuaState::push_integer(int n)
 {
     ERR_FAIL_COND_MSG(!is_valid_state(), "Lua state is invalid. Cannot push integer.");
     ERR_FAIL_COND_MSG(!lua_checkstack(L, 1), "LuaState.pushinteger(): Stack overflow. Cannot grow stack.");
     lua_pushinteger(L, n);
 }
 
-void LuaState::pushstring(const String &s)
+void LuaState::push_string(const String &s)
 {
     ERR_FAIL_COND_MSG(!is_valid_state(), "Lua state is invalid. Cannot push string.");
     ERR_FAIL_COND_MSG(!lua_checkstack(L, 1), "LuaState.pushstring(): Stack overflow. Cannot grow stack.");
-    push_string(L, s);
+    godot::push_string(L, s);
 }
 
-void LuaState::pushboolean(bool b)
+void LuaState::push_boolean(bool b)
 {
     ERR_FAIL_COND_MSG(!is_valid_state(), "Lua state is invalid. Cannot push boolean.");
     ERR_FAIL_COND_MSG(!lua_checkstack(L, 1), "LuaState.pushboolean(): Stack overflow. Cannot grow stack.");
     lua_pushboolean(L, b ? 1 : 0);
 }
 
-bool LuaState::pushthread()
+bool LuaState::push_thread()
 {
     ERR_FAIL_COND_V_MSG(!is_valid_state(), false, "Lua state is invalid. Cannot push thread.");
     ERR_FAIL_COND_V_MSG(!lua_checkstack(L, 1), false, "LuaState.pushthread(): Stack overflow. Cannot grow stack.");
@@ -661,21 +661,21 @@ bool LuaState::pushthread()
 }
 
 // Table operations
-void LuaState::newtable()
+void LuaState::new_table()
 {
     ERR_FAIL_COND_MSG(!is_valid_state(), "Lua state is invalid. Cannot create table.");
     ERR_FAIL_COND_MSG(!lua_checkstack(L, 1), "LuaState.newtable(): Stack overflow. Cannot grow stack.");
     lua_newtable(L);
 }
 
-void LuaState::createtable(int narr, int nrec)
+void LuaState::create_table(int narr, int nrec)
 {
     ERR_FAIL_COND_MSG(!is_valid_state(), "Lua state is invalid. Cannot create table.");
     ERR_FAIL_COND_MSG(!lua_checkstack(L, 1), "LuaState.createtable(): Stack overflow. Cannot grow stack.");
     lua_createtable(L, narr, nrec);
 }
 
-void LuaState::gettable(int index)
+void LuaState::get_table(int index)
 {
     ERR_FAIL_COND_MSG(!is_valid_state(), "Lua state is invalid. Cannot get table value.");
 
@@ -691,7 +691,7 @@ void LuaState::gettable(int index)
     lua_gettable(L, index);
 }
 
-void LuaState::settable(int index)
+void LuaState::set_table(int index)
 {
     ERR_FAIL_COND_MSG(!is_valid_state(), "Lua state is invalid. Cannot set table value.");
 
@@ -708,7 +708,7 @@ void LuaState::settable(int index)
     lua_settable(L, index);
 }
 
-void LuaState::getfield(int index, const String &key)
+void LuaState::get_field(int index, const String &key)
 {
     ERR_FAIL_COND_MSG(!is_valid_state(), "Lua state is invalid. Cannot get field.");
     ERR_FAIL_COND_MSG(!is_valid_index(L, index), vformat("LuaState.getfield(%d, \"%s\"): Invalid table index. Stack has %d elements.", index, key, lua_gettop(L)));
@@ -716,7 +716,7 @@ void LuaState::getfield(int index, const String &key)
     lua_getfield(L, index, key.utf8());
 }
 
-void LuaState::setfield(int index, const String &key)
+void LuaState::set_field(int index, const String &key)
 {
     ERR_FAIL_COND_MSG(!is_valid_state(), "Lua state is invalid. Cannot set field.");
 
@@ -731,7 +731,7 @@ void LuaState::setfield(int index, const String &key)
     lua_setfield(L, index, key.utf8());
 }
 
-void LuaState::rawget(int index)
+void LuaState::raw_get(int index)
 {
     ERR_FAIL_COND_MSG(!is_valid_state(), "Lua state is invalid. Cannot raw get.");
 
@@ -746,7 +746,7 @@ void LuaState::rawget(int index)
     lua_rawget(L, index);
 }
 
-void LuaState::rawset(int index)
+void LuaState::raw_set(int index)
 {
     ERR_FAIL_COND_MSG(!is_valid_state(), "Lua state is invalid. Cannot raw set.");
 
@@ -762,7 +762,7 @@ void LuaState::rawset(int index)
     lua_rawset(L, index);
 }
 
-void LuaState::rawgeti(int index, int n)
+void LuaState::raw_geti(int index, int n)
 {
     ERR_FAIL_COND_MSG(!is_valid_state(), "Lua state is invalid. Cannot raw get index.");
     ERR_FAIL_COND_MSG(!is_valid_index(L, index), vformat("LuaState.rawgeti(%d, %d): Invalid table index. Stack has %d elements.", index, n, lua_gettop(L)));
@@ -770,7 +770,7 @@ void LuaState::rawgeti(int index, int n)
     lua_rawgeti(L, index, n);
 }
 
-void LuaState::rawseti(int index, int n)
+void LuaState::raw_seti(int index, int n)
 {
     ERR_FAIL_COND_MSG(!is_valid_state(), "Lua state is invalid. Cannot raw set index.");
 
@@ -786,7 +786,7 @@ void LuaState::rawseti(int index, int n)
 }
 
 // Metatable operations
-bool LuaState::getmetatable(int index)
+bool LuaState::get_metatable(int index)
 {
     ERR_FAIL_COND_V_MSG(!is_valid_state(), false, "Lua state is invalid. Cannot get metatable.");
     ERR_FAIL_COND_V_MSG(!is_valid_index(L, index), false, vformat("LuaState.getmetatable(%d): Invalid stack index. Stack has %d elements.", index, lua_gettop(L)));
@@ -794,7 +794,7 @@ bool LuaState::getmetatable(int index)
     return lua_getmetatable(L, index) != 0;
 }
 
-bool LuaState::setmetatable(int index)
+bool LuaState::set_metatable(int index)
 {
     ERR_FAIL_COND_V_MSG(!is_valid_state(), false, "Lua state is invalid. Cannot set metatable.");
 
@@ -839,7 +839,7 @@ Ref<LuaState> LuaState::bind_thread(lua_State *thread_L)
     return thread_state;
 }
 
-Ref<LuaState> LuaState::newthread()
+Ref<LuaState> LuaState::new_thread()
 {
     ERR_FAIL_COND_V_MSG(!is_valid_state(), Ref<LuaState>(), "Lua state is invalid. Cannot create thread.");
 
@@ -850,10 +850,10 @@ Ref<LuaState> LuaState::newthread()
     return bind_thread(thread_L);
 }
 
-Ref<LuaState> LuaState::tothread(int index)
+Ref<LuaState> LuaState::to_thread(int index)
 {
     ERR_FAIL_COND_V_MSG(!is_valid_state(), Ref<LuaState>(), "Lua state is invalid. Cannot convert to thread.");
-    ERR_FAIL_COND_V_MSG(!isthread(index), Ref<LuaState>(), "Stack value at index is not a thread.");
+    ERR_FAIL_COND_V_MSG(!is_thread(index), Ref<LuaState>(), "Stack value at index is not a thread.");
 
     lua_State *thread_L = lua_tothread(L, index);
     ERR_FAIL_NULL_V_MSG(thread_L, Ref<LuaState>(), "Failed to get thread lua_State*.");
@@ -861,7 +861,7 @@ Ref<LuaState> LuaState::tothread(int index)
     return bind_thread(thread_L);
 }
 
-Ref<LuaState> LuaState::mainthread()
+Ref<LuaState> LuaState::get_main_thread()
 {
     return main_thread.is_valid() ? main_thread : Ref<LuaState>(this);
 }

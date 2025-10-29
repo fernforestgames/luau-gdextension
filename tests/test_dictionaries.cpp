@@ -18,24 +18,24 @@ TEST_CASE_FIXTURE(LuaStateFixture, "Dictionary: Simple dictionary Godot -> Lua")
         dict["value"] = 42;
         dict["active"] = true;
 
-        state->pushdictionary(dict);
-        state->setglobal("d");
+        state->push_dictionary(dict);
+        state->set_global("d");
 
         // Access values from Lua
-        state->getglobal("d");
-        state->pushstring("name");
-        state->gettable(-2);
-        CHECK(state->tostring(-1) == "test");
+        state->get_global("d");
+        state->push_string("name");
+        state->get_table(-2);
+        CHECK(state->to_string(-1) == "test");
         state->pop(1);
 
-        state->pushstring("value");
-        state->gettable(-2);
-        CHECK(state->tointeger(-1) == 42);
+        state->push_string("value");
+        state->get_table(-2);
+        CHECK(state->to_integer(-1) == 42);
         state->pop(1);
 
-        state->pushstring("active");
-        state->gettable(-2);
-        CHECK(state->toboolean(-1) == true);
+        state->push_string("active");
+        state->get_table(-2);
+        CHECK(state->to_boolean(-1) == true);
     }
 
     SUBCASE("Integer keys")
@@ -45,8 +45,8 @@ TEST_CASE_FIXTURE(LuaStateFixture, "Dictionary: Simple dictionary Godot -> Lua")
         dict[2] = "two";
         dict[100] = "hundred";
 
-        state->pushdictionary(dict);
-        state->setglobal("d");
+        state->push_dictionary(dict);
+        state->set_global("d");
 
         const char *code = R"(
             v1 = d[1]
@@ -56,20 +56,20 @@ TEST_CASE_FIXTURE(LuaStateFixture, "Dictionary: Simple dictionary Godot -> Lua")
 
         exec_lua(code);
 
-        state->getglobal("v1");
-        CHECK(state->tostring(-1) == "one");
+        state->get_global("v1");
+        CHECK(state->to_string(-1) == "one");
         state->pop(1);
 
-        state->getglobal("v100");
-        CHECK(state->tostring(-1) == "hundred");
+        state->get_global("v100");
+        CHECK(state->to_string(-1) == "hundred");
     }
 
     SUBCASE("Empty dictionary")
     {
         Dictionary dict;
 
-        state->pushdictionary(dict);
-        CHECK(state->istable(-1));
+        state->push_dictionary(dict);
+        CHECK(state->is_table(-1));
 
         // Empty table should have no keys
         const char *code = R"(
@@ -80,11 +80,11 @@ TEST_CASE_FIXTURE(LuaStateFixture, "Dictionary: Simple dictionary Godot -> Lua")
             return count
         )";
 
-        state->setglobal("d");
+        state->set_global("d");
 
         exec_lua(code);
 
-        CHECK(state->tointeger(-1) == 0);
+        CHECK(state->to_integer(-1) == 0);
     }
 
 }
@@ -104,7 +104,7 @@ TEST_CASE_FIXTURE(LuaStateFixture, "Dictionary: Lua table -> Godot Dictionary")
 
         exec_lua(code);
 
-        Dictionary dict = state->todictionary(-1);
+        Dictionary dict = state->to_dictionary(-1);
 
         CHECK(dict.has("name"));
         CHECK((String)dict["name"] == "Alice");
@@ -124,7 +124,7 @@ TEST_CASE_FIXTURE(LuaStateFixture, "Dictionary: Lua table -> Godot Dictionary")
 
         exec_lua(code);
 
-        Dictionary dict = state->todictionary(-1);
+        Dictionary dict = state->to_dictionary(-1);
 
         CHECK(dict.has(10));
         CHECK((String)dict[10] == "ten");
@@ -145,7 +145,7 @@ TEST_CASE_FIXTURE(LuaStateFixture, "Dictionary: Lua table -> Godot Dictionary")
 
         exec_lua(code);
 
-        Dictionary dict = state->todictionary(-1);
+        Dictionary dict = state->to_dictionary(-1);
 
         CHECK(dict.has("name"));
         CHECK(dict.has(1));
@@ -172,8 +172,8 @@ TEST_CASE_FIXTURE(LuaStateFixture, "Dictionary: Nested dictionaries")
         outer["position"] = inner;
         outer["name"] = "entity";
 
-        state->pushdictionary(outer);
-        state->setglobal("entity");
+        state->push_dictionary(outer);
+        state->set_global("entity");
 
         const char *code = R"(
             pos = entity.position
@@ -184,16 +184,16 @@ TEST_CASE_FIXTURE(LuaStateFixture, "Dictionary: Nested dictionaries")
 
         exec_lua(code);
 
-        state->getglobal("x");
-        CHECK(state->tointeger(-1) == 10);
+        state->get_global("x");
+        CHECK(state->to_integer(-1) == 10);
         state->pop(1);
 
-        state->getglobal("y");
-        CHECK(state->tointeger(-1) == 20);
+        state->get_global("y");
+        CHECK(state->to_integer(-1) == 20);
         state->pop(1);
 
-        state->getglobal("name");
-        CHECK(state->tostring(-1) == "entity");
+        state->get_global("name");
+        CHECK(state->to_string(-1) == "entity");
     }
 
     SUBCASE("Lua nested table to Dictionary")
@@ -213,7 +213,7 @@ TEST_CASE_FIXTURE(LuaStateFixture, "Dictionary: Nested dictionaries")
 
         exec_lua(code);
 
-        Dictionary dict = state->todictionary(-1);
+        Dictionary dict = state->to_dictionary(-1);
 
         CHECK(dict.has("user"));
         CHECK(dict.has("settings"));
@@ -243,8 +243,8 @@ TEST_CASE_FIXTURE(LuaStateFixture, "Dictionary: Mixed with arrays")
         dict["items"] = items;
         dict["count"] = 3;
 
-        state->pushdictionary(dict);
-        state->setglobal("data");
+        state->push_dictionary(dict);
+        state->set_global("data");
 
         const char *code = R"(
             items = data.items
@@ -255,16 +255,16 @@ TEST_CASE_FIXTURE(LuaStateFixture, "Dictionary: Mixed with arrays")
 
         exec_lua(code);
 
-        state->getglobal("first");
-        CHECK(state->tointeger(-1) == 1);
+        state->get_global("first");
+        CHECK(state->to_integer(-1) == 1);
         state->pop(1);
 
-        state->getglobal("second");
-        CHECK(state->tointeger(-1) == 2);
+        state->get_global("second");
+        CHECK(state->to_integer(-1) == 2);
         state->pop(1);
 
-        state->getglobal("count");
-        CHECK(state->tointeger(-1) == 3);
+        state->get_global("count");
+        CHECK(state->to_integer(-1) == 3);
     }
 
     SUBCASE("Array containing dictionaries")
@@ -281,8 +281,8 @@ TEST_CASE_FIXTURE(LuaStateFixture, "Dictionary: Mixed with arrays")
         items.push_back(item1);
         items.push_back(item2);
 
-        state->pusharray(items);
-        state->setglobal("items");
+        state->push_array(items);
+        state->set_global("items");
 
         const char *code = R"(
             first_item = items[1]
@@ -292,12 +292,12 @@ TEST_CASE_FIXTURE(LuaStateFixture, "Dictionary: Mixed with arrays")
 
         exec_lua(code);
 
-        state->getglobal("first_name");
-        CHECK(state->tostring(-1) == "Item A");
+        state->get_global("first_name");
+        CHECK(state->to_string(-1) == "Item A");
         state->pop(1);
 
-        state->getglobal("second_id");
-        CHECK(state->tointeger(-1) == 2);
+        state->get_global("second_id");
+        CHECK(state->to_integer(-1) == 2);
     }
 
 }
@@ -312,11 +312,11 @@ TEST_CASE_FIXTURE(LuaStateFixture, "Dictionary: Round-trip conversion")
         original["value"] = 42;
         original["flag"] = true;
 
-        state->pushdictionary(original);
-        state->setglobal("dict");
+        state->push_dictionary(original);
+        state->set_global("dict");
 
-        state->getglobal("dict");
-        Dictionary retrieved = state->todictionary(-1);
+        state->get_global("dict");
+        Dictionary retrieved = state->to_dictionary(-1);
 
         CHECK(retrieved.has("name"));
         CHECK(retrieved.has("value"));
@@ -342,11 +342,11 @@ TEST_CASE_FIXTURE(LuaStateFixture, "Dictionary: Round-trip conversion")
         original["items"] = items;
         original["name"] = "complex";
 
-        state->pushdictionary(original);
-        state->setglobal("complex");
+        state->push_dictionary(original);
+        state->set_global("complex");
 
-        state->getglobal("complex");
-        Dictionary retrieved = state->todictionary(-1);
+        state->get_global("complex");
+        Dictionary retrieved = state->to_dictionary(-1);
 
         CHECK((String)retrieved["name"] == "complex");
 
@@ -377,7 +377,7 @@ TEST_CASE_FIXTURE(LuaStateFixture, "Dictionary: Edge cases")
 
         exec_lua(code);
 
-        Dictionary dict = state->todictionary(-1);
+        Dictionary dict = state->to_dictionary(-1);
 
         // Nil values may or may not be included depending on implementation
         CHECK(dict.has("a"));
@@ -394,11 +394,11 @@ TEST_CASE_FIXTURE(LuaStateFixture, "Dictionary: Edge cases")
             large[key] = i;
         }
 
-        state->pushdictionary(large);
-        state->setglobal("large");
+        state->push_dictionary(large);
+        state->set_global("large");
 
-        state->getglobal("large");
-        Dictionary retrieved = state->todictionary(-1);
+        state->get_global("large");
+        Dictionary retrieved = state->to_dictionary(-1);
         CHECK(retrieved.size() == 100);
         CHECK((int)retrieved["key0"] == 0);
         CHECK((int)retrieved["key50"] == 50);
@@ -413,8 +413,8 @@ TEST_CASE_FIXTURE(LuaStateFixture, "Dictionary: Edge cases")
         dict["with-dash"] = 3;
         dict[""] = 4; // Empty string key
 
-        state->pushdictionary(dict);
-        state->setglobal("special");
+        state->push_dictionary(dict);
+        state->set_global("special");
 
         const char *code = R"(
             v1 = special["with space"]
@@ -425,16 +425,16 @@ TEST_CASE_FIXTURE(LuaStateFixture, "Dictionary: Edge cases")
 
         exec_lua(code);
 
-        state->getglobal("v1");
-        CHECK(state->tointeger(-1) == 1);
+        state->get_global("v1");
+        CHECK(state->to_integer(-1) == 1);
         state->pop(1);
 
-        state->getglobal("v2");
-        CHECK(state->tointeger(-1) == 2);
+        state->get_global("v2");
+        CHECK(state->to_integer(-1) == 2);
         state->pop(1);
 
-        state->getglobal("v4");
-        CHECK(state->tointeger(-1) == 4);
+        state->get_global("v4");
+        CHECK(state->to_integer(-1) == 4);
     }
 
 }

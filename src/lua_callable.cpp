@@ -129,7 +129,7 @@ void LuaCallable::call(const Variant **p_arguments, int p_argcount, Variant &r_r
     // Push all arguments
     for (int i = 0; i < p_argcount; i++)
     {
-        state->pushvariant(*p_arguments[i]);
+        state->push_variant(*p_arguments[i]);
     }
 
     // Call the function using pcall for error handling
@@ -158,14 +158,14 @@ void LuaCallable::call(const Variant **p_arguments, int p_argcount, Variant &r_r
     else if (nresults == 1)
     {
         // Single return value
-        r_return_value = state->tovariant(-1);
+        r_return_value = state->to_variant(-1);
         lua_pop(L, 1);
     }
     else
     {
         // Multiple return values - return first and warn
         WARN_PRINT(vformat("LuaCallable: Lua function returned %d values, returning only the first.", nresults));
-        r_return_value = state->tovariant(-nresults); // Get first return value
+        r_return_value = state->to_variant(-nresults); // Get first return value
         lua_pop(L, nresults);                         // Pop all return values
     }
 }

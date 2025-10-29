@@ -18,7 +18,7 @@ TEST_CASE_FIXTURE(LuaStateFixture, "Array: Simple array conversion Godot -> Lua"
         arr.push_back(3);
 
         // Use the LuaState wrapper to push
-        state->pusharray(arr);
+        state->push_array(arr);
 
         // Should be a table
         CHECK(lua_istable(L, -1));
@@ -48,7 +48,7 @@ TEST_CASE_FIXTURE(LuaStateFixture, "Array: Simple array conversion Godot -> Lua"
         arr.push_back(true);
         arr.push_back(3.14);
 
-        state->pusharray(arr);
+        state->push_array(arr);
         CHECK(lua_objlen(L, -1) == 4);
 
         lua_rawgeti(L, -1, 1);
@@ -71,7 +71,7 @@ TEST_CASE_FIXTURE(LuaStateFixture, "Array: Simple array conversion Godot -> Lua"
     {
         Array arr;
 
-        state->pusharray(arr);
+        state->push_array(arr);
         CHECK(lua_istable(L, -1));
         CHECK(lua_objlen(L, -1) == 0);
     }
@@ -84,11 +84,11 @@ TEST_CASE_FIXTURE(LuaStateFixture, "Array: Lua table -> Godot Array conversion")
     SUBCASE("Simple numeric table")
     {
         const char *code = "return {10, 20, 30, 40}";
-        state->loadstring(code, "test");
+        state->load_string(code, "test");
         state->call(0, 1);
 
         // Convert to Array
-        Array result = state->toarray(-1);
+        Array result = state->to_array(-1);
         CHECK(result.size() == 4);
         CHECK((int)result[0] == 10);
         CHECK((int)result[1] == 20);
@@ -99,10 +99,10 @@ TEST_CASE_FIXTURE(LuaStateFixture, "Array: Lua table -> Godot Array conversion")
     SUBCASE("Array detection via isarray")
     {
         // Test that consecutive integer keys are detected as array
-        state->dostring("t = {10, 20, 30}", "test");
-        state->getglobal("t");
+        state->do_string("t = {10, 20, 30}", "test");
+        state->get_global("t");
 
-        CHECK(state->isarray(-1));
+        CHECK(state->is_array(-1));
         CHECK(lua_objlen(L, -1) == 3);
     }
 
@@ -125,7 +125,7 @@ TEST_CASE_FIXTURE(LuaStateFixture, "Array: Nested arrays")
         outer.push_back(inner1);
         outer.push_back(inner2);
 
-        state->pusharray(outer);
+        state->push_array(outer);
 
         // Check outer table
         CHECK(lua_istable(L, -1));
@@ -159,7 +159,7 @@ TEST_CASE_FIXTURE(LuaStateFixture, "Array: Nested arrays")
         Array level1;
         level1.push_back(level2);
 
-        state->pusharray(level1);
+        state->push_array(level1);
 
         // Navigate down the nested structure
         lua_rawgeti(L, -1, 1);
@@ -185,12 +185,12 @@ TEST_CASE_FIXTURE(LuaStateFixture, "Array: Round-trip conversion")
         original.push_back(3);
 
         // Push to Lua
-        state->pusharray(original);
-        state->setglobal("test_array");
+        state->push_array(original);
+        state->set_global("test_array");
 
         // Retrieve from Lua
-        state->getglobal("test_array");
-        Array retrieved = state->toarray(-1);
+        state->get_global("test_array");
+        Array retrieved = state->to_array(-1);
 
         CHECK(retrieved.size() == 3);
         CHECK((int)retrieved[0] == 1);
@@ -206,11 +206,11 @@ TEST_CASE_FIXTURE(LuaStateFixture, "Array: Round-trip conversion")
         original.push_back(3.14);
         original.push_back(true);
 
-        state->pusharray(original);
-        state->setglobal("mixed");
+        state->push_array(original);
+        state->set_global("mixed");
 
-        state->getglobal("mixed");
-        Array retrieved = state->toarray(-1);
+        state->get_global("mixed");
+        Array retrieved = state->to_array(-1);
 
         CHECK(retrieved.size() == 4);
         CHECK((int)retrieved[0] == 42);
@@ -229,11 +229,11 @@ TEST_CASE_FIXTURE(LuaStateFixture, "Array: Round-trip conversion")
         outer.push_back(inner);
         outer.push_back(99);
 
-        state->pusharray(outer);
-        state->setglobal("nested");
+        state->push_array(outer);
+        state->set_global("nested");
 
-        state->getglobal("nested");
-        Array retrieved = state->toarray(-1);
+        state->get_global("nested");
+        Array retrieved = state->to_array(-1);
 
         CHECK(retrieved.size() == 2);
 
@@ -262,10 +262,10 @@ TEST_CASE_FIXTURE(LuaStateFixture, "Array: Array vs Dictionary detection")
         state->resume();
 
         // Result should be on stack
-        CHECK(state->isarray(-1));
-        CHECK_FALSE(state->isdictionary(-1));
+        CHECK(state->is_array(-1));
+        CHECK_FALSE(state->is_dictionary(-1));
 
-        Array arr = state->toarray(-1);
+        Array arr = state->to_array(-1);
         CHECK(arr.size() == 3);
     }
 
@@ -281,8 +281,8 @@ TEST_CASE_FIXTURE(LuaStateFixture, "Array: Array vs Dictionary detection")
         state->resume();
 
         // Should be detected as dictionary due to missing index 2
-        CHECK_FALSE(state->isarray(-1));
-        CHECK(state->isdictionary(-1));
+        CHECK_FALSE(state->is_array(-1));
+        CHECK(state->is_dictionary(-1));
     }
 
     SUBCASE("String keys = dictionary")
@@ -296,8 +296,8 @@ TEST_CASE_FIXTURE(LuaStateFixture, "Array: Array vs Dictionary detection")
         state->load_bytecode(bytecode, "test");
         state->resume();
 
-        CHECK_FALSE(state->isarray(-1));
-        CHECK(state->isdictionary(-1));
+        CHECK_FALSE(state->is_array(-1));
+        CHECK(state->is_dictionary(-1));
     }
 
     SUBCASE("Mixed keys = dictionary")
@@ -312,8 +312,8 @@ TEST_CASE_FIXTURE(LuaStateFixture, "Array: Array vs Dictionary detection")
         state->resume();
 
         // Has both numeric and string keys -> dictionary
-        CHECK_FALSE(state->isarray(-1));
-        CHECK(state->isdictionary(-1));
+        CHECK_FALSE(state->is_array(-1));
+        CHECK(state->is_dictionary(-1));
     }
 
 }
@@ -334,7 +334,7 @@ TEST_CASE_FIXTURE(LuaStateFixture, "Array: Edge cases")
 
         // Lua arrays with nil values have shorter length
         // lua_objlen stops at first nil
-        Array arr = state->toarray(-1);
+        Array arr = state->to_array(-1);
         // The actual behavior depends on implementation
         // Typically, nil terminates the array in Lua's perspective
     }
@@ -347,11 +347,11 @@ TEST_CASE_FIXTURE(LuaStateFixture, "Array: Edge cases")
             large.push_back(i);
         }
 
-        state->pusharray(large);
-        state->setglobal("large");
+        state->push_array(large);
+        state->set_global("large");
 
-        state->getglobal("large");
-        Array retrieved = state->toarray(-1);
+        state->get_global("large");
+        Array retrieved = state->to_array(-1);
 
         CHECK(retrieved.size() == 1000);
         CHECK((int)retrieved[0] == 0);

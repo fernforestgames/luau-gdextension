@@ -20,8 +20,8 @@ derivative) into Godot Engine.
 - `LuaCallable` in `lua_callable.h/cpp`: Wraps Lua functions as Godot Callables,
   enabling bidirectional callable bridging between Godot and Luau. Uses manual
   reference counting to manage LuaState lifetime.
-- **Lua threads**: LuaState supports Lua threads (coroutines) via `newthread()`
-  and `tothread()` methods. Thread LuaState instances share globals with the
+- **Lua threads**: LuaState supports Lua threads (coroutines) via `new_thread()`
+  and `to_thread()` methods. Thread LuaState instances share globals with the
   parent but have independent stacks. Thread lifecycles are managed via Godot's
   reference counting.
 
@@ -103,13 +103,13 @@ sample Luau script.
   - Error handling: Prints errors and returns nil on failure
   - Multiple returns: Returns first value with warning
 - **Thread support:** Lua threads (coroutines) for cooperative multitasking:
-  - `newthread()` creates a thread and pushes it to the stack
-  - `tothread(index)` converts stack value to a LuaState wrapper
+  - `new_thread()` creates a thread and pushes it to the stack
+  - `to_thread(index)` converts stack value to a LuaState wrapper
   - Threads keep parent alive via reference counting
   - Explicit `parent.close()` invalidates all child threads
   - Threads share global state but have independent execution stacks
   - Creating new wrapper from same thread is safe (independent ref counting)
-- All Lua execution happens on on a single OS thread (Lua threads are cooperative, not OS threads)
+- All Lua execution happens on a single OS thread (Lua threads are cooperative, not OS threads)
 
 ## Testing
 
@@ -202,21 +202,21 @@ func _on_step(state: LuaState) -> void:
 
 ```gdscript
 var state = LuaState.new()
-state.openlibs()
-state.dostring("function coro() coroutine.yield(1); return 2 end")
+state.open_libs()
+state.do_string("function coro() coroutine.yield(1); return 2 end")
 
 # Create thread
-var thread = state.newthread()  # Pushes thread to stack
+var thread = state.new_thread()  # Pushes thread to stack
 state.pop(1)  # Clean up stack
 
 # Execute coroutine in thread
-thread.getglobal("coro")
+thread.get_global("coro")
 assert(thread.resume(0) == LUA_YIELD)  # Yields 1
-print(thread.tonumber(-1))  # Prints 1
+print(thread.to_number(-1))  # Prints 1
 thread.pop(1)
 
 assert(thread.resume(0) == LUA_OK)  # Returns 2
-print(thread.tonumber(-1))  # Prints 2
+print(thread.to_number(-1))  # Prints 2
 ```
 
 **Important thread lifecycle rules:**

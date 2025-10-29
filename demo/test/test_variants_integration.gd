@@ -5,7 +5,7 @@ var L: LuaState
 
 func before_each() -> void:
 	L = LuaState.new()
-	L.openlibs()
+	L.open_libs()
 
 func after_each() -> void:
 	if L:
@@ -14,7 +14,7 @@ func after_each() -> void:
 
 # Helper to verify Lua stack is balanced
 func assert_stack_balanced(expected_top: int = 0) -> void:
-	assert_eq(L.gettop(), expected_top, "Lua stack should be balanced at %d, but is %d" % [expected_top, L.gettop()])
+	assert_eq(L.get_top(), expected_top, "Lua stack should be balanced at %d, but is %d" % [expected_top, L.get_top()])
 
 # ============================================================================
 # Primitive Type Tests
@@ -22,80 +22,80 @@ func assert_stack_balanced(expected_top: int = 0) -> void:
 
 func test_nil_variant() -> void:
 	var nil_var = null
-	L.pushvariant(nil_var)
+	L.push_variant(nil_var)
 
-	assert_true(L.isnil(-1), "Should be nil in Lua")
+	assert_true(L.is_nil(-1), "Should be nil in Lua")
 
-	var retrieved = L.tovariant(-1)
+	var retrieved = L.to_variant(-1)
 	assert_null(retrieved, "Should retrieve as null")
 
 func test_boolean_true() -> void:
 	var bool_var = true
-	L.pushvariant(bool_var)
+	L.push_variant(bool_var)
 
-	assert_true(L.isboolean(-1))
-	assert_true(L.toboolean(-1))
+	assert_true(L.is_boolean(-1))
+	assert_true(L.to_boolean(-1))
 
-	var retrieved = L.tovariant(-1)
+	var retrieved = L.to_variant(-1)
 	assert_typeof(retrieved, TYPE_BOOL)
 	assert_true(retrieved)
 
 func test_boolean_false() -> void:
 	var bool_var = false
-	L.pushvariant(bool_var)
+	L.push_variant(bool_var)
 
-	assert_true(L.isboolean(-1))
-	assert_false(L.toboolean(-1))
+	assert_true(L.is_boolean(-1))
+	assert_false(L.to_boolean(-1))
 
-	var retrieved = L.tovariant(-1)
+	var retrieved = L.to_variant(-1)
 	assert_false(retrieved)
 
 func test_integer() -> void:
 	var int_var = 42
-	L.pushvariant(int_var)
+	L.push_variant(int_var)
 
-	assert_true(L.isnumber(-1))
-	assert_eq(L.tointeger(-1), 42)
+	assert_true(L.is_number(-1))
+	assert_eq(L.to_integer(-1), 42)
 
-	var retrieved = L.tovariant(-1)
+	var retrieved = L.to_variant(-1)
 	assert_eq(int(retrieved), 42)
 
 func test_float() -> void:
 	var float_var = 3.14159
-	L.pushvariant(float_var)
+	L.push_variant(float_var)
 
-	assert_true(L.isnumber(-1))
-	assert_almost_eq(L.tonumber(-1), 3.14159, 0.00001)
+	assert_true(L.is_number(-1))
+	assert_almost_eq(L.to_number(-1), 3.14159, 0.00001)
 
-	var retrieved = L.tovariant(-1)
+	var retrieved = L.to_variant(-1)
 	assert_almost_eq(float(retrieved), 3.14159, 0.00001)
 
 func test_negative_numbers() -> void:
 	var neg_int = -100
-	L.pushvariant(neg_int)
+	L.push_variant(neg_int)
 
-	var retrieved = L.tovariant(-1)
+	var retrieved = L.to_variant(-1)
 	assert_eq(int(retrieved), -100)
 
 func test_zero() -> void:
 	var zero = 0
-	L.pushvariant(zero)
+	L.push_variant(zero)
 
-	var retrieved = L.tovariant(-1)
+	var retrieved = L.to_variant(-1)
 	assert_eq(int(retrieved), 0)
 
 func test_very_large_integer() -> void:
 	var large = 2147483647  # Max 32-bit int
-	L.pushvariant(large)
+	L.push_variant(large)
 
-	var retrieved = L.tovariant(-1)
+	var retrieved = L.to_variant(-1)
 	assert_eq(int(retrieved), 2147483647)
 
 func test_very_small_float() -> void:
 	var small = 0.000001
-	L.pushvariant(small)
+	L.push_variant(small)
 
-	var retrieved = L.tovariant(-1)
+	var retrieved = L.to_variant(-1)
 	assert_almost_eq(float(retrieved), 0.000001, 0.0000001)
 
 # ============================================================================
@@ -104,37 +104,37 @@ func test_very_small_float() -> void:
 
 func test_simple_string() -> void:
 	var str_var = "hello world"
-	L.pushvariant(str_var)
+	L.push_variant(str_var)
 
-	assert_true(L.isstring(-1))
-	assert_eq(L.tostring(-1), "hello world")
+	assert_true(L.is_string(-1))
+	assert_eq(L.to_string(-1), "hello world")
 
-	var retrieved = L.tovariant(-1)
+	var retrieved = L.to_variant(-1)
 	assert_typeof(retrieved, TYPE_STRING)
 	assert_eq(retrieved, "hello world")
 
 func test_empty_string() -> void:
 	var empty = ""
-	L.pushvariant(empty)
+	L.push_variant(empty)
 
-	assert_true(L.isstring(-1))
-	assert_false(L.isnil(-1), "Empty string should not be nil")
+	assert_true(L.is_string(-1))
+	assert_false(L.is_nil(-1), "Empty string should not be nil")
 
-	var retrieved = L.tovariant(-1)
+	var retrieved = L.to_variant(-1)
 	assert_eq(retrieved, "")
 
 func test_string_with_special_characters() -> void:
 	var special = "Hello\nWorld\t!"
-	L.pushvariant(special)
+	L.push_variant(special)
 
-	var retrieved = L.tovariant(-1)
+	var retrieved = L.to_variant(-1)
 	assert_eq(retrieved, "Hello\nWorld\t!")
 
 func test_unicode_string() -> void:
 	var unicode = "こんにちは 世界 🌍"
-	L.pushvariant(unicode)
+	L.push_variant(unicode)
 
-	var retrieved = L.tovariant(-1)
+	var retrieved = L.to_variant(-1)
 	assert_eq(retrieved, "こんにちは 世界 🌍")
 
 func test_very_long_string() -> void:
@@ -142,8 +142,8 @@ func test_very_long_string() -> void:
 	for i in range(1000):
 		long_str += "x"
 
-	L.pushvariant(long_str)
-	var retrieved = L.tovariant(-1)
+	L.push_variant(long_str)
+	var retrieved = L.to_variant(-1)
 
 	assert_eq(retrieved.length(), 1000)
 
@@ -154,8 +154,8 @@ func test_very_long_string() -> void:
 func test_vector2_variant() -> void:
 	var vec = Vector2(3.5, 4.5)
 
-	L.pushvariant(vec)
-	var retrieved = L.tovariant(-1)
+	L.push_variant(vec)
+	var retrieved = L.to_variant(-1)
 
 	assert_typeof(retrieved, TYPE_VECTOR2)
 	assert_almost_eq(retrieved.x, 3.5, 0.001)
@@ -164,8 +164,8 @@ func test_vector2_variant() -> void:
 func test_vector2i_variant() -> void:
 	var vec = Vector2i(10, 20)
 
-	L.pushvariant(vec)
-	var retrieved = L.tovariant(-1)
+	L.push_variant(vec)
+	var retrieved = L.to_variant(-1)
 
 	assert_typeof(retrieved, TYPE_VECTOR2I)
 	assert_eq(retrieved.x, 10)
@@ -174,8 +174,8 @@ func test_vector2i_variant() -> void:
 func test_vector3_variant() -> void:
 	var vec = Vector3(1.0, 2.0, 3.0)
 
-	L.pushvariant(vec)
-	var retrieved = L.tovariant(-1)
+	L.push_variant(vec)
+	var retrieved = L.to_variant(-1)
 
 	assert_typeof(retrieved, TYPE_VECTOR3)
 	assert_almost_eq(retrieved.x, 1.0, 0.001)
@@ -185,8 +185,8 @@ func test_vector3_variant() -> void:
 func test_vector3i_variant() -> void:
 	var vec = Vector3i(100, 200, 300)
 
-	L.pushvariant(vec)
-	var retrieved = L.tovariant(-1)
+	L.push_variant(vec)
+	var retrieved = L.to_variant(-1)
 
 	assert_typeof(retrieved, TYPE_VECTOR3I)
 	assert_eq(retrieved.x, 100)
@@ -196,8 +196,8 @@ func test_vector3i_variant() -> void:
 func test_color_variant() -> void:
 	var col = Color(1.0, 0.5, 0.0, 0.8)
 
-	L.pushvariant(col)
-	var retrieved = L.tovariant(-1)
+	L.push_variant(col)
+	var retrieved = L.to_variant(-1)
 
 	assert_typeof(retrieved, TYPE_COLOR)
 	assert_almost_eq(retrieved.r, 1.0, 0.001)
@@ -208,8 +208,8 @@ func test_color_variant() -> void:
 func test_vector4_variant() -> void:
 	var vec = Vector4(1.5, 2.5, 3.5, 4.5)
 
-	L.pushvariant(vec)
-	var retrieved = L.tovariant(-1)
+	L.push_variant(vec)
+	var retrieved = L.to_variant(-1)
 
 	assert_typeof(retrieved, TYPE_VECTOR4)
 	assert_almost_eq(retrieved.x, 1.5, 0.001)
@@ -220,8 +220,8 @@ func test_vector4_variant() -> void:
 func test_vector4i_variant() -> void:
 	var vec = Vector4i(10, 20, 30, 40)
 
-	L.pushvariant(vec)
-	var retrieved = L.tovariant(-1)
+	L.push_variant(vec)
+	var retrieved = L.to_variant(-1)
 
 	assert_typeof(retrieved, TYPE_VECTOR4I)
 	assert_eq(retrieved.x, 10)
@@ -232,8 +232,8 @@ func test_vector4i_variant() -> void:
 func test_rect2_variant() -> void:
 	var rect = Rect2(10.0, 20.0, 100.0, 200.0)
 
-	L.pushvariant(rect)
-	var retrieved = L.tovariant(-1)
+	L.push_variant(rect)
+	var retrieved = L.to_variant(-1)
 
 	assert_typeof(retrieved, TYPE_RECT2)
 	assert_almost_eq(retrieved.position.x, 10.0, 0.001)
@@ -244,8 +244,8 @@ func test_rect2_variant() -> void:
 func test_rect2i_variant() -> void:
 	var rect = Rect2i(5, 10, 50, 100)
 
-	L.pushvariant(rect)
-	var retrieved = L.tovariant(-1)
+	L.push_variant(rect)
+	var retrieved = L.to_variant(-1)
 
 	assert_typeof(retrieved, TYPE_RECT2I)
 	assert_eq(retrieved.position.x, 5)
@@ -256,8 +256,8 @@ func test_rect2i_variant() -> void:
 func test_aabb_variant() -> void:
 	var box = AABB(Vector3(1, 2, 3), Vector3(10, 20, 30))
 
-	L.pushvariant(box)
-	var retrieved = L.tovariant(-1)
+	L.push_variant(box)
+	var retrieved = L.to_variant(-1)
 
 	assert_typeof(retrieved, TYPE_AABB)
 	assert_almost_eq(retrieved.position.x, 1.0, 0.001)
@@ -270,8 +270,8 @@ func test_aabb_variant() -> void:
 func test_plane_variant() -> void:
 	var plane = Plane(1.0, 0.0, 0.0, 5.0)
 
-	L.pushvariant(plane)
-	var retrieved = L.tovariant(-1)
+	L.push_variant(plane)
+	var retrieved = L.to_variant(-1)
 
 	assert_typeof(retrieved, TYPE_PLANE)
 	assert_almost_eq(retrieved.normal.x, 1.0, 0.001)
@@ -282,8 +282,8 @@ func test_plane_variant() -> void:
 func test_quaternion_variant() -> void:
 	var quat = Quaternion(0.0, 0.0, 0.0, 1.0)
 
-	L.pushvariant(quat)
-	var retrieved = L.tovariant(-1)
+	L.push_variant(quat)
+	var retrieved = L.to_variant(-1)
 
 	assert_typeof(retrieved, TYPE_QUATERNION)
 	assert_almost_eq(retrieved.x, 0.0, 0.001)
@@ -294,8 +294,8 @@ func test_quaternion_variant() -> void:
 func test_basis_variant() -> void:
 	var basis = Basis()  # Identity
 
-	L.pushvariant(basis)
-	var retrieved = L.tovariant(-1)
+	L.push_variant(basis)
+	var retrieved = L.to_variant(-1)
 
 	assert_typeof(retrieved, TYPE_BASIS)
 	assert_eq(retrieved, Basis())
@@ -303,8 +303,8 @@ func test_basis_variant() -> void:
 func test_transform2d_variant() -> void:
 	var transform = Transform2D()  # Identity
 
-	L.pushvariant(transform)
-	var retrieved = L.tovariant(-1)
+	L.push_variant(transform)
+	var retrieved = L.to_variant(-1)
 
 	assert_typeof(retrieved, TYPE_TRANSFORM2D)
 	assert_eq(retrieved, Transform2D())
@@ -312,8 +312,8 @@ func test_transform2d_variant() -> void:
 func test_transform3d_variant() -> void:
 	var transform = Transform3D()  # Identity
 
-	L.pushvariant(transform)
-	var retrieved = L.tovariant(-1)
+	L.push_variant(transform)
+	var retrieved = L.to_variant(-1)
 
 	assert_typeof(retrieved, TYPE_TRANSFORM3D)
 	assert_eq(retrieved, Transform3D())
@@ -321,8 +321,8 @@ func test_transform3d_variant() -> void:
 func test_projection_variant() -> void:
 	var projection = Projection()  # Identity
 
-	L.pushvariant(projection)
-	var retrieved = L.tovariant(-1)
+	L.push_variant(projection)
+	var retrieved = L.to_variant(-1)
 
 	assert_typeof(retrieved, TYPE_PROJECTION)
 	assert_eq(retrieved, Projection())
@@ -334,10 +334,10 @@ func test_projection_variant() -> void:
 func test_array_variant() -> void:
 	var arr = [1, "two", 3.0]
 
-	L.pushvariant(arr)
-	assert_true(L.istable(-1))
+	L.push_variant(arr)
+	assert_true(L.is_table(-1))
 
-	var retrieved = L.tovariant(-1)
+	var retrieved = L.to_variant(-1)
 	assert_typeof(retrieved, TYPE_ARRAY)
 
 	var arr_result = retrieved as Array
@@ -349,10 +349,10 @@ func test_array_variant() -> void:
 func test_dictionary_variant() -> void:
 	var dict = {"name": "test", "value": 42}
 
-	L.pushvariant(dict)
-	assert_true(L.istable(-1))
+	L.push_variant(dict)
+	assert_true(L.is_table(-1))
 
-	var retrieved = L.tovariant(-1)
+	var retrieved = L.to_variant(-1)
 	assert_typeof(retrieved, TYPE_DICTIONARY)
 
 	var dict_result = retrieved as Dictionary
@@ -361,17 +361,17 @@ func test_dictionary_variant() -> void:
 
 func test_empty_array_variant() -> void:
 	var empty = []
-	L.pushvariant(empty)
+	L.push_variant(empty)
 
-	var retrieved = L.tovariant(-1)
+	var retrieved = L.to_variant(-1)
 	var arr = retrieved as Array
 	assert_eq(arr.size(), 0)
 
 func test_empty_dictionary_variant() -> void:
 	var empty = {}
-	L.pushvariant(empty)
+	L.push_variant(empty)
 
-	var retrieved = L.tovariant(-1)
+	var retrieved = L.to_variant(-1)
 	var dict = retrieved as Dictionary
 	assert_eq(dict.size(), 0)
 
@@ -381,9 +381,9 @@ func test_empty_dictionary_variant() -> void:
 
 func test_nested_array_variant() -> void:
 	var nested = [[1, 2], [3, 4]]
-	L.pushvariant(nested)
+	L.push_variant(nested)
 
-	var retrieved = L.tovariant(-1)
+	var retrieved = L.to_variant(-1)
 	var outer = retrieved as Array
 
 	assert_eq(outer.size(), 2)
@@ -403,8 +403,8 @@ func test_complex_nested_variant() -> void:
 		"name": "complex"
 	}
 
-	L.pushvariant(complex)
-	var retrieved = L.tovariant(-1)
+	L.push_variant(complex)
+	var retrieved = L.to_variant(-1)
 
 	var dict = retrieved as Dictionary
 	assert_eq(dict["name"], "complex")
@@ -418,9 +418,9 @@ func test_complex_nested_variant() -> void:
 
 func test_array_with_mixed_types_including_math() -> void:
 	var arr = [42, Vector2(1, 2), "text", Color(1, 0, 0, 1)]
-	L.pushvariant(arr)
+	L.push_variant(arr)
 
-	var retrieved = L.tovariant(-1)
+	var retrieved = L.to_variant(-1)
 	var result = retrieved as Array
 
 	assert_eq(result.size(), 4)
@@ -442,8 +442,8 @@ func test_array_with_mixed_types_including_math() -> void:
 
 func test_modify_variant_in_lua() -> void:
 	var original = [1, 2]
-	L.pushvariant(original)
-	L.setglobal("arr")
+	L.push_variant(original)
+	L.set_global("arr")
 
 	var code: String = """
 	table.insert(arr, 3)
@@ -455,7 +455,7 @@ func test_modify_variant_in_lua() -> void:
 	L.load_bytecode(bytecode, "test")
 	L.resume()
 
-	var result = L.tovariant(-1)
+	var result = L.to_variant(-1)
 	var result_arr = result as Array
 
 	assert_eq(result_arr.size(), 4)
@@ -479,7 +479,7 @@ func test_create_complex_structure_in_lua() -> void:
 	L.load_bytecode(bytecode, "test")
 	L.resume()
 
-	var result = L.tovariant(-1)
+	var result = L.to_variant(-1)
 	var dict = result as Dictionary
 
 	assert_true(dict.has("position"))
@@ -504,36 +504,36 @@ func test_create_complex_structure_in_lua() -> void:
 # ============================================================================
 
 func test_multiple_nil_variants() -> void:
-	L.pushvariant(null)
-	L.pushvariant(null)
-	L.pushvariant(null)
+	L.push_variant(null)
+	L.push_variant(null)
+	L.push_variant(null)
 
-	assert_eq(L.gettop(), 3)
-	assert_true(L.isnil(-1))
-	assert_true(L.isnil(-2))
-	assert_true(L.isnil(-3))
+	assert_eq(L.get_top(), 3)
+	assert_true(L.is_nil(-1))
+	assert_true(L.is_nil(-2))
+	assert_true(L.is_nil(-3))
 
 func test_boolean_vs_nil() -> void:
-	L.pushvariant(false)
-	assert_true(L.isboolean(-1), "False should be boolean")
-	assert_false(L.isnil(-1), "False should not be nil")
+	L.push_variant(false)
+	assert_true(L.is_boolean(-1), "False should be boolean")
+	assert_false(L.is_nil(-1), "False should not be nil")
 	L.pop(1)
 
-	L.pushvariant(null)
-	assert_false(L.isboolean(-1), "Nil should not be boolean")
-	assert_true(L.isnil(-1), "Null should be nil")
+	L.push_variant(null)
+	assert_false(L.is_boolean(-1), "Nil should not be boolean")
+	assert_true(L.is_nil(-1), "Null should be nil")
 
 func test_zero_vs_nil() -> void:
-	L.pushvariant(0)
-	assert_true(L.isnumber(-1), "Zero should be number")
-	assert_false(L.isnil(-1), "Zero should not be nil")
-	assert_eq(L.tointeger(-1), 0)
+	L.push_variant(0)
+	assert_true(L.is_number(-1), "Zero should be number")
+	assert_false(L.is_nil(-1), "Zero should not be nil")
+	assert_eq(L.to_integer(-1), 0)
 
 func test_empty_string_vs_nil() -> void:
-	L.pushvariant("")
-	assert_true(L.isstring(-1), "Empty string should be string")
-	assert_false(L.isnil(-1), "Empty string should not be nil")
+	L.push_variant("")
+	assert_true(L.is_string(-1), "Empty string should be string")
+	assert_false(L.is_nil(-1), "Empty string should not be nil")
 
-	var retrieved = L.tovariant(-1)
+	var retrieved = L.to_variant(-1)
 	assert_eq(retrieved, "")
 	assert_ne(retrieved, null)

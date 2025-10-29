@@ -6,7 +6,7 @@ var L: LuaState
 
 func before_each() -> void:
 	L = LuaState.new()
-	L.openlibs()  # Load all libraries including Godot math types
+	L.open_libs()  # Load all libraries including Godot math types
 
 func after_each() -> void:
 	if L:
@@ -15,7 +15,7 @@ func after_each() -> void:
 
 # Helper to verify Lua stack is balanced
 func assert_stack_balanced(expected_top: int = 0) -> void:
-	assert_eq(L.gettop(), expected_top, "Lua stack should be balanced at %d, but is %d" % [expected_top, L.gettop()])
+	assert_eq(L.get_top(), expected_top, "Lua stack should be balanced at %d, but is %d" % [expected_top, L.get_top()])
 
 # ============================================================================
 # Vector2 Tests
@@ -23,11 +23,11 @@ func assert_stack_balanced(expected_top: int = 0) -> void:
 
 func test_vector2_round_trip() -> void:
 	var original: Vector2 = Vector2(3.5, 4.2)
-	L.pushvariant(original)
-	L.setglobal("v")
+	L.push_variant(original)
+	L.set_global("v")
 
-	L.getglobal("v")
-	var retrieved: Vector2 = L.tovariant(-1)
+	L.get_global("v")
+	var retrieved: Vector2 = L.to_variant(-1)
 	L.pop(1)
 
 	assert_typeof(retrieved, TYPE_VECTOR2, "Retrieved value should be Vector2 type")
@@ -43,7 +43,7 @@ func test_vector2_construction_in_lua() -> void:
 
 	assert_eq(status, Luau.LUA_OK, "Script should execute successfully without errors")
 
-	var result: Vector2 = L.tovariant(-1)
+	var result: Vector2 = L.to_variant(-1)
 	assert_typeof(result, TYPE_VECTOR2, "Lua-constructed value should be Vector2 type")
 	assert_almost_eq(result.x, 10.5, 0.001, "X component should match constructor argument")
 	assert_almost_eq(result.y, 20.3, 0.001, "Y component should match constructor argument")
@@ -52,8 +52,8 @@ func test_vector2_construction_in_lua() -> void:
 
 func test_vector2_property_access() -> void:
 	var v: Vector2 = Vector2(7.5, 8.5)
-	L.pushvariant(v)
-	L.setglobal("v")
+	L.push_variant(v)
+	L.set_global("v")
 
 	var code: String = """
 	x_val = v.x
@@ -66,8 +66,8 @@ func test_vector2_property_access() -> void:
 	L.resume()
 
 	# Results: x_val, y_val
-	var y: float = L.tonumber(-1)
-	var x: float = L.tonumber(-2)
+	var y: float = L.to_number(-1)
+	var x: float = L.to_number(-2)
 
 	assert_almost_eq(x, 7.5, 0.001, "X property access should return correct value")
 	assert_almost_eq(y, 8.5, 0.001, "Y property access should return correct value")
@@ -76,8 +76,8 @@ func test_vector2_property_access() -> void:
 
 func test_vector2_property_modification() -> void:
 	var v: Vector2 = Vector2(1.0, 2.0)
-	L.pushvariant(v)
-	L.setglobal("v")
+	L.push_variant(v)
+	L.set_global("v")
 
 	var code: String = """
 	v.x = 99.5
@@ -89,7 +89,7 @@ func test_vector2_property_modification() -> void:
 	L.load_bytecode(bytecode, "test")
 	L.resume()
 
-	var modified: Vector2 = L.tovariant(-1)
+	var modified: Vector2 = L.to_variant(-1)
 	assert_almost_eq(modified.x, 99.5, 0.001, "Modified X property should have new value")
 	assert_almost_eq(modified.y, 88.5, 0.001, "Modified Y property should have new value")
 	L.pop(1)
@@ -106,7 +106,7 @@ func test_vector2_addition() -> void:
 	L.load_bytecode(bytecode, "test")
 	L.resume()
 
-	var result = L.tovariant(-1)
+	var result = L.to_variant(-1)
 	assert_almost_eq(result.x, 4.0, 0.001)
 	assert_almost_eq(result.y, 6.0, 0.001)
 
@@ -120,7 +120,7 @@ func test_vector2_scalar_multiplication() -> void:
 	L.load_bytecode(bytecode, "test")
 	L.resume()
 
-	var result = L.tovariant(-1)
+	var result = L.to_variant(-1)
 	assert_almost_eq(result.x, 5.0, 0.001)
 	assert_almost_eq(result.y, 7.5, 0.001)
 
@@ -138,8 +138,8 @@ func test_vector2_equality() -> void:
 	L.load_bytecode(bytecode, "test")
 	L.resume()
 
-	var not_equal = L.toboolean(-1)
-	var equal = L.toboolean(-2)
+	var not_equal = L.to_boolean(-1)
+	var equal = L.to_boolean(-2)
 
 	assert_true(equal, "Equal vectors should compare true")
 	assert_false(not_equal, "Different vectors should compare false")
@@ -161,8 +161,8 @@ func test_vector2i_integer_operations() -> void:
 	L.load_bytecode(bytecode, "test")
 	L.resume()
 
-	var diff = L.tovariant(-1)
-	var sum = L.tovariant(-2)
+	var diff = L.to_variant(-1)
+	var sum = L.to_variant(-2)
 
 	assert_typeof(sum, TYPE_VECTOR2I)
 	assert_eq(sum.x, 13)
@@ -178,11 +178,11 @@ func test_vector2i_integer_operations() -> void:
 
 func test_vector3_native_operations() -> void:
 	var original = Vector3(1.5, 2.5, 3.5)
-	L.pushvariant(original)
-	L.setglobal("v")
+	L.push_variant(original)
+	L.set_global("v")
 
-	L.getglobal("v")
-	var retrieved = L.tovariant(-1)
+	L.get_global("v")
+	var retrieved = L.to_variant(-1)
 	L.pop(1)
 
 	assert_typeof(retrieved, TYPE_VECTOR3)
@@ -201,7 +201,7 @@ func test_vector3_arithmetic() -> void:
 	L.load_bytecode(bytecode, "test")
 	L.resume()
 
-	var sum = L.tovariant(-1)
+	var sum = L.to_variant(-1)
 	assert_typeof(sum, TYPE_VECTOR3)
 	assert_almost_eq(sum.x, 5.0, 0.001)
 	assert_almost_eq(sum.y, 7.0, 0.001)
@@ -217,9 +217,9 @@ func test_vector3_property_access() -> void:
 	L.load_bytecode(bytecode, "test")
 	L.resume()
 
-	var z = L.tonumber(-1)
-	var y = L.tonumber(-2)
-	var x = L.tonumber(-3)
+	var z = L.to_number(-1)
+	var y = L.to_number(-2)
+	var x = L.to_number(-3)
 
 	assert_almost_eq(x, 7.0, 0.001)
 	assert_almost_eq(y, 8.0, 0.001)
@@ -231,9 +231,9 @@ func test_vector3_property_access() -> void:
 
 func test_vector3i_construction() -> void:
 	var original = Vector3i(100, 200, 300)
-	L.pushvariant(original)
+	L.push_variant(original)
 
-	var retrieved = L.tovariant(-1)
+	var retrieved = L.to_variant(-1)
 	L.pop(1)
 
 	assert_typeof(retrieved, TYPE_VECTOR3I)
@@ -251,7 +251,7 @@ func test_vector3i_scalar_multiplication() -> void:
 	L.load_bytecode(bytecode, "test")
 	L.resume()
 
-	var result = L.tovariant(-1)
+	var result = L.to_variant(-1)
 	assert_eq(result.x, 10)
 	assert_eq(result.y, 20)
 	assert_eq(result.z, 30)
@@ -267,7 +267,7 @@ func test_color_rgb_construction() -> void:
 	L.load_bytecode(bytecode, "test")
 	L.resume()
 
-	var color = L.tovariant(-1)
+	var color = L.to_variant(-1)
 	assert_typeof(color, TYPE_COLOR)
 	assert_almost_eq(color.r, 1.0, 0.001)
 	assert_almost_eq(color.g, 0.5, 0.001)
@@ -281,7 +281,7 @@ func test_color_rgba_construction() -> void:
 	L.load_bytecode(bytecode, "test")
 	L.resume()
 
-	var color = L.tovariant(-1)
+	var color = L.to_variant(-1)
 	assert_almost_eq(color.r, 0.2, 0.001)
 	assert_almost_eq(color.g, 0.4, 0.001)
 	assert_almost_eq(color.b, 0.6, 0.001)
@@ -299,7 +299,7 @@ func test_color_property_modification() -> void:
 	L.load_bytecode(bytecode, "test")
 	L.resume()
 
-	var color = L.tovariant(-1)
+	var color = L.to_variant(-1)
 	assert_almost_eq(color.r, 1.0, 0.001)
 	assert_almost_eq(color.g, 0.5, 0.001)
 	assert_almost_eq(color.b, 0.0, 0.001)
@@ -316,7 +316,7 @@ func test_color_addition() -> void:
 	L.load_bytecode(bytecode, "test")
 	L.resume()
 
-	var result = L.tovariant(-1)
+	var result = L.to_variant(-1)
 	assert_almost_eq(result.r, 0.3, 0.001)
 	assert_almost_eq(result.g, 0.5, 0.001)
 	assert_almost_eq(result.b, 0.5, 0.001)
@@ -332,7 +332,7 @@ func test_color_scalar_multiplication() -> void:
 	L.load_bytecode(bytecode, "test")
 	L.resume()
 
-	var result = L.tovariant(-1)
+	var result = L.to_variant(-1)
 	assert_almost_eq(result.r, 1.0, 0.001)
 	assert_almost_eq(result.g, 1.0, 0.001)
 	assert_almost_eq(result.b, 1.0, 0.001)
@@ -341,9 +341,9 @@ func test_color_scalar_multiplication() -> void:
 
 func test_color_round_trip() -> void:
 	var original = Color(0.1, 0.2, 0.3, 0.4)
-	L.pushvariant(original)
+	L.push_variant(original)
 
-	var retrieved = L.tovariant(-1)
+	var retrieved = L.to_variant(-1)
 	L.pop(1)
 
 	assert_typeof(retrieved, TYPE_COLOR)

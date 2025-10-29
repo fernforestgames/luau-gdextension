@@ -5,7 +5,7 @@ var L: LuaState
 
 func before_each() -> void:
 	L = LuaState.new()
-	L.openlibs()
+	L.open_libs()
 
 func after_each() -> void:
 	if L:
@@ -14,7 +14,7 @@ func after_each() -> void:
 
 # Helper to verify Lua stack is balanced
 func assert_stack_balanced(expected_top: int = 0) -> void:
-	assert_eq(L.gettop(), expected_top, "Lua stack should be balanced at %d, but is %d" % [expected_top, L.gettop()])
+	assert_eq(L.get_top(), expected_top, "Lua stack should be balanced at %d, but is %d" % [expected_top, L.get_top()])
 
 # ============================================================================
 # Array Tests
@@ -22,11 +22,11 @@ func assert_stack_balanced(expected_top: int = 0) -> void:
 
 func test_simple_array_round_trip() -> void:
 	var original = [1, 2, 3, 4]
-	L.pushvariant(original)
-	L.setglobal("arr")
+	L.push_variant(original)
+	L.set_global("arr")
 
-	L.getglobal("arr")
-	var retrieved = L.toarray(-1)
+	L.get_global("arr")
+	var retrieved = L.to_array(-1)
 	L.pop(1)
 
 	assert_typeof(retrieved, TYPE_ARRAY)
@@ -38,11 +38,11 @@ func test_simple_array_round_trip() -> void:
 
 func test_mixed_type_array() -> void:
 	var original = [42, "hello", true, 3.14]
-	L.pushvariant(original)
-	L.setglobal("mixed")
+	L.push_variant(original)
+	L.set_global("mixed")
 
-	L.getglobal("mixed")
-	var retrieved = L.toarray(-1)
+	L.get_global("mixed")
+	var retrieved = L.to_array(-1)
 	L.pop(1)
 
 	assert_eq(retrieved.size(), 4)
@@ -53,9 +53,9 @@ func test_mixed_type_array() -> void:
 
 func test_empty_array() -> void:
 	var empty = []
-	L.pushvariant(empty)
+	L.push_variant(empty)
 
-	var retrieved = L.toarray(-1)
+	var retrieved = L.to_array(-1)
 	L.pop(1)
 
 	assert_typeof(retrieved, TYPE_ARRAY)
@@ -63,11 +63,11 @@ func test_empty_array() -> void:
 
 func test_nested_arrays() -> void:
 	var nested = [[1, 2], [3, 4], [5, 6]]
-	L.pushvariant(nested)
-	L.setglobal("nested")
+	L.push_variant(nested)
+	L.set_global("nested")
 
-	L.getglobal("nested")
-	var retrieved = L.toarray(-1)
+	L.get_global("nested")
+	var retrieved = L.to_array(-1)
 	L.pop(1)
 
 	assert_eq(retrieved.size(), 3)
@@ -84,8 +84,8 @@ func test_nested_arrays() -> void:
 
 func test_array_manipulation_in_lua() -> void:
 	var original = [10, 20, 30]
-	L.pushvariant(original)
-	L.setglobal("arr")
+	L.push_variant(original)
+	L.set_global("arr")
 
 	var code: String = """
 	table.insert(arr, 40)
@@ -97,7 +97,7 @@ func test_array_manipulation_in_lua() -> void:
 	L.load_bytecode(bytecode, "test")
 	L.resume()
 
-	var result = L.toarray(-1)
+	var result = L.to_array(-1)
 	assert_eq(result.size(), 5)
 	assert_eq(result[3], 40)
 	assert_eq(result[4], 50)
@@ -111,7 +111,7 @@ func test_array_creation_in_lua() -> void:
 	L.load_bytecode(bytecode, "test")
 	L.resume()
 
-	var result = L.toarray(-1)
+	var result = L.to_array(-1)
 	assert_eq(result.size(), 4)
 	assert_eq(result[0], 100)
 	assert_eq(result[3], 400)
@@ -123,8 +123,8 @@ func test_array_vs_dictionary_detection() -> void:
 	L.load_bytecode(bytecode1, "test1")
 	L.resume()
 
-	assert_true(L.isarray(-1), "Should detect as array")
-	assert_false(L.isdictionary(-1), "Should not be dictionary")
+	assert_true(L.is_array(-1), "Should detect as array")
+	assert_false(L.is_dictionary(-1), "Should not be dictionary")
 	L.pop(1)
 
 	# Non-consecutive keys = dictionary
@@ -133,8 +133,8 @@ func test_array_vs_dictionary_detection() -> void:
 	L.load_bytecode(bytecode2, "test2")
 	L.resume()
 
-	assert_false(L.isarray(-1), "Missing index 2, should be dictionary")
-	assert_true(L.isdictionary(-1), "Should detect as dictionary")
+	assert_false(L.is_array(-1), "Missing index 2, should be dictionary")
+	assert_true(L.is_dictionary(-1), "Should detect as dictionary")
 	L.pop(1)
 
 	# String keys = dictionary
@@ -143,16 +143,16 @@ func test_array_vs_dictionary_detection() -> void:
 	L.load_bytecode(bytecode3, "test3")
 	L.resume()
 
-	assert_false(L.isarray(-1), "String keys = dictionary")
-	assert_true(L.isdictionary(-1))
+	assert_false(L.is_array(-1), "String keys = dictionary")
+	assert_true(L.is_dictionary(-1))
 
 func test_large_array() -> void:
 	var large = []
 	for i in range(1000):
 		large.append(i)
 
-	L.pushvariant(large)
-	var retrieved = L.toarray(-1)
+	L.push_variant(large)
+	var retrieved = L.to_array(-1)
 	L.pop(1)
 
 	assert_eq(retrieved.size(), 1000)
@@ -166,11 +166,11 @@ func test_large_array() -> void:
 
 func test_simple_dictionary_round_trip() -> void:
 	var original = {"name": "test", "value": 42, "active": true}
-	L.pushvariant(original)
-	L.setglobal("dict")
+	L.push_variant(original)
+	L.set_global("dict")
 
-	L.getglobal("dict")
-	var retrieved = L.todictionary(-1)
+	L.get_global("dict")
+	var retrieved = L.to_dictionary(-1)
 	L.pop(1)
 
 	assert_typeof(retrieved, TYPE_DICTIONARY)
@@ -184,9 +184,9 @@ func test_simple_dictionary_round_trip() -> void:
 
 func test_empty_dictionary() -> void:
 	var empty = {}
-	L.pushvariant(empty)
+	L.push_variant(empty)
 
-	var retrieved = L.todictionary(-1)
+	var retrieved = L.to_dictionary(-1)
 	L.pop(1)
 
 	assert_typeof(retrieved, TYPE_DICTIONARY)
@@ -194,11 +194,11 @@ func test_empty_dictionary() -> void:
 
 func test_integer_keyed_dictionary() -> void:
 	var dict = {1: "one", 2: "two", 100: "hundred"}
-	L.pushvariant(dict)
-	L.setglobal("dict")
+	L.push_variant(dict)
+	L.set_global("dict")
 
-	L.getglobal("dict")
-	var retrieved = L.todictionary(-1)
+	L.get_global("dict")
+	var retrieved = L.to_dictionary(-1)
 	L.pop(1)
 
 	assert_eq(retrieved[1], "one")
@@ -211,11 +211,11 @@ func test_nested_dictionaries() -> void:
 		"settings": {"volume": 80, "fullscreen": true}
 	}
 
-	L.pushvariant(nested)
-	L.setglobal("data")
+	L.push_variant(nested)
+	L.set_global("data")
 
-	L.getglobal("data")
-	var retrieved = L.todictionary(-1)
+	L.get_global("data")
+	var retrieved = L.to_dictionary(-1)
 	L.pop(1)
 
 	assert_true(retrieved.has("user"))
@@ -243,7 +243,7 @@ func test_dictionary_from_lua() -> void:
 	L.load_bytecode(bytecode, "test")
 	L.resume()
 
-	var dict = L.todictionary(-1)
+	var dict = L.to_dictionary(-1)
 
 	assert_typeof(dict, TYPE_DICTIONARY)
 	assert_eq(dict["name"], "Alice")
@@ -264,7 +264,7 @@ func test_mixed_key_types_from_lua() -> void:
 	L.load_bytecode(bytecode, "test")
 	L.resume()
 
-	var dict = L.todictionary(-1)
+	var dict = L.to_dictionary(-1)
 
 	assert_true(dict.has("name"))
 	assert_true(dict.has(1))
@@ -276,8 +276,8 @@ func test_large_dictionary() -> void:
 	for i in range(100):
 		large["key" + str(i)] = i
 
-	L.pushvariant(large)
-	var retrieved = L.todictionary(-1)
+	L.push_variant(large)
+	var retrieved = L.to_dictionary(-1)
 	L.pop(1)
 
 	assert_eq(retrieved.size(), 100)
@@ -295,8 +295,8 @@ func test_dictionary_containing_arrays() -> void:
 		"count": 3
 	}
 
-	L.pushvariant(data)
-	L.setglobal("data")
+	L.push_variant(data)
+	L.set_global("data")
 
 	var code: String = """
 	items = data.items
@@ -309,8 +309,8 @@ func test_dictionary_containing_arrays() -> void:
 	L.load_bytecode(bytecode, "test")
 	L.resume()
 
-	var count = L.tointeger(-1)
-	var first = L.tointeger(-2)
+	var count = L.to_integer(-1)
+	var first = L.to_integer(-2)
 
 	assert_eq(first, 1)
 	assert_eq(count, 3)
@@ -321,8 +321,8 @@ func test_array_containing_dictionaries() -> void:
 		{"id": 2, "name": "Item B"}
 	]
 
-	L.pushvariant(items)
-	L.setglobal("items")
+	L.push_variant(items)
+	L.set_global("items")
 
 	var code: String = """
 	first_item = items[1]
@@ -335,8 +335,8 @@ func test_array_containing_dictionaries() -> void:
 	L.load_bytecode(bytecode, "test")
 	L.resume()
 
-	var second_id = L.tointeger(-1)
-	var first_name = L.tostring(-2)
+	var second_id = L.to_integer(-1)
+	var first_name = L.to_string(-2)
 
 	assert_eq(first_name, "Item A")
 	assert_eq(second_id, 2)
@@ -350,8 +350,8 @@ func test_deeply_nested_structures() -> void:
 		}
 	}
 
-	L.pushvariant(complex)
-	var retrieved = L.todictionary(-1)
+	L.push_variant(complex)
+	var retrieved = L.to_dictionary(-1)
 	L.pop(1)
 
 	var level1 = retrieved["level1"]
@@ -378,7 +378,7 @@ func test_complex_structure_from_lua() -> void:
 	L.load_bytecode(bytecode, "test")
 	L.resume()
 
-	var result = L.todictionary(-1)
+	var result = L.to_dictionary(-1)
 
 	assert_true(result.has("position"))
 	assert_true(result.has("items"))
@@ -409,8 +409,8 @@ func test_special_string_keys() -> void:
 		"": 4  # Empty string key
 	}
 
-	L.pushvariant(dict)
-	var retrieved = L.todictionary(-1)
+	L.push_variant(dict)
+	var retrieved = L.to_dictionary(-1)
 	L.pop(1)
 
 	assert_eq(retrieved["with space"], 1)
@@ -426,10 +426,10 @@ func test_table_with_zero_index() -> void:
 	L.resume()
 
 	# Should be dictionary (arrays start at 1 in Lua)
-	assert_true(L.isdictionary(-1))
-	assert_false(L.isarray(-1))
+	assert_true(L.is_dictionary(-1))
+	assert_false(L.is_array(-1))
 
-	var dict = L.todictionary(-1)
+	var dict = L.to_dictionary(-1)
 	assert_eq(dict[0], "zero")
 	assert_eq(dict[1], "one")
 
@@ -440,9 +440,9 @@ func test_table_with_negative_indices() -> void:
 	L.load_bytecode(bytecode, "test")
 	L.resume()
 
-	assert_true(L.isdictionary(-1))
+	assert_true(L.is_dictionary(-1))
 
-	var dict = L.todictionary(-1)
+	var dict = L.to_dictionary(-1)
 	assert_true(dict.has(-1))
 	assert_true(dict.has(1))
 	assert_eq(dict[-1], "neg")

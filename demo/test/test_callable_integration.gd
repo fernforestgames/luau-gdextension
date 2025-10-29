@@ -11,7 +11,7 @@ var L: LuaState
 
 func before_each() -> void:
 	L = LuaState.new()
-	L.openlibs() # Load all libraries including Godot types
+	L.open_libs() # Load all libraries including Godot types
 
 func after_each() -> void:
 	if L:
@@ -21,7 +21,7 @@ func after_each() -> void:
 
 # Helper to verify Lua stack is balanced
 func assert_stack_balanced(expected_top: int = 0) -> void:
-	assert_eq(L.gettop(), expected_top, "Lua stack should be balanced at %d, but is %d" % [expected_top, L.gettop()])
+	assert_eq(L.get_top(), expected_top, "Lua stack should be balanced at %d, but is %d" % [expected_top, L.get_top()])
 
 # ============================================================================
 # Lua Function → Godot Callable Tests
@@ -34,8 +34,8 @@ func test_lua_function_to_callable_conversion() -> void:
 	L.resume()
 
 	# Get the function as a Callable
-	L.getglobal("add")
-	var lua_func: Variant = L.tovariant(-1)
+	L.get_global("add")
+	var lua_func: Variant = L.to_variant(-1)
 	L.pop(1)
 
 	assert_typeof(lua_func, TYPE_CALLABLE, "Lua function should convert to Callable")
@@ -47,8 +47,8 @@ func test_lua_function_callable_invocation() -> void:
 	L.load_bytecode(bytecode, "test")
 	L.resume()
 
-	L.getglobal("multiply")
-	var lua_func: Callable = L.tovariant(-1)
+	L.get_global("multiply")
+	var lua_func: Callable = L.to_variant(-1)
 	L.pop(1)
 
 	var result: Variant = lua_func.call(5, 7)
@@ -65,8 +65,8 @@ func test_lua_function_with_string_args() -> void:
 	L.load_bytecode(bytecode, "test")
 	L.resume()
 
-	L.getglobal("greet")
-	var lua_func: Callable = L.tovariant(-1)
+	L.get_global("greet")
+	var lua_func: Callable = L.to_variant(-1)
 	L.pop(1)
 
 	var result: String = lua_func.call("World")
@@ -83,8 +83,8 @@ func test_lua_function_multiple_return_values() -> void:
 	L.load_bytecode(bytecode, "test")
 	L.resume()
 
-	L.getglobal("multi")
-	var lua_func: Callable = L.tovariant(-1)
+	L.get_global("multi")
+	var lua_func: Callable = L.to_variant(-1)
 	L.pop(1)
 
 	var result: Variant = lua_func.call()
@@ -102,8 +102,8 @@ func test_lua_function_with_godot_types() -> void:
 	L.load_bytecode(bytecode, "test")
 	L.resume()
 
-	L.getglobal("double_vector")
-	var lua_func: Callable = L.tovariant(-1)
+	L.get_global("double_vector")
+	var lua_func: Callable = L.to_variant(-1)
 	L.pop(1)
 
 	var input: Vector2 = Vector2(3.0, 4.0)
@@ -124,8 +124,8 @@ func test_lua_function_error_handling() -> void:
 	L.load_bytecode(bytecode, "test")
 	L.resume()
 
-	L.getglobal("error_func")
-	var lua_func: Callable = L.tovariant(-1)
+	L.get_global("error_func")
+	var lua_func: Callable = L.to_variant(-1)
 	L.pop(1)
 
 	var result: Variant = lua_func.call()
@@ -140,26 +140,26 @@ func test_lua_function_error_handling() -> void:
 func test_godot_callable_to_lua_conversion() -> void:
 	var callable: Callable = func(x): return x * 2
 
-	L.pushvariant(callable)
-	L.setglobal("godot_func")
+	L.push_variant(callable)
+	L.set_global("godot_func")
 
-	L.getglobal("godot_func")
-	assert_true(L.isuserdata(-1), "Callable should be pushed as userdata to Lua")
+	L.get_global("godot_func")
+	assert_true(L.is_userdata(-1), "Callable should be pushed as userdata to Lua")
 	L.pop(1)
 	assert_stack_balanced()
 
 func test_godot_callable_invocation_from_lua() -> void:
 	var callable: Callable = func(a, b): return a + b
 
-	L.pushvariant(callable)
-	L.setglobal("add")
+	L.push_variant(callable)
+	L.set_global("add")
 
 	var code: String = "return add(10, 20)"
 	var bytecode: PackedByteArray = Luau.compile(code)
 	L.load_bytecode(bytecode, "test")
 	L.resume()
 
-	var result: float = L.tonumber(-1)
+	var result: float = L.to_number(-1)
 	assert_eq(result, 30, "Callable should be invokable from Lua and return correct sum")
 	L.pop(1)
 	assert_stack_balanced()
@@ -167,15 +167,15 @@ func test_godot_callable_invocation_from_lua() -> void:
 func test_godot_callable_with_string_result() -> void:
 	var callable: Callable = func(name): return "Hello, " + name
 
-	L.pushvariant(callable)
-	L.setglobal("greet")
+	L.push_variant(callable)
+	L.set_global("greet")
 
 	var code: String = 'return greet("Lua")'
 	var bytecode: PackedByteArray = Luau.compile(code)
 	L.load_bytecode(bytecode, "test")
 	L.resume()
 
-	var result: String = L.tostring(-1)
+	var result: String = L.to_string(-1)
 	assert_eq(result, "Hello, Lua", "Callable should return concatenated string to Lua")
 	L.pop(1)
 	assert_stack_balanced()
@@ -183,8 +183,8 @@ func test_godot_callable_with_string_result() -> void:
 func test_godot_callable_with_vector_args() -> void:
 	var callable: Callable = func(v: Vector2): return v.length()
 
-	L.pushvariant(callable)
-	L.setglobal("get_length")
+	L.push_variant(callable)
+	L.set_global("get_length")
 
 	var code: String = """
 	v = Vector2(3, 4)
@@ -194,7 +194,7 @@ func test_godot_callable_with_vector_args() -> void:
 	L.load_bytecode(bytecode, "test")
 	L.resume()
 
-	var result: float = L.tonumber(-1)
+	var result: float = L.to_number(-1)
 	assert_almost_eq(result, 5.0, 0.001, "Callable should accept Vector2 from Lua and compute correct length")
 	L.pop(1)
 	assert_stack_balanced()
@@ -202,15 +202,15 @@ func test_godot_callable_with_vector_args() -> void:
 func test_godot_callable_returning_vector() -> void:
 	var callable: Callable = func(x, y): return Vector2(x, y)
 
-	L.pushvariant(callable)
-	L.setglobal("make_vector")
+	L.push_variant(callable)
+	L.set_global("make_vector")
 
 	var code: String = "return make_vector(7, 9)"
 	var bytecode: PackedByteArray = Luau.compile(code)
 	L.load_bytecode(bytecode, "test")
 	L.resume()
 
-	var result: Vector2 = L.tovariant(-1)
+	var result: Vector2 = L.to_variant(-1)
 	assert_typeof(result, TYPE_VECTOR2, "Callable should return Vector2 type to Lua")
 	assert_almost_eq(result.x, 7.0, 0.001, "Vector2.x should match passed argument")
 	assert_almost_eq(result.y, 9.0, 0.001, "Vector2.y should match passed argument")
@@ -228,13 +228,13 @@ func test_round_trip_lua_to_godot_to_lua() -> void:
 	L.resume()
 
 	# Get Lua function as Callable
-	L.getglobal("double")
-	var callable: Callable = L.tovariant(-1)
+	L.get_global("double")
+	var callable: Callable = L.to_variant(-1)
 	L.pop(1)
 
 	# Push it back to Lua
-	L.pushvariant(callable)
-	L.setglobal("godot_double")
+	L.push_variant(callable)
+	L.set_global("godot_double")
 
 	# Call it from Lua
 	var test_code: String = "return godot_double(21)"
@@ -242,7 +242,7 @@ func test_round_trip_lua_to_godot_to_lua() -> void:
 	L.load_bytecode(test_bytecode, "test2")
 	L.resume()
 
-	var result: float = L.tonumber(-1)
+	var result: float = L.to_number(-1)
 	assert_eq(result, 42, "Lua function should work correctly after round-trip through Godot Callable")
 	L.pop(1)
 	assert_stack_balanced()
@@ -252,8 +252,8 @@ func test_nested_callable_calls() -> void:
 	var apply_twice: Callable = func(callback, value):
 		return callback.call(callback.call(value))
 
-	L.pushvariant(apply_twice)
-	L.setglobal("apply_twice")
+	L.push_variant(apply_twice)
+	L.set_global("apply_twice")
 
 	var code: String = """
 	function increment(x)
@@ -268,7 +268,7 @@ func test_nested_callable_calls() -> void:
 	L.load_bytecode(bytecode, "test")
 	L.resume()
 
-	var result: float = L.tonumber(-1)
+	var result: float = L.to_number(-1)
 	assert_eq(result, 12, "Should apply Lua function twice through Godot callable: 10 + 1 + 1 = 12")
 	L.pop(1)
 	assert_stack_balanced()
@@ -281,8 +281,8 @@ func test_callable_argument_count_validation() -> void:
 	# Callable with fixed argument count
 	var callable: Callable = func(a, b): return a + b
 
-	L.pushvariant(callable)
-	L.setglobal("add")
+	L.push_variant(callable)
+	L.set_global("add")
 
 	# Try calling with wrong number of arguments
 	var code: String = "return add(1)" # Missing one argument
@@ -296,15 +296,15 @@ func test_callable_argument_count_validation() -> void:
 func test_callable_with_no_arguments() -> void:
 	var callable: Callable = func(): return 42
 
-	L.pushvariant(callable)
-	L.setglobal("get_answer")
+	L.push_variant(callable)
+	L.set_global("get_answer")
 
 	var code: String = "return get_answer()"
 	var bytecode: PackedByteArray = Luau.compile(code)
 	L.load_bytecode(bytecode, "test")
 	L.resume()
 
-	var result: float = L.tonumber(-1)
+	var result: float = L.to_number(-1)
 	assert_eq(result, 42, "Callable with no arguments should execute and return correct value")
 	L.pop(1)
 	assert_stack_balanced()
@@ -312,14 +312,14 @@ func test_callable_with_no_arguments() -> void:
 func test_callable_with_nil_result() -> void:
 	var callable: Callable = func(): return null
 
-	L.pushvariant(callable)
-	L.setglobal("get_nil")
+	L.push_variant(callable)
+	L.set_global("get_nil")
 
 	var code: String = "return get_nil()"
 	var bytecode: PackedByteArray = Luau.compile(code)
 	L.load_bytecode(bytecode, "test")
 	L.resume()
 
-	assert_true(L.isnil(-1), "Callable returning null should push nil value to Lua")
+	assert_true(L.is_nil(-1), "Callable returning null should push nil value to Lua")
 	L.pop(1)
 	assert_stack_balanced()

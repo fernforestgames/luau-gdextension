@@ -65,7 +65,7 @@ struct LuaStateFixture
     LuaStateFixture()
     {
         state = Ref<LuaState>(memnew(LuaState));
-        state->openlibs(LuaState::LIB_ALL);
+        state->open_libs(LuaState::LIB_ALL);
         L = state->get_lua_state();
     }
 

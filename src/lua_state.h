@@ -52,7 +52,7 @@ namespace godot
         LuaState();
         ~LuaState();
 
-        void openlibs(int libs = LIB_ALL);
+        void open_libs(int libs = LIB_ALL);
         void sandbox();
         void close();
 
@@ -60,88 +60,88 @@ namespace godot
         void open_library(lua_CFunction func, const char *name);
 
         lua_Status load_bytecode(const PackedByteArray &bytecode, const String &chunk_name);
-        lua_Status loadstring(const String &code, const String &chunk_name);
-        lua_Status dostring(const String &code, const String &chunk_name);
+        lua_Status load_string(const String &code, const String &chunk_name);
+        lua_Status do_string(const String &code, const String &chunk_name);
         lua_Status resume(int narg = 0);
 
-        void singlestep(bool enable);
+        void single_step(bool enable);
         void pause(); // a.k.a. break
 
         // Stack manipulation
-        int gettop() const;
-        void settop(int index);
-        bool checkstack(int extra);
+        int get_top() const;
+        void set_top(int index);
+        bool check_stack(int extra);
         void pop(int n);
-        void pushvalue(int index);
+        void push_value(int index);
         void remove(int index);
         void insert(int index);
         void replace(int index);
 
         // Type checking
-        bool isnil(int index) const;
-        bool isnumber(int index) const;
-        bool isstring(int index) const;
-        bool istable(int index) const;
-        bool isfunction(int index) const;
-        bool isuserdata(int index) const;
-        bool isboolean(int index) const;
-        bool isthread(int index) const;
+        bool is_nil(int index) const;
+        bool is_number(int index) const;
+        bool is_string(int index) const;
+        bool is_table(int index) const;
+        bool is_function(int index) const;
+        bool is_userdata(int index) const;
+        bool is_boolean(int index) const;
+        bool is_thread(int index) const;
         int type(int index) const;
         String type_name(int type_id) const;
 
         // Value access
-        double tonumber(int index);
-        int tointeger(int index);
-        bool toboolean(int index);
+        double to_number(int index);
+        int to_integer(int index);
+        bool to_boolean(int index);
 
         // Push operations
-        void pushnil();
-        void pushnumber(double n);
-        void pushinteger(int n);
-        void pushboolean(bool b);
-        bool pushthread(); // returns true if the thread is the main thread
+        void push_nil();
+        void push_number(double n);
+        void push_integer(int n);
+        void push_boolean(bool b);
+        bool push_thread(); // returns true if the thread is the main thread
 
         // Table operations
-        void newtable();
-        void createtable(int narr, int nrec);
-        void gettable(int index);
-        void settable(int index);
-        void getfield(int index, const String &key);
-        void setfield(int index, const String &key);
-        void getglobal(const String &key);
-        void setglobal(const String &key);
-        void rawget(int index);
-        void rawset(int index);
-        void rawgeti(int index, int n);
-        void rawseti(int index, int n);
+        void new_table();
+        void create_table(int narr, int nrec);
+        void get_table(int index);
+        void set_table(int index);
+        void get_field(int index, const String &key);
+        void set_field(int index, const String &key);
+        void get_global(const String &key);
+        void set_global(const String &key);
+        void raw_get(int index);
+        void raw_set(int index);
+        void raw_geti(int index, int n);
+        void raw_seti(int index, int n);
 
         // Metatable operations
-        bool getmetatable(int index);
-        bool setmetatable(int index);
+        bool get_metatable(int index);
+        bool set_metatable(int index);
 
         // Function calls
         void call(int nargs, int nresults);
         lua_Status pcall(int nargs, int nresults, int errfunc);
 
         // Thread operations
-        Ref<LuaState> newthread();
-        Ref<LuaState> tothread(int index);
-        Ref<LuaState> mainthread();
+        Ref<LuaState> new_thread();
+        Ref<LuaState> to_thread(int index);
+        Ref<LuaState> get_main_thread();
 
         // Garbage collection
         int gc(lua_GCOp what, int data);
 
         // Godot integration helpers
-        bool isarray(int index);      // requires manipulating the stack, so cannot be const
-        bool isdictionary(int index); // requires manipulating the stack, so cannot be const
-        Array toarray(int index);
-        Dictionary todictionary(int index);
-        String tostring(int index);
-        Variant tovariant(int index);
-        void pusharray(const Array &arr);
-        void pushdictionary(const Dictionary &dict);
-        void pushstring(const String &s);
-        void pushvariant(const Variant &value);
+        bool is_array(int index);      // requires manipulating the stack, so cannot be const
+        bool is_dictionary(int index); // requires manipulating the stack, so cannot be const
+        Array to_array(int index);
+        Dictionary to_dictionary(int index);
+        String to_string(int index);
+        Variant to_variant(int index);
+        void push_array(const Array &arr);
+        void push_dictionary(const Dictionary &dict);
+        void push_string(const String &s);
+        void push_variant(const Variant &value);
 
         // Internal state accessor (for LuaCallable and other internal use)
         lua_State *get_lua_state() const;

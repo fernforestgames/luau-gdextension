@@ -11,18 +11,18 @@ TEST_CASE_FIXTURE(LuaStateFixture, "Thread: Basic creation and conversion")
 {
     SUBCASE("Create thread and convert to LuaState")
     {
-        state->newthread();
-        CHECK(state->isthread(-1));
+        state->new_thread();
+        CHECK(state->is_thread(-1));
 
-        Ref<LuaState> thread = state->tothread(-1);
+        Ref<LuaState> thread = state->to_thread(-1);
         CHECK(thread.is_valid());
-        CHECK(thread->mainthread() == state);
+        CHECK(thread->get_main_thread() == state);
     }
 
     SUBCASE("Thread has valid lua_State*")
     {
-        state->newthread();
-        Ref<LuaState> thread = state->tothread(-1);
+        state->new_thread();
+        Ref<LuaState> thread = state->to_thread(-1);
 
         CHECK(thread->get_lua_state() != nullptr);
         CHECK(thread->get_lua_state() != L); // Different from parent
@@ -37,45 +37,45 @@ TEST_CASE_FIXTURE(LuaStateFixture, "Thread: Shared globals, separate stacks")
         exec_lua_ok("shared_value = 42");
 
         // Create thread
-        state->newthread();
-        Ref<LuaState> thread = state->tothread(-1);
+        state->new_thread();
+        Ref<LuaState> thread = state->to_thread(-1);
         state->pop(1);
 
         // Access global from thread
-        thread->getglobal("shared_value");
-        CHECK(thread->tonumber(-1) == 42);
+        thread->get_global("shared_value");
+        CHECK(thread->to_number(-1) == 42);
         thread->pop(1);
 
         // Modify global from thread
-        thread->pushnumber(100);
-        thread->setglobal("shared_value");
+        thread->push_number(100);
+        thread->set_global("shared_value");
 
         // Verify change in parent
-        state->getglobal("shared_value");
-        CHECK(state->tonumber(-1) == 100);
+        state->get_global("shared_value");
+        CHECK(state->to_number(-1) == 100);
     }
 
     SUBCASE("Threads have separate stacks")
     {
         // Push value to parent stack
-        state->pushnumber(123);
-        int parent_top = state->gettop();
+        state->push_number(123);
+        int parent_top = state->get_top();
 
         // Create thread
-        state->newthread();
-        Ref<LuaState> thread = state->tothread(-1);
+        state->new_thread();
+        Ref<LuaState> thread = state->to_thread(-1);
         state->pop(1); // Remove thread from parent stack
 
         // Thread should have empty stack
-        CHECK(thread->gettop() == 0);
+        CHECK(thread->get_top() == 0);
 
         // Push to thread stack
-        thread->pushnumber(456);
-        CHECK(thread->gettop() == 1);
+        thread->push_number(456);
+        CHECK(thread->get_top() == 1);
 
         // Parent stack unaffected
-        CHECK(state->gettop() == parent_top);
-        CHECK(state->tonumber(-1) == 123);
+        CHECK(state->get_top() == parent_top);
+        CHECK(state->to_number(-1) == 123);
     }
 }
 
@@ -87,18 +87,18 @@ TEST_CASE_FIXTURE(LuaStateFixture, "Thread: Execute code in thread")
         exec_lua_ok("function test_func() return 'from_thread' end");
 
         // Create thread
-        state->newthread();
-        Ref<LuaState> thread = state->tothread(-1);
+        state->new_thread();
+        Ref<LuaState> thread = state->to_thread(-1);
         state->pop(1);
 
         // Get function and call it from thread
-        thread->getglobal("test_func");
-        CHECK(thread->isfunction(-1));
+        thread->get_global("test_func");
+        CHECK(thread->is_function(-1));
 
         lua_Status status = thread->pcall(0, 1, 0);
         CHECK(status == LUA_OK);
 
-        String result = thread->tostring(-1);
+        String result = thread->to_string(-1);
         CHECK(result == "from_thread");
     }
 
@@ -115,27 +115,27 @@ TEST_CASE_FIXTURE(LuaStateFixture, "Thread: Execute code in thread")
         )");
 
         // Create thread and load function
-        state->newthread();
-        Ref<LuaState> thread = state->tothread(-1);
+        state->new_thread();
+        Ref<LuaState> thread = state->to_thread(-1);
         state->pop(1);
 
-        thread->getglobal("counter");
+        thread->get_global("counter");
 
         // Resume multiple times
         CHECK(thread->resume(0) == LUA_YIELD);
-        CHECK(thread->tonumber(-1) == 1);
+        CHECK(thread->to_number(-1) == 1);
         thread->pop(1);
 
         CHECK(thread->resume(0) == LUA_YIELD);
-        CHECK(thread->tonumber(-1) == 2);
+        CHECK(thread->to_number(-1) == 2);
         thread->pop(1);
 
         CHECK(thread->resume(0) == LUA_YIELD);
-        CHECK(thread->tonumber(-1) == 3);
+        CHECK(thread->to_number(-1) == 3);
         thread->pop(1);
 
         CHECK(thread->resume(0) == LUA_OK);
-        CHECK(thread->tostring(-1) == "done");
+        CHECK(thread->to_string(-1) == "done");
     }
 }
 
@@ -147,8 +147,8 @@ TEST_CASE_FIXTURE(LuaStateFixture, "Thread: Reference counting")
 
         {
             // Create thread in scope
-            state->newthread();
-            thread = state->tothread(-1);
+            state->new_thread();
+            thread = state->to_thread(-1);
             state->pop(1);
 
             // Thread should be valid
@@ -166,16 +166,16 @@ TEST_CASE_FIXTURE(LuaStateFixture, "Thread: Reference counting")
     {
         Ref<LuaState> thread1, thread2;
 
-        state->newthread();
-        thread1 = state->tothread(-1);
+        state->new_thread();
+        thread1 = state->to_thread(-1);
         state->pop(1);
 
-        state->newthread();
-        thread2 = state->tothread(-1);
+        state->new_thread();
+        thread2 = state->to_thread(-1);
         state->pop(1);
 
-        CHECK(thread1->mainthread() == state);
-        CHECK(thread2->mainthread() == state);
+        CHECK(thread1->get_main_thread() == state);
+        CHECK(thread2->get_main_thread() == state);
     }
 }
 
@@ -183,8 +183,8 @@ TEST_CASE_FIXTURE(LuaStateFixture, "Thread: Close behavior")
 {
     SUBCASE("Closing parent invalidates threads")
     {
-        state->newthread();
-        Ref<LuaState> thread = state->tothread(-1);
+        state->new_thread();
+        Ref<LuaState> thread = state->to_thread(-1);
         state->pop(1);
 
         CHECK(thread->get_lua_state() != nullptr);
@@ -197,13 +197,13 @@ TEST_CASE_FIXTURE(LuaStateFixture, "Thread: Close behavior")
         CHECK(state->get_lua_state() == nullptr);
 
         // Thread operations should fail gracefully
-        thread->pushnumber(123); // Should print error but not crash
+        thread->push_number(123); // Should print error but not crash
     }
 
     SUBCASE("Calling close() on thread warns but doesn't crash")
     {
-        state->newthread();
-        Ref<LuaState> thread = state->tothread(-1);
+        state->new_thread();
+        Ref<LuaState> thread = state->to_thread(-1);
         state->pop(1);
 
         // Closing thread should just invalidate the pointer, not call lua_close
@@ -211,8 +211,8 @@ TEST_CASE_FIXTURE(LuaStateFixture, "Thread: Close behavior")
 
         // Parent should still be valid
         CHECK(state->get_lua_state() != nullptr);
-        state->pushnumber(456);
-        CHECK(state->tonumber(-1) == 456);
+        state->push_number(456);
+        CHECK(state->to_number(-1) == 456);
     }
 }
 
@@ -220,44 +220,44 @@ TEST_CASE_FIXTURE(LuaStateFixture, "Thread: Bidirectional bridging via push_vari
 {
     SUBCASE("Push thread as Variant")
     {
-        state->newthread();
-        Ref<LuaState> thread = state->tothread(-1);
-        CHECK(thread->mainthread() == state);
+        state->new_thread();
+        Ref<LuaState> thread = state->to_thread(-1);
+        CHECK(thread->get_main_thread() == state);
         state->pop(1);
 
         // Push thread back to Lua as Variant
         Variant v = thread;
-        thread->pushvariant(v);
+        thread->push_variant(v);
 
         // Should be a thread on the stack
-        CHECK(thread->isthread(-1));
+        CHECK(thread->is_thread(-1));
 
         // Convert again - should create new wrapper
-        Ref<LuaState> thread2 = thread->tothread(-1);
+        Ref<LuaState> thread2 = thread->to_thread(-1);
         CHECK(thread2.is_valid());
-        CHECK(thread2->mainthread() == state);
+        CHECK(thread2->get_main_thread() == state);
     }
 
     SUBCASE("Store thread in table")
     {
-        state->newthread();
-        Ref<LuaState> thread = state->tothread(-1);
+        state->new_thread();
+        Ref<LuaState> thread = state->to_thread(-1);
         state->pop(1);
 
         // Store in table
-        thread->newtable();
-        thread->pushvariant(Variant(thread));
-        thread->setfield(-2, "thread_ref");
-        thread->setglobal("my_table");
+        thread->new_table();
+        thread->push_variant(Variant(thread));
+        thread->set_field(-2, "thread_ref");
+        thread->set_global("my_table");
 
         // Retrieve from table
-        thread->getglobal("my_table");
-        thread->getfield(-1, "thread_ref");
+        thread->get_global("my_table");
+        thread->get_field(-1, "thread_ref");
 
-        CHECK(thread->isthread(-1));
+        CHECK(thread->is_thread(-1));
 
-        Ref<LuaState> retrieved = thread->tothread(-1);
-        CHECK(retrieved->mainthread() == state);
+        Ref<LuaState> retrieved = thread->to_thread(-1);
+        CHECK(retrieved->get_main_thread() == state);
     }
 }
 
@@ -288,21 +288,21 @@ TEST_CASE_FIXTURE(LuaStateFixture, "Thread: Error handling")
 {
     SUBCASE("tothread on non-thread value fails gracefully")
     {
-        state->pushnumber(123);
+        state->push_number(123);
 
-        Ref<LuaState> thread = state->tothread(-1);
+        Ref<LuaState> thread = state->to_thread(-1);
         CHECK(!thread.is_valid()); // Should fail and return null
     }
 
     SUBCASE("isthread returns false for non-threads")
     {
-        state->pushnumber(123);
-        CHECK_FALSE(state->isthread(-1));
+        state->push_number(123);
+        CHECK_FALSE(state->is_thread(-1));
 
-        state->pushstring("test");
-        CHECK_FALSE(state->isthread(-1));
+        state->push_string("test");
+        CHECK_FALSE(state->is_thread(-1));
 
-        state->newtable();
-        CHECK_FALSE(state->isthread(-1));
+        state->new_table();
+        CHECK_FALSE(state->is_thread(-1));
     }
 }
