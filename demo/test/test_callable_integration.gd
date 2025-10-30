@@ -323,3 +323,185 @@ func test_callable_with_nil_result() -> void:
 	assert_true(L.is_nil(-1), "Callable returning null should push nil value to Lua")
 	L.pop(1)
 	assert_stack_balanced()
+
+# ============================================================================
+# Stack Stress Tests for Callables
+# ============================================================================
+
+func test_callable_heavy_loop_stress() -> void:
+	var counter: Array = [0]  # Use array to make it mutable in lambda
+	var callable: Callable = func():
+		counter[0] += 1
+		return counter[0]
+
+	L.push_variant(callable)
+	L.set_global("increment")
+
+	var code: String = """
+	local sum = 0
+	for i = 1, 1000 do
+		sum = sum + increment()
+	end
+	return sum
+	"""
+	var bytecode: PackedByteArray = Luau.compile(code)
+	L.load_bytecode(bytecode, "test")
+	L.resume()
+
+	var result: int = L.to_integer(-1)
+	assert_eq(result, 500500, "Should correctly accumulate 1000 calls: 1+2+...+1000 = 500500")
+	assert_eq(counter[0], 1000, "Counter should have been incremented 1000 times")
+	L.pop(1)
+	assert_stack_balanced()
+
+func test_callable_nested_calls_stress() -> void:
+	var add: Callable = func(a, b): return a + b
+	var multiply: Callable = func(a, b): return a * b
+
+	L.push_variant(add)
+	L.set_global("add")
+	L.push_variant(multiply)
+	L.set_global("mul")
+
+	var code: String = """
+	local result = 0
+	for i = 1, 100 do
+		-- Nested: result = result + (i * 2)
+		result = add(result, mul(i, 2))
+	end
+	return result
+	"""
+	var bytecode: PackedByteArray = Luau.compile(code)
+	L.load_bytecode(bytecode, "test")
+	L.resume()
+
+	var result: int = L.to_integer(-1)
+	assert_eq(result, 10100, "Nested callable calls: 2+4+6+...+200 = 10100")
+	L.pop(1)
+	assert_stack_balanced()
+
+func test_callable_with_complex_returns_in_loop() -> void:
+	var create_vector: Callable = func(x, y): return Vector2(x, y)
+
+	L.push_variant(create_vector)
+	L.set_global("vec")
+
+	var code: String = """
+	local vectors = {}
+	for i = 1, 100 do
+		local v = vec(i, i * 2)
+		table.insert(vectors, v)
+	end
+	return #vectors
+	"""
+	var bytecode: PackedByteArray = Luau.compile(code)
+	L.load_bytecode(bytecode, "test")
+	L.resume()
+
+	var count: int = L.to_integer(-1)
+	assert_eq(count, 100, "Should create 100 Vector2 objects via callable")
+	L.pop(1)
+	assert_stack_balanced()
+
+func test_callable_discarded_results_stress() -> void:
+	var side_effect_counter: Array = [0]  # Use array to make it mutable in lambda
+	var callable: Callable = func():
+		side_effect_counter[0] += 1
+		return 999  # Return value is discarded
+
+	L.push_variant(callable)
+	L.set_global("do_work")
+
+	var code: String = """
+	-- Call 500 times without capturing result
+	for i = 1, 500 do
+		do_work()  -- Result discarded
+	end
+	return true
+	"""
+	var bytecode: PackedByteArray = Luau.compile(code)
+	L.load_bytecode(bytecode, "test")
+	L.resume()
+
+	assert_eq(side_effect_counter[0], 500, "Should have called callable 500 times despite discarded results")
+	L.pop(1)
+	assert_stack_balanced()
+
+func test_callable_alternating_stress() -> void:
+	var get_int: Callable = func(): return 42
+	var get_string: Callable = func(): return "test"
+	var get_vector: Callable = func(): return Vector2(1, 2)
+
+	L.push_variant(get_int)
+	L.set_global("get_int")
+	L.push_variant(get_string)
+	L.set_global("get_str")
+	L.push_variant(get_vector)
+	L.set_global("get_vec")
+
+	var code: String = """
+	for i = 1, 200 do
+		local a = get_int()
+		local b = get_str()
+		local c = get_vec()
+		-- Just ensure they're called, don't accumulate
+	end
+	return true
+	"""
+	var bytecode: PackedByteArray = Luau.compile(code)
+	L.load_bytecode(bytecode, "test")
+	L.resume()
+
+	assert_true(L.to_boolean(-1), "Should complete 200 iterations alternating between different callable types")
+	L.pop(1)
+	assert_stack_balanced()
+
+func test_callable_recursive_stress() -> void:
+	var adder: Callable = func(a, b): return a + b
+
+	L.push_variant(adder)
+	L.set_global("add")
+
+	var code: String = """
+	function recursive_sum(n)
+		if n <= 0 then return 0 end
+		return add(n, recursive_sum(n - 1))
+	end
+	return recursive_sum(50)
+	"""
+	var bytecode: PackedByteArray = Luau.compile(code)
+	L.load_bytecode(bytecode, "test")
+	L.resume()
+
+	var result: int = L.to_integer(-1)
+	assert_eq(result, 1275, "Recursive callable invocation: 1+2+...+50 = 1275")
+	L.pop(1)
+	assert_stack_balanced()
+
+func test_callable_in_table_operations_stress() -> void:
+	var process: Callable = func(x): return x * 2
+
+	L.push_variant(process)
+	L.set_global("process")
+
+	var code: String = """
+	local results = {}
+	for i = 1, 100 do
+		results[i] = process(i)
+	end
+	-- Verify all results
+	local sum = 0
+	for i = 1, 100 do
+		sum = sum + results[i]
+	end
+	return sum
+	"""
+	var bytecode: PackedByteArray = Luau.compile(code)
+	L.load_bytecode(bytecode, "test")
+	L.resume()
+
+	var result: int = L.to_integer(-1)
+	# Sum of 2+4+6+...+200 = 2*(1+2+3+...+100) = 2*5050 = 10100
+	assert_eq(result, 10100, "Callable results stored in table should maintain integrity")
+	L.pop(1)
+	assert_stack_balanced()
