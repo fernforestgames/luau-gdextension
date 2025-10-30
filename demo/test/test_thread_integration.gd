@@ -406,7 +406,6 @@ func test_create_thread_during_single_step() -> void:
 
 		# On the first step, pause and create a thread
 		if lambda_captures["step_count"] == 1:
-			print("Step 1: Pausing main state and creating thread")
 			state.pause()
 
 			# Create a new thread
@@ -471,7 +470,6 @@ func test_execute_preexisting_thread_during_single_step() -> void:
 	# Create thread BEFORE enabling single-step mode
 	var thread: LuaState = L.new_thread()
 	L.pop(1)
-	print("Thread created before single-step mode")
 
 	var lambda_captures := {
 		"step_count": 0,
@@ -482,12 +480,10 @@ func test_execute_preexisting_thread_during_single_step() -> void:
 
 	# Set up step callback
 	var on_step = func(state: LuaState) -> void:
-		print("on_step")
 		lambda_captures["step_count"] += 1
 
 		# On the first step, pause and execute the pre-existing thread
 		if lambda_captures["step_count"] == 1:
-			print("Step 1: Pausing main state and executing pre-existing thread")
 			state.pause()
 
 			# Execute a function in the pre-existing thread
