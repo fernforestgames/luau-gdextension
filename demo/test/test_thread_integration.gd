@@ -365,3 +365,163 @@ func test_producer_consumer_coroutine() -> void:
 	# Producer should be done
 	var status: int = producer_thread.resume(0)
 	assert_eq(status, 0, "Producer should complete after all values")
+
+
+# ============================================================================
+# Single-Step Debugging with Thread Creation
+# ============================================================================
+
+func test_create_thread_during_single_step() -> void:
+	# This test explores whether creating and executing a thread during
+	# single-step debugging causes issues. The scenario is:
+	# 1. Main state is running in single-step mode
+	# 2. During a step callback, we pause the main state
+	# 3. Create a new thread and execute a function in it to completion
+	# 4. Resume the original state
+	var code: String = """
+	function main_func()
+		local x = 1
+		local y = 2
+		return x + y
+	end
+
+	function thread_func()
+		local a = 10
+		local b = 20
+		return a + b
+	end
+	"""
+	assert_eq(L.do_string(code, "test"), 0, "Loading test functions should succeed")
+
+	var lambda_captures := {
+		"step_count": 0,
+		"thread_executed": false,
+		"thread_result": 0,
+		"main_resumed": false,
+	}
+
+	# Set up step callback
+	var on_step = func(state: LuaState) -> void:
+		lambda_captures["step_count"] += 1
+
+		# On the first step, pause and create a thread
+		if lambda_captures["step_count"] == 1:
+			print("Step 1: Pausing main state and creating thread")
+			state.pause()
+
+			# Create a new thread
+			var thread: LuaState = L.new_thread()
+			L.pop(1) # Remove thread from parent stack
+
+			# Execute a function in the thread
+			thread.get_global("thread_func")
+			var resume_status: int = thread.resume(0)
+
+			assert_eq(resume_status, 0, "Thread execution should complete successfully")
+			lambda_captures["thread_result"] = thread.to_number(-1)
+			thread.pop(1)
+			lambda_captures["thread_executed"] = true
+
+			L.resume.call_deferred(0)
+			lambda_captures["main_resumed"] = true
+
+	L.step.connect(on_step)
+	L.single_step(true)
+
+	# Start executing main_func
+	L.get_global("main_func")
+	var resume_status: int = L.resume(0)
+	assert_eq(resume_status, Luau.LUA_BREAK, "Main function should pause on first step")
+
+	assert_eq(lambda_captures["step_count"], 1, "Should have received exactly one step callback")
+	assert_true(lambda_captures["thread_executed"], "Thread should have been executed")
+	assert_eq(lambda_captures["thread_result"], 30, "Thread should have computed correct result")
+
+	# Wait for deferred resume to complete using GUT's wait_until
+	await wait_until(func(): return lambda_captures["main_resumed"], 1, 'waiting for deferred resume to execute')
+
+	# Main function should have completed
+	assert_gt(L.get_top(), 0, "Main state should have a result on the stack")
+
+	var main_result: float = L.to_number(-1)
+	assert_eq(main_result, 3, "Main function should have computed correct result")
+	L.pop(1)
+
+	L.single_step(false)
+
+
+func test_execute_preexisting_thread_during_single_step() -> void:
+	# Create a thread BEFORE entering single-step mode, then execute it during
+	# the step callback.
+	var code: String = """
+	function main_func()
+		local x = 1
+		local y = 2
+		return x + y
+	end
+
+	function thread_func()
+		local a = 10
+		local b = 20
+		return a + b
+	end
+	"""
+	assert_eq(L.do_string(code, "test"), 0, "Loading test functions should succeed")
+
+	# Create thread BEFORE enabling single-step mode
+	var thread: LuaState = L.new_thread()
+	L.pop(1)
+	print("Thread created before single-step mode")
+
+	var lambda_captures := {
+		"step_count": 0,
+		"thread_executed": false,
+		"thread_result": 0,
+		"main_resumed": false,
+	}
+
+	# Set up step callback
+	var on_step = func(state: LuaState) -> void:
+		print("on_step")
+		lambda_captures["step_count"] += 1
+
+		# On the first step, pause and execute the pre-existing thread
+		if lambda_captures["step_count"] == 1:
+			print("Step 1: Pausing main state and executing pre-existing thread")
+			state.pause()
+
+			# Execute a function in the pre-existing thread
+			thread.get_global("thread_func")
+			var resume_status: int = thread.resume(0)
+
+			assert_eq(resume_status, 0, "Thread execution should complete successfully")
+			lambda_captures["thread_result"] = thread.to_number(-1)
+			thread.pop(1)
+			lambda_captures["thread_executed"] = true
+
+			L.resume.call_deferred(0)
+			lambda_captures["main_resumed"] = true
+
+	L.step.connect(on_step)
+	L.single_step(true)
+
+	# Start executing main_func
+	L.get_global("main_func")
+	var resume_status: int = L.resume(0)
+	assert_eq(resume_status, Luau.LUA_BREAK, "Main function should pause on first step")
+
+	assert_eq(lambda_captures["step_count"], 1, "Should have received exactly one step callback")
+	assert_true(lambda_captures["thread_executed"], "Thread should have been executed")
+	assert_eq(lambda_captures["thread_result"], 30, "Thread should have computed correct result")
+
+	# Wait for deferred resume to complete
+	await wait_until(func(): return lambda_captures["main_resumed"], 1, 'waiting for deferred resume to execute')
+
+	# Main function should have completed
+	assert_gt(L.get_top(), 0, "Main state should have a result on the stack")
+
+	var main_result: float = L.to_number(-1)
+	assert_eq(main_result, 3, "Main function should have computed correct result")
+	L.pop(1)
+
+	L.single_step(false)
