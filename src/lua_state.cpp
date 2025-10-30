@@ -363,6 +363,7 @@ void LuaState::pause()
 void LuaState::get_global(const String &key)
 {
     ERR_FAIL_COND_MSG(!is_valid_state(), "Lua state is invalid. Cannot get global variable.");
+    ERR_FAIL_COND_MSG(!lua_checkstack(L, 1), "LuaState.getglobal(): Stack overflow. Cannot grow stack.");
     lua_getglobal(L, key.utf8());
 }
 
@@ -474,6 +475,7 @@ void LuaState::push_value(int index)
 {
     ERR_FAIL_COND_MSG(!is_valid_state(), "Lua state is invalid. Cannot push value.");
     ERR_FAIL_COND_MSG(!is_valid_index(L, index), vformat("LuaState.pushvalue(%d): Invalid stack index. Stack has %d elements.", index, lua_gettop(L)));
+    ERR_FAIL_COND_MSG(!lua_checkstack(L, 1), "LuaState.pushvalue(): Stack overflow. Cannot grow stack.");
 
     lua_pushvalue(L, index);
 }
@@ -713,6 +715,7 @@ void LuaState::get_field(int index, const String &key)
 {
     ERR_FAIL_COND_MSG(!is_valid_state(), "Lua state is invalid. Cannot get field.");
     ERR_FAIL_COND_MSG(!is_valid_index(L, index), vformat("LuaState.getfield(%d, \"%s\"): Invalid table index. Stack has %d elements.", index, key, lua_gettop(L)));
+    ERR_FAIL_COND_MSG(!lua_checkstack(L, 1), "LuaState.getfield(): Stack overflow. Cannot grow stack.");
 
     lua_getfield(L, index, key.utf8());
 }
@@ -767,6 +770,7 @@ void LuaState::raw_geti(int index, int n)
 {
     ERR_FAIL_COND_MSG(!is_valid_state(), "Lua state is invalid. Cannot raw get index.");
     ERR_FAIL_COND_MSG(!is_valid_index(L, index), vformat("LuaState.rawgeti(%d, %d): Invalid table index. Stack has %d elements.", index, n, lua_gettop(L)));
+    ERR_FAIL_COND_MSG(!lua_checkstack(L, 1), "LuaState.rawgeti(): Stack overflow. Cannot grow stack.");
 
     lua_rawgeti(L, index, n);
 }
@@ -791,6 +795,7 @@ bool LuaState::get_metatable(int index)
 {
     ERR_FAIL_COND_V_MSG(!is_valid_state(), false, "Lua state is invalid. Cannot get metatable.");
     ERR_FAIL_COND_V_MSG(!is_valid_index(L, index), false, vformat("LuaState.getmetatable(%d): Invalid stack index. Stack has %d elements.", index, lua_gettop(L)));
+    ERR_FAIL_COND_V_MSG(!lua_checkstack(L, 1), false, "LuaState.getmetatable(): Stack overflow. Cannot grow stack.");
 
     return lua_getmetatable(L, index) != 0;
 }
@@ -843,6 +848,7 @@ Ref<LuaState> LuaState::bind_thread(lua_State *thread_L)
 Ref<LuaState> LuaState::new_thread()
 {
     ERR_FAIL_COND_V_MSG(!is_valid_state(), Ref<LuaState>(), "Lua state is invalid. Cannot create thread.");
+    ERR_FAIL_COND_V_MSG(!lua_checkstack(L, 1), Ref<LuaState>(), "LuaState.newthread(): Stack overflow. Cannot grow stack.");
 
     // Create a new thread and push it onto the stack
     lua_State *thread_L = lua_newthread(L);
