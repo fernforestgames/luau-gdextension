@@ -17,13 +17,13 @@ static void callback_panic(lua_State *L, int errcode)
     const char *error_msg = lua_gettop(L) > 0 ? lua_tostring(L, -1) : "Unknown error";
     ERR_PRINT(vformat("Luau panic! Error %d: %s. LuaState is now invalid and cannot be used further.", errcode, error_msg));
 
-    LuaState *state = static_cast<LuaState *>(lua_callbacks(L)->userdata);
+    LuaState *state = static_cast<LuaState *>(lua_getthreaddata(L));
     state->close();
 }
 
 static void callback_debugstep(lua_State *L, lua_Debug *ar)
 {
-    LuaState *state = static_cast<LuaState *>(lua_callbacks(L)->userdata);
+    LuaState *state = static_cast<LuaState *>(lua_getthreaddata(L));
     state->emit_signal("step", state);
 }
 
@@ -158,6 +158,7 @@ LuaState::LuaState()
     L = luaL_newstate();
     ERR_FAIL_NULL_MSG(L, "Failed to create new Lua state.");
 
+    lua_setthreaddata(L, this);
     set_callbacks();
 }
 
@@ -168,13 +169,13 @@ LuaState::LuaState(lua_State *thread_L, Ref<LuaState> main_thread)
     ERR_FAIL_NULL_MSG(thread_L, "Thread lua_State* is null.");
     ERR_FAIL_NULL_MSG(main_thread, "Main LuaState is null.");
 
-    set_callbacks();
+    lua_setthreaddata(L, this);
 }
 
 void LuaState::set_callbacks()
 {
+    // NB: Callbacks are shared among all threads in the same Lua VM
     lua_Callbacks *callbacks = lua_callbacks(L);
-    callbacks->userdata = this;
     callbacks->debugstep = callback_debugstep;
     callbacks->panic = callback_panic;
 }
