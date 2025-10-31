@@ -9,6 +9,9 @@
 #include <godot_cpp/classes/global_constants.hpp>
 #include <godot_cpp/core/class_db.hpp>
 
+#include <cstdio>
+#include <iostream>
+
 using namespace godot;
 
 LuauGDExtensionTests::LuauGDExtensionTests()
@@ -26,6 +29,15 @@ void LuauGDExtensionTests::_bind_methods()
 
 Dictionary LuauGDExtensionTests::run()
 {
+	// Synchronize stdout and stderr to prevent out-of-order output
+	// This ensures ERROR messages from Godot (stderr) appear inline with test output (stdout)
+	std::cout.flush();
+	std::cerr.flush();
+
+	// Disable buffering on both streams for immediate output
+	std::setvbuf(stdout, nullptr, _IONBF, 0);
+	std::setvbuf(stderr, nullptr, _IONBF, 0);
+
 	// Configure doctest
 	doctest::Context context;
 	context.setOption("no-breaks", true);  // Don't break on failures
