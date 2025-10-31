@@ -32,11 +32,13 @@ TEST_CASE_FIXTURE(LuaStateFixture, "Edge cases: Division by zero")
             Vector2 result = to_vector2(L, -1);
             // Result components should be inf or nan
             CHECK((std::isinf(result.x) || std::isnan(result.x)));
+            lua_pop(L, 1); // Pop the result
         }
         else
         {
             // Error is acceptable
             CHECK(status != LUA_OK);
+            state->pop(1); // Pop the error message
         }
     }
 
@@ -51,6 +53,7 @@ TEST_CASE_FIXTURE(LuaStateFixture, "Edge cases: Division by zero")
 
         double result = state->to_number(-1);
         CHECK(std::isinf(result));
+        state->pop(1); // Pop the result
     }
 }
 
@@ -66,6 +69,7 @@ TEST_CASE_FIXTURE(LuaStateFixture, "Edge cases: NaN and infinity handling")
 
         double retrieved = state->to_number(-1);
         CHECK(std::isinf(retrieved));
+        state->pop(1); // Pop the infinity value
     }
 
     SUBCASE("Push NaN")
@@ -77,6 +81,7 @@ TEST_CASE_FIXTURE(LuaStateFixture, "Edge cases: NaN and infinity handling")
 
         double retrieved = state->to_number(-1);
         CHECK(std::isnan(retrieved));
+        state->pop(1); // Pop the NaN value
     }
 
     SUBCASE("Vector with NaN components")
@@ -86,6 +91,7 @@ TEST_CASE_FIXTURE(LuaStateFixture, "Edge cases: NaN and infinity handling")
 
         // Should handle gracefully without crashing
         // Exact behavior may vary
+        lua_pop(L, 1); // Pop the vector
     }
 }
 
@@ -106,6 +112,7 @@ TEST_CASE_FIXTURE(LuaStateFixture, "Edge cases: Nil handling in structures")
         // Array length in Lua stops at first nil
         // Behavior may vary: could be length 2 or skip the nil
         CHECK(arr.size() >= 2);
+        state->pop(1); // Pop the table
     }
 
     SUBCASE("Dictionary with nil value")
@@ -127,6 +134,7 @@ TEST_CASE_FIXTURE(LuaStateFixture, "Edge cases: Nil handling in structures")
         CHECK(dict.has("a"));
         CHECK_FALSE(dict.has("b"));
         CHECK(dict.has("c"));
+        state->pop(1); // Pop the dictionary
     }
 
     SUBCASE("Push nil variant in array")
@@ -146,6 +154,7 @@ TEST_CASE_FIXTURE(LuaStateFixture, "Edge cases: Nil handling in structures")
 
         Dictionary r_dict = retrieved;
         CHECK(r_dict.size() == 2);
+        state->pop(1); // Pop the table
     }
 }
 
@@ -165,6 +174,7 @@ TEST_CASE_FIXTURE(LuaStateFixture, "Edge cases: Empty and single-element collect
 
         CHECK(retrieved.size() == 1);
         CHECK((int)retrieved[0] == 42);
+        state->pop(1); // Pop the retrieved global
     }
 
     SUBCASE("Single key dictionary")
@@ -180,6 +190,7 @@ TEST_CASE_FIXTURE(LuaStateFixture, "Edge cases: Empty and single-element collect
 
         CHECK(retrieved.size() == 1);
         CHECK((String)retrieved["only"] == "value");
+        state->pop(1); // Pop the retrieved global
     }
 
     SUBCASE("Deeply nested single elements")
@@ -201,6 +212,7 @@ TEST_CASE_FIXTURE(LuaStateFixture, "Edge cases: Empty and single-element collect
         Array l3 = l2[0];
 
         CHECK((int)l3[0] == 999);
+        state->pop(1); // Pop the nested array
     }
 }
 
@@ -217,6 +229,7 @@ TEST_CASE_FIXTURE(LuaStateFixture, "Edge cases: Type mismatches")
 
         // to_vector2 on non-vector should return zero or default
         // (behavior depends on implementation)
+        state->pop(1); // Pop the number
     }
 
     SUBCASE("Try to use string as table")
@@ -228,6 +241,7 @@ TEST_CASE_FIXTURE(LuaStateFixture, "Edge cases: Type mismatches")
 
         // toarray on non-table should return empty or error
         // (implementation specific)
+        state->pop(1); // Pop the string
     }
 
     SUBCASE("Math type operator type mismatch")
@@ -244,6 +258,7 @@ TEST_CASE_FIXTURE(LuaStateFixture, "Edge cases: Type mismatches")
         lua_Status status = exec_lua(code);
 
         CHECK(status == LUA_OK);
+        lua_pop(L, 1); // Pop the returned vector
     }
 }
 
@@ -322,6 +337,7 @@ TEST_CASE_FIXTURE(LuaStateFixture, "Edge cases: Unicode and special strings")
         String r_str = retrieved;
 
         CHECK(r_str.length() == 10000);
+        state->pop(1); // Pop the long string
     }
 
     SUBCASE("Emoji in strings")
@@ -331,6 +347,7 @@ TEST_CASE_FIXTURE(LuaStateFixture, "Edge cases: Unicode and special strings")
 
         String retrieved = state->to_string(-1);
         CHECK(retrieved == emoji);
+        state->pop(1); // Pop the emoji string
     }
 
     SUBCASE("Null bytes in string")
@@ -344,6 +361,7 @@ TEST_CASE_FIXTURE(LuaStateFixture, "Edge cases: Unicode and special strings")
         String retrieved = state->to_string(-1);
         // Exact behavior depends on implementation
         // Some implementations may truncate at null byte
+        state->pop(1); // Pop the string with null byte
     }
 
     SUBCASE("Empty string vs nil")
@@ -355,6 +373,7 @@ TEST_CASE_FIXTURE(LuaStateFixture, "Edge cases: Unicode and special strings")
         String empty = state->to_string(-1);
         CHECK(empty == "");
         CHECK(empty.length() == 0);
+        state->pop(1); // Pop the empty string
     }
 }
 
@@ -368,6 +387,7 @@ TEST_CASE_FIXTURE(LuaStateFixture, "Edge cases: Boundary values for integers")
 
         int retrieved = state->to_integer(-1);
         CHECK(retrieved == max_int);
+        state->pop(1); // Pop the integer
     }
 
     SUBCASE("Min 32-bit integer")
@@ -377,6 +397,7 @@ TEST_CASE_FIXTURE(LuaStateFixture, "Edge cases: Boundary values for integers")
 
         int retrieved = state->to_integer(-1);
         CHECK(retrieved == min_int);
+        state->pop(1); // Pop the integer
     }
 
     SUBCASE("Zero integer")
@@ -385,6 +406,7 @@ TEST_CASE_FIXTURE(LuaStateFixture, "Edge cases: Boundary values for integers")
 
         CHECK(state->to_integer(-1) == 0);
         CHECK(state->to_boolean(-1)); // 0 coerces to `true` in Lua
+        state->pop(1); // Pop the integer
     }
 
     SUBCASE("Large array indices")
@@ -400,6 +422,7 @@ TEST_CASE_FIXTURE(LuaStateFixture, "Edge cases: Boundary values for integers")
         // Table with sparse indices should convert to dictionary
         CHECK(state->is_dictionary(-1));
         CHECK_FALSE(state->is_array(-1));
+        state->pop(1); // Pop the table
     }
 }
 
@@ -415,6 +438,7 @@ TEST_CASE_FIXTURE(LuaStateFixture, "Edge cases: Color clamping and ranges")
         Color retrieved = to_color(L, -1);
         CHECK(retrieved.r == doctest::Approx(2.0));
         CHECK(retrieved.a == doctest::Approx(5.0));
+        lua_pop(L, 1); // Pop the color
     }
 
     SUBCASE("Color with negative values")
@@ -426,6 +450,7 @@ TEST_CASE_FIXTURE(LuaStateFixture, "Edge cases: Color clamping and ranges")
         // Negative values might be preserved or clamped
         // depending on implementation
         CHECK(retrieved.b == doctest::Approx(0.5));
+        lua_pop(L, 1); // Pop the color
     }
 
     SUBCASE("Zero color")
@@ -436,6 +461,7 @@ TEST_CASE_FIXTURE(LuaStateFixture, "Edge cases: Color clamping and ranges")
         Color retrieved = to_color(L, -1);
         CHECK(retrieved.r == doctest::Approx(0.0));
         CHECK(retrieved.a == doctest::Approx(0.0));
+        lua_pop(L, 1); // Pop the color
     }
 }
 
@@ -464,6 +490,7 @@ TEST_CASE_FIXTURE(LuaStateFixture, "Edge cases: Vector operations edge cases")
         Vector2 sum = to_vector2(L, -2);
         CHECK(sum.x == doctest::Approx(5.0));
         CHECK(sum.y == doctest::Approx(5.0));
+        lua_pop(L, 2); // Pop both return values (sum and product)
     }
 
     SUBCASE("Very large vector components")
@@ -475,6 +502,7 @@ TEST_CASE_FIXTURE(LuaStateFixture, "Edge cases: Vector operations edge cases")
         CHECK(retrieved.x == doctest::Approx(1e10));
         CHECK(retrieved.y == doctest::Approx(1e15));
         CHECK(retrieved.z == doctest::Approx(1e20));
+        lua_pop(L, 1); // Pop the vector
     }
 
     SUBCASE("Vector integer overflow")
@@ -493,6 +521,7 @@ TEST_CASE_FIXTURE(LuaStateFixture, "Edge cases: Vector operations edge cases")
 
         Vector2i v = to_vector2i(L, -1);
         CHECK(v.x == 2147483647);
+        lua_pop(L, 1); // Pop the vector
     }
 }
 
@@ -511,6 +540,7 @@ TEST_CASE_FIXTURE(LuaStateFixture, "Edge cases: Table iteration edge cases")
         // Key 0 doesn't make it an array (arrays start at 1)
         CHECK(state->is_dictionary(-1));
         CHECK_FALSE(state->is_array(-1));
+        state->pop(1); // Pop the table
     }
 
     SUBCASE("Table with negative indices")
@@ -527,5 +557,6 @@ TEST_CASE_FIXTURE(LuaStateFixture, "Edge cases: Table iteration edge cases")
         Dictionary dict = state->to_dictionary(-1);
         CHECK(dict.has(-1));
         CHECK(dict.has(1));
+        state->pop(1); // Pop the table
     }
 }

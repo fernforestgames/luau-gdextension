@@ -17,6 +17,7 @@ TEST_CASE_FIXTURE(LuaStateFixture, "Thread: Basic creation and conversion")
         Ref<LuaState> thread = state->to_thread(-1);
         CHECK(thread.is_valid());
         CHECK(thread->get_main_thread() == state);
+        state->pop(1); // Clean up thread from parent stack
     }
 
     SUBCASE("Thread has valid lua_State*")
@@ -26,6 +27,7 @@ TEST_CASE_FIXTURE(LuaStateFixture, "Thread: Basic creation and conversion")
 
         CHECK(thread->get_lua_state() != nullptr);
         CHECK(thread->get_lua_state() != L); // Different from parent
+        state->pop(1); // Clean up thread from parent stack
     }
 }
 
@@ -53,6 +55,7 @@ TEST_CASE_FIXTURE(LuaStateFixture, "Thread: Shared globals, separate stacks")
         // Verify change in parent
         state->get_global("shared_value");
         CHECK(state->to_number(-1) == 100);
+        state->pop(1); // Clean up global from parent stack
     }
 
     SUBCASE("Threads have separate stacks")
@@ -76,6 +79,8 @@ TEST_CASE_FIXTURE(LuaStateFixture, "Thread: Shared globals, separate stacks")
         // Parent stack unaffected
         CHECK(state->get_top() == parent_top);
         CHECK(state->to_number(-1) == 123);
+        state->pop(1); // Clean up the 123 from parent stack
+        thread->pop(1); // Clean up the 456 from thread stack
     }
 }
 
@@ -100,6 +105,7 @@ TEST_CASE_FIXTURE(LuaStateFixture, "Thread: Execute code in thread")
 
         String result = thread->to_string(-1);
         CHECK(result == "from_thread");
+        thread->pop(1); // Clean up result from thread stack
     }
 
     SUBCASE("Coroutine-style execution")
@@ -136,6 +142,7 @@ TEST_CASE_FIXTURE(LuaStateFixture, "Thread: Execute code in thread")
 
         CHECK(thread->resume(0) == LUA_OK);
         CHECK(thread->to_string(-1) == "done");
+        thread->pop(1); // Clean up final result from thread stack
     }
 }
 
@@ -213,6 +220,7 @@ TEST_CASE_FIXTURE(LuaStateFixture, "Thread: Close behavior")
         CHECK(state->get_lua_state() != nullptr);
         state->push_number(456);
         CHECK(state->to_number(-1) == 456);
+        state->pop(1); // Clean up the 456 from parent stack
     }
 }
 
@@ -236,6 +244,7 @@ TEST_CASE_FIXTURE(LuaStateFixture, "Thread: Bidirectional bridging via push_vari
         Ref<LuaState> thread2 = thread->to_thread(-1);
         CHECK(thread2.is_valid());
         CHECK(thread2->get_main_thread() == state);
+        thread->pop(1); // Clean up thread from thread stack
     }
 
     SUBCASE("Store thread in table")
@@ -258,6 +267,7 @@ TEST_CASE_FIXTURE(LuaStateFixture, "Thread: Bidirectional bridging via push_vari
 
         Ref<LuaState> retrieved = thread->to_thread(-1);
         CHECK(retrieved->get_main_thread() == state);
+        thread->pop(2); // Clean up thread_ref and my_table from thread stack
     }
 }
 
@@ -281,6 +291,9 @@ TEST_CASE_FIXTURE(RawLuaStateFixture, "Thread: Nested thread (thread from thread
 
         lua_getglobal(nested_thread, "shared_nested");
         CHECK(lua_tointeger(nested_thread, -1) == 999);
+        lua_pop(nested_thread, 1); // Clean up global from nested_thread stack
+        lua_pop(parent_thread, 1); // Clean up nested_thread from parent_thread stack
+        lua_pop(L, 1); // Clean up parent_thread from main stack
     }
 }
 
@@ -292,6 +305,7 @@ TEST_CASE_FIXTURE(LuaStateFixture, "Thread: Error handling")
 
         Ref<LuaState> thread = state->to_thread(-1);
         CHECK(!thread.is_valid()); // Should fail and return null
+        state->pop(1); // Clean up the 123 from parent stack
     }
 
     SUBCASE("isthread returns false for non-threads")
@@ -304,5 +318,6 @@ TEST_CASE_FIXTURE(LuaStateFixture, "Thread: Error handling")
 
         state->new_table();
         CHECK_FALSE(state->is_thread(-1));
+        state->pop(3); // Clean up table, string, and number from parent stack
     }
 }

@@ -38,6 +38,7 @@ TEST_CASE_FIXTURE(LuaStateFixture, "Array: Simple array conversion Godot -> Lua"
 
         lua_rawgeti(L, -1, 3);
         CHECK(lua_tonumber(L, -1) == 3);
+        lua_pop(L, 2); // Pop value and table
     }
 
     SUBCASE("Mixed type array")
@@ -65,6 +66,7 @@ TEST_CASE_FIXTURE(LuaStateFixture, "Array: Simple array conversion Godot -> Lua"
 
         lua_rawgeti(L, -1, 4);
         CHECK(lua_isnumber(L, -1));
+        lua_pop(L, 2); // Pop value and table
     }
 
     SUBCASE("Empty array")
@@ -74,6 +76,7 @@ TEST_CASE_FIXTURE(LuaStateFixture, "Array: Simple array conversion Godot -> Lua"
         state->push_array(arr);
         CHECK(lua_istable(L, -1));
         CHECK(lua_objlen(L, -1) == 0);
+        state->pop(1);
     }
 
 }
@@ -94,6 +97,7 @@ TEST_CASE_FIXTURE(LuaStateFixture, "Array: Lua table -> Godot Array conversion")
         CHECK((int)result[1] == 20);
         CHECK((int)result[2] == 30);
         CHECK((int)result[3] == 40);
+        state->pop(1);
     }
 
     SUBCASE("Array detection via isarray")
@@ -104,6 +108,7 @@ TEST_CASE_FIXTURE(LuaStateFixture, "Array: Lua table -> Godot Array conversion")
 
         CHECK(state->is_array(-1));
         CHECK(lua_objlen(L, -1) == 3);
+        state->pop(1);
     }
 
 }
@@ -146,6 +151,7 @@ TEST_CASE_FIXTURE(LuaStateFixture, "Array: Nested arrays")
 
         lua_rawgeti(L, -1, 2);
         CHECK(lua_tonumber(L, -1) == 4);
+        lua_pop(L, 3); // Pop value, inner table, and outer table
     }
 
     SUBCASE("Deeply nested arrays")
@@ -170,6 +176,7 @@ TEST_CASE_FIXTURE(LuaStateFixture, "Array: Nested arrays")
 
         lua_rawgeti(L, -1, 1);
         CHECK(lua_tonumber(L, -1) == 100);
+        lua_pop(L, 4); // Pop value and 3 nested tables
     }
 
 }
@@ -196,6 +203,7 @@ TEST_CASE_FIXTURE(LuaStateFixture, "Array: Round-trip conversion")
         CHECK((int)retrieved[0] == 1);
         CHECK((int)retrieved[1] == 2);
         CHECK((int)retrieved[2] == 3);
+        state->pop(1);
     }
 
     SUBCASE("Mixed types round-trip")
@@ -217,6 +225,7 @@ TEST_CASE_FIXTURE(LuaStateFixture, "Array: Round-trip conversion")
         CHECK((String)retrieved[1] == "test");
         CHECK((double)retrieved[2] == doctest::Approx(3.14));
         CHECK((bool)retrieved[3] == true);
+        state->pop(1);
     }
 
     SUBCASE("Nested array round-trip")
@@ -243,6 +252,7 @@ TEST_CASE_FIXTURE(LuaStateFixture, "Array: Round-trip conversion")
         CHECK((int)retrieved_inner[1] == 20);
 
         CHECK((int)retrieved[1] == 99);
+        state->pop(1);
     }
 
 }
@@ -267,6 +277,7 @@ TEST_CASE_FIXTURE(LuaStateFixture, "Array: Array vs Dictionary detection")
 
         Array arr = state->to_array(-1);
         CHECK(arr.size() == 3);
+        state->pop(1);
     }
 
     SUBCASE("Non-consecutive keys = dictionary")
@@ -283,6 +294,7 @@ TEST_CASE_FIXTURE(LuaStateFixture, "Array: Array vs Dictionary detection")
         // Should be detected as dictionary due to missing index 2
         CHECK_FALSE(state->is_array(-1));
         CHECK(state->is_dictionary(-1));
+        state->pop(1);
     }
 
     SUBCASE("String keys = dictionary")
@@ -298,6 +310,7 @@ TEST_CASE_FIXTURE(LuaStateFixture, "Array: Array vs Dictionary detection")
 
         CHECK_FALSE(state->is_array(-1));
         CHECK(state->is_dictionary(-1));
+        state->pop(1);
     }
 
     SUBCASE("Mixed keys = dictionary")
@@ -314,6 +327,7 @@ TEST_CASE_FIXTURE(LuaStateFixture, "Array: Array vs Dictionary detection")
         // Has both numeric and string keys -> dictionary
         CHECK_FALSE(state->is_array(-1));
         CHECK(state->is_dictionary(-1));
+        state->pop(1);
     }
 
 }
@@ -337,6 +351,7 @@ TEST_CASE_FIXTURE(LuaStateFixture, "Array: Edge cases")
         Array arr = state->to_array(-1);
         // The actual behavior depends on implementation
         // Typically, nil terminates the array in Lua's perspective
+        state->pop(1);
     }
 
     SUBCASE("Large array")
@@ -357,6 +372,7 @@ TEST_CASE_FIXTURE(LuaStateFixture, "Array: Edge cases")
         CHECK((int)retrieved[0] == 0);
         CHECK((int)retrieved[500] == 500);
         CHECK((int)retrieved[999] == 999);
+        state->pop(1);
     }
 
 }

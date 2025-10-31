@@ -30,6 +30,7 @@ struct RawLuaStateFixture
 
     ~RawLuaStateFixture()
     {
+        CHECK(lua_gettop(L) == 0); // Ensure stack is balanced after each test
         lua_close(L);
     }
 
@@ -67,6 +68,12 @@ struct LuaStateFixture
         state = Ref<LuaState>(memnew(LuaState));
         state->open_libs(LuaState::LIB_ALL);
         L = state->get_lua_state();
+    }
+
+    ~LuaStateFixture()
+    {
+        CHECK(state->get_top() == 0); // Ensure stack is balanced after each test
+        state->close();
     }
 
     // Helper to execute Luau code and return status

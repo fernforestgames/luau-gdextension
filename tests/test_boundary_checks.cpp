@@ -34,6 +34,9 @@ TEST_CASE_FIXTURE(LuaStateFixture, "Boundary checks: Stack underflow protection"
 
         // Stack should be unchanged (operation was rejected)
         CHECK(state->get_top() == 2);
+
+        // Clean up the 2 items that are still on the stack
+        state->pop(2);
     }
 
     SUBCASE("Pop negative count")
@@ -47,6 +50,9 @@ TEST_CASE_FIXTURE(LuaStateFixture, "Boundary checks: Stack underflow protection"
 
         // Stack should be unchanged
         CHECK(state->get_top() == top);
+
+        // Clean up the 2 items that are still on the stack
+        state->pop(2);
     }
 }
 
@@ -64,6 +70,9 @@ TEST_CASE_FIXTURE(LuaStateFixture, "Boundary checks: Invalid index protection")
 
         // Stack should be unchanged
         CHECK(state->get_top() == top);
+
+        // Clean up the 2 items that are still on the stack
+        state->pop(2);
     }
 
     SUBCASE("Pushvalue with invalid negative index")
@@ -76,6 +85,9 @@ TEST_CASE_FIXTURE(LuaStateFixture, "Boundary checks: Invalid index protection")
 
         // Stack should be unchanged
         CHECK(state->get_top() == top);
+
+        // Clean up the item that is still on the stack
+        state->pop(1);
     }
 
     SUBCASE("Pushvalue with index 0")
@@ -88,6 +100,9 @@ TEST_CASE_FIXTURE(LuaStateFixture, "Boundary checks: Invalid index protection")
 
         // Stack should be unchanged
         CHECK(state->get_top() == top);
+
+        // Clean up the item that is still on the stack
+        state->pop(1);
     }
 
     SUBCASE("Remove with invalid index")
@@ -101,6 +116,9 @@ TEST_CASE_FIXTURE(LuaStateFixture, "Boundary checks: Invalid index protection")
 
         // Stack should be unchanged
         CHECK(state->get_top() == top);
+
+        // Clean up the 2 items that are still on the stack
+        state->pop(2);
     }
 
     SUBCASE("Replace on empty stack")
@@ -140,6 +158,9 @@ TEST_CASE_FIXTURE(LuaStateFixture, "Boundary checks: Settop with invalid indices
 
         // Stack should be unchanged
         CHECK(state->get_top() == 2);
+
+        // Clean up the 2 items that are still on the stack
+        state->pop(2);
     }
 
     SUBCASE("Settop to zero clears stack")
@@ -184,6 +205,9 @@ TEST_CASE_FIXTURE(LuaStateFixture, "Boundary checks: Table operations without pr
 
         // Should not crash
         CHECK(state->get_top() == 1);
+
+        // Clean up the table that is still on the stack
+        state->pop(1);
     }
 
     SUBCASE("settable with only key, no value")
@@ -197,6 +221,9 @@ TEST_CASE_FIXTURE(LuaStateFixture, "Boundary checks: Table operations without pr
 
         // Should not crash, stack should still have table and key
         CHECK(state->get_top() == 2);
+
+        // Clean up the table and key that are still on the stack
+        state->pop(2);
     }
 
     SUBCASE("setfield without value on stack")
@@ -264,6 +291,9 @@ TEST_CASE_FIXTURE(LuaStateFixture, "Boundary checks: Metatable operations")
 
         // Should return false and not crash
         CHECK_FALSE(result);
+
+        // Clean up the integer that is still on the stack
+        state->pop(1);
     }
 
     SUBCASE("setmetatable without metatable on stack")
@@ -304,6 +334,9 @@ TEST_CASE_FIXTURE(LuaStateFixture, "Boundary checks: Function call operations")
         // Should not crash (rejected due to insufficient items)
         // Stack should still have the function
         CHECK(state->get_top() == 1);
+
+        // Clean up the function that is still on the stack
+        state->pop(1);
     }
 
     SUBCASE("call with negative nargs")
@@ -316,6 +349,9 @@ TEST_CASE_FIXTURE(LuaStateFixture, "Boundary checks: Function call operations")
 
         // Should not crash
         CHECK(state->get_top() == 1);
+
+        // Clean up the function that is still on the stack
+        state->pop(1);
     }
 
     SUBCASE("pcall without function on stack")
@@ -338,6 +374,9 @@ TEST_CASE_FIXTURE(LuaStateFixture, "Boundary checks: Function call operations")
 
         // Should return error status, not crash
         CHECK(status == LUA_ERRMEM);
+
+        // Clean up whatever is left on the stack after failed pcall
+        state->set_top(0);
     }
 }
 
@@ -354,6 +393,9 @@ TEST_CASE_FIXTURE(LuaStateFixture, "Boundary checks: Operations work correctly w
         state->pop(2);
         CHECK(state->get_top() == 1);
         CHECK(state->to_integer(-1) == 1);
+
+        // Clean up the remaining item on the stack
+        state->pop(1);
     }
 
     SUBCASE("Valid pushvalue")
@@ -364,6 +406,9 @@ TEST_CASE_FIXTURE(LuaStateFixture, "Boundary checks: Operations work correctly w
         CHECK(state->get_top() == 2);
         CHECK(state->to_integer(-1) == 42);
         CHECK(state->to_integer(-2) == 42);
+
+        // Clean up both values (original and duplicate)
+        state->pop(2);
     }
 
     SUBCASE("Valid table operations")
@@ -377,6 +422,9 @@ TEST_CASE_FIXTURE(LuaStateFixture, "Boundary checks: Operations work correctly w
         state->push_string("key");
         state->get_table(-2);
         CHECK(state->to_integer(-1) == 123);
+
+        // Clean up the retrieved value and the table
+        state->pop(2);
     }
 
     SUBCASE("Valid function call")
@@ -389,6 +437,9 @@ TEST_CASE_FIXTURE(LuaStateFixture, "Boundary checks: Operations work correctly w
         state->call(2, 1);
 
         CHECK(state->to_integer(-1) == 30);
+
+        // Clean up the return value
+        state->pop(1);
     }
 }
 
@@ -402,6 +453,9 @@ TEST_CASE_FIXTURE(LuaStateFixture, "Boundary checks: Edge cases in index validat
 
         // Should push the globals table
         CHECK(state->is_table(-1));
+
+        // Clean up the globals table
+        state->pop(1);
     }
 
     SUBCASE("Valid negative indices")
@@ -418,5 +472,8 @@ TEST_CASE_FIXTURE(LuaStateFixture, "Boundary checks: Edge cases in index validat
         // -4 should be invalid (only 3 items)
         state->push_value(-4);
         CHECK(state->get_top() == 3); // Unchanged
+
+        // Clean up all 3 items that are still on the stack
+        state->pop(3);
     }
 }

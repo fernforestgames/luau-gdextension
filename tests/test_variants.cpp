@@ -26,6 +26,8 @@ TEST_CASE_FIXTURE(LuaStateFixture, "Variant: Primitive type conversions")
 
         Variant retrieved = state->to_variant(-1);
         CHECK(retrieved.get_type() == Variant::NIL);
+
+        state->pop(1); // Pop the nil value
     }
 
     SUBCASE("Boolean true")
@@ -39,6 +41,8 @@ TEST_CASE_FIXTURE(LuaStateFixture, "Variant: Primitive type conversions")
         Variant retrieved = state->to_variant(-1);
         CHECK(retrieved.get_type() == Variant::BOOL);
         CHECK((bool)retrieved == true);
+
+        state->pop(1); // Pop the boolean
     }
 
     SUBCASE("Boolean false")
@@ -51,6 +55,8 @@ TEST_CASE_FIXTURE(LuaStateFixture, "Variant: Primitive type conversions")
 
         Variant retrieved = state->to_variant(-1);
         CHECK((bool)retrieved == false);
+
+        state->pop(1); // Pop the boolean
     }
 
     SUBCASE("Integer")
@@ -65,6 +71,8 @@ TEST_CASE_FIXTURE(LuaStateFixture, "Variant: Primitive type conversions")
         // May be INT or FLOAT depending on Lua representation
         int value = retrieved;
         CHECK(value == 42);
+
+        state->pop(1); // Pop the number
     }
 
     SUBCASE("Float")
@@ -78,6 +86,8 @@ TEST_CASE_FIXTURE(LuaStateFixture, "Variant: Primitive type conversions")
         Variant retrieved = state->to_variant(-1);
         double value = retrieved;
         CHECK(value == doctest::Approx(3.14159));
+
+        state->pop(1); // Pop the number
     }
 
     SUBCASE("Negative numbers")
@@ -88,6 +98,8 @@ TEST_CASE_FIXTURE(LuaStateFixture, "Variant: Primitive type conversions")
         Variant retrieved = state->to_variant(-1);
         int value = retrieved;
         CHECK(value == -100);
+
+        state->pop(1); // Pop the number
     }
 
     SUBCASE("Zero")
@@ -98,6 +110,8 @@ TEST_CASE_FIXTURE(LuaStateFixture, "Variant: Primitive type conversions")
         Variant retrieved = state->to_variant(-1);
         int value = retrieved;
         CHECK(value == 0);
+
+        state->pop(1); // Pop the number
     }
 }
 
@@ -115,6 +129,8 @@ TEST_CASE_FIXTURE(LuaStateFixture, "Variant: String conversions")
         Variant retrieved = state->to_variant(-1);
         CHECK(retrieved.get_type() == Variant::STRING);
         CHECK((String)retrieved == "hello world");
+
+        state->pop(1); // Pop the string
     }
 
     SUBCASE("Empty string")
@@ -126,6 +142,8 @@ TEST_CASE_FIXTURE(LuaStateFixture, "Variant: String conversions")
 
         Variant retrieved = state->to_variant(-1);
         CHECK((String)retrieved == "");
+
+        state->pop(1); // Pop the string
     }
 
     SUBCASE("String with special characters")
@@ -135,6 +153,8 @@ TEST_CASE_FIXTURE(LuaStateFixture, "Variant: String conversions")
 
         Variant retrieved = state->to_variant(-1);
         CHECK((String)retrieved == "Hello\nWorld\t!");
+
+        state->pop(1); // Pop the string
     }
 
     SUBCASE("Unicode string")
@@ -144,6 +164,8 @@ TEST_CASE_FIXTURE(LuaStateFixture, "Variant: String conversions")
 
         Variant retrieved = state->to_variant(-1);
         CHECK((String)retrieved == "こんにちは 世界 🌍");
+
+        state->pop(1); // Pop the string
     }
 
     SUBCASE("StringName")
@@ -160,14 +182,20 @@ TEST_CASE_FIXTURE(LuaStateFixture, "Variant: String conversions")
         CHECK(retrieved.get_type() == Variant::STRING);
         CHECK((String)retrieved == "test_name");
 
+        state->pop(1); // Pop the first StringName
+
         // Empty StringName
         state->push_variant(Variant(StringName()));
         CHECK(state->is_string(-1));
         CHECK((String)state->to_variant(-1) == "");
 
+        state->pop(1); // Pop the empty StringName
+
         // StringName with special characters
         state->push_variant(Variant(StringName("_ready")));
         CHECK((String)state->to_variant(-1) == "_ready");
+
+        state->pop(1); // Pop the StringName with special chars
     }
 }
 
@@ -186,6 +214,8 @@ TEST_CASE_FIXTURE(LuaStateFixture, "Variant: Math type conversions")
         Vector2 v = retrieved;
         CHECK(v.x == doctest::Approx(3.5));
         CHECK(v.y == doctest::Approx(4.5));
+
+        state->pop(1); // Pop the Vector2 userdata
     }
 
     SUBCASE("Vector2i")
@@ -199,6 +229,8 @@ TEST_CASE_FIXTURE(LuaStateFixture, "Variant: Math type conversions")
         Vector2i v = retrieved;
         CHECK(v.x == 10);
         CHECK(v.y == 20);
+
+        state->pop(1); // Pop the Vector2i userdata
     }
 
     SUBCASE("Vector3")
@@ -214,6 +246,8 @@ TEST_CASE_FIXTURE(LuaStateFixture, "Variant: Math type conversions")
         CHECK(v.x == doctest::Approx(1.0));
         CHECK(v.y == doctest::Approx(2.0));
         CHECK(v.z == doctest::Approx(3.0));
+
+        state->pop(1); // Pop the Vector3 (native vector type)
     }
 
     SUBCASE("Vector3i")
@@ -228,6 +262,8 @@ TEST_CASE_FIXTURE(LuaStateFixture, "Variant: Math type conversions")
         CHECK(v.x == 100);
         CHECK(v.y == 200);
         CHECK(v.z == 300);
+
+        state->pop(1); // Pop the Vector3i userdata
     }
 
     SUBCASE("Color")
@@ -243,6 +279,8 @@ TEST_CASE_FIXTURE(LuaStateFixture, "Variant: Math type conversions")
         CHECK(c.g == doctest::Approx(0.5));
         CHECK(c.b == doctest::Approx(0.0));
         CHECK(c.a == doctest::Approx(0.8));
+
+        state->pop(1); // Pop the Color userdata
     }
 }
 
@@ -269,6 +307,8 @@ TEST_CASE_FIXTURE(LuaStateFixture, "Variant: Collection conversions")
         CHECK((int)retrieved_arr[0] == 1);
         CHECK((String)retrieved_arr[1] == "two");
         CHECK((double)retrieved_arr[2] == doctest::Approx(3.0));
+
+        state->pop(1); // Pop the table
     }
 
     SUBCASE("Dictionary variant")
@@ -288,6 +328,8 @@ TEST_CASE_FIXTURE(LuaStateFixture, "Variant: Collection conversions")
         Dictionary retrieved_dict = retrieved;
         CHECK((String)retrieved_dict["name"] == "test");
         CHECK((int)retrieved_dict["value"] == 42);
+
+        state->pop(1); // Pop the table
     }
 
     SUBCASE("Empty array")
@@ -300,6 +342,8 @@ TEST_CASE_FIXTURE(LuaStateFixture, "Variant: Collection conversions")
         Variant retrieved = state->to_variant(-1);
         Array retrieved_arr = retrieved;
         CHECK(retrieved_arr.size() == 0);
+
+        state->pop(1); // Pop the empty table
     }
 
     SUBCASE("Empty dictionary")
@@ -312,6 +356,8 @@ TEST_CASE_FIXTURE(LuaStateFixture, "Variant: Collection conversions")
         Variant retrieved = state->to_variant(-1);
         Dictionary retrieved_dict = retrieved;
         CHECK(retrieved_dict.size() == 0);
+
+        state->pop(1); // Pop the empty table
     }
 }
 
@@ -347,6 +393,8 @@ TEST_CASE_FIXTURE(LuaStateFixture, "Variant: Nested structure conversions")
         Array r_inner2 = retrieved_outer[1];
         CHECK((int)r_inner2[0] == 3);
         CHECK((int)r_inner2[1] == 4);
+
+        state->pop(1); // Pop the nested array table
     }
 
     SUBCASE("Dictionary containing arrays and dictionaries")
@@ -377,6 +425,8 @@ TEST_CASE_FIXTURE(LuaStateFixture, "Variant: Nested structure conversions")
 
         Dictionary r_meta = retrieved_dict["meta"];
         CHECK((int)r_meta["count"] == 2);
+
+        state->pop(1); // Pop the nested dictionary table
     }
 
     SUBCASE("Array with mixed types including math types")
@@ -405,6 +455,8 @@ TEST_CASE_FIXTURE(LuaStateFixture, "Variant: Nested structure conversions")
         Color c = r_arr[3];
         CHECK(c.r == doctest::Approx(1.0));
         CHECK(c.a == doctest::Approx(1.0));
+
+        state->pop(1); // Pop the mixed type array table
     }
 }
 
@@ -435,6 +487,8 @@ TEST_CASE_FIXTURE(LuaStateFixture, "Variant: Round-trip through Lua execution")
         CHECK(result_arr.size() == 4);
         CHECK((int)result_arr[2] == 3);
         CHECK((int)result_arr[3] == 4);
+
+        state->pop(1); // Pop the return value from exec_lua
     }
 
     SUBCASE("Create complex structure in Lua")
@@ -472,6 +526,8 @@ TEST_CASE_FIXTURE(LuaStateFixture, "Variant: Round-trip through Lua execution")
         Dictionary meta = dict["metadata"];
         CHECK((String)meta["name"] == "entity");
         CHECK((bool)meta["active"] == true);
+
+        state->pop(1); // Pop the return value from exec_lua
     }
 }
 
@@ -486,6 +542,8 @@ TEST_CASE_FIXTURE(LuaStateFixture, "Variant: Type edge cases")
         Variant retrieved = state->to_variant(-1);
         int64_t value = retrieved;
         CHECK(value == 2147483647);
+
+        state->pop(1); // Pop the number
     }
 
     SUBCASE("Very small float")
@@ -496,6 +554,8 @@ TEST_CASE_FIXTURE(LuaStateFixture, "Variant: Type edge cases")
         Variant retrieved = state->to_variant(-1);
         double value = retrieved;
         CHECK(value == doctest::Approx(0.000001));
+
+        state->pop(1); // Pop the number
     }
 
     SUBCASE("Negative zero")
@@ -507,6 +567,8 @@ TEST_CASE_FIXTURE(LuaStateFixture, "Variant: Type edge cases")
         double value = retrieved;
         // -0.0 should be preserved
         CHECK(value == doctest::Approx(0.0));
+
+        state->pop(1); // Pop the number
     }
 
     SUBCASE("Multiple nil variants")
@@ -519,5 +581,7 @@ TEST_CASE_FIXTURE(LuaStateFixture, "Variant: Type edge cases")
         CHECK(state->is_nil(-1));
         CHECK(state->is_nil(-2));
         CHECK(state->is_nil(-3));
+
+        state->pop(3); // Pop all three nil values
     }
 }

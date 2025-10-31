@@ -34,6 +34,7 @@ TEST_CASE_FIXTURE(RawLuaStateFixture, "Vector2: Construction and round-trip conv
         Vector2 retrieved = to_vector2(L, -1);
         CHECK(retrieved.x == doctest::Approx(3.5));
         CHECK(retrieved.y == doctest::Approx(4.2));
+        lua_pop(L, 1); // Pop the Vector2 userdata
     }
 
     SUBCASE("Create Vector2 in Lua via constructor")
@@ -46,6 +47,7 @@ TEST_CASE_FIXTURE(RawLuaStateFixture, "Vector2: Construction and round-trip conv
         Vector2 result = to_vector2(L, -1);
         CHECK(result.x == doctest::Approx(10.5));
         CHECK(result.y == doctest::Approx(20.3));
+        lua_pop(L, 1); // Pop the Vector2 from getglobal
     }
 }
 
@@ -66,6 +68,7 @@ TEST_CASE_FIXTURE(RawLuaStateFixture, "Vector2: Property access")
 
         lua_getglobal(L, "y_val");
         CHECK(lua_tonumber(L, -1) == doctest::Approx(8.5));
+        lua_pop(L, 1); // Pop the y_val
     }
 
     SUBCASE("Write properties")
@@ -81,6 +84,7 @@ TEST_CASE_FIXTURE(RawLuaStateFixture, "Vector2: Property access")
         Vector2 modified = to_vector2(L, -1);
         CHECK(modified.x == doctest::Approx(99.5));
         CHECK(modified.y == doctest::Approx(88.5));
+        lua_pop(L, 1); // Pop the modified Vector2
     }
 }
 
@@ -96,6 +100,7 @@ TEST_CASE_FIXTURE(RawLuaStateFixture, "Vector2: Arithmetic operators")
         Vector2 result = to_vector2(L, -1);
         CHECK(result.x == doctest::Approx(4.0));
         CHECK(result.y == doctest::Approx(6.0));
+        lua_pop(L, 1); // Pop the result Vector2
     }
 
     SUBCASE("Subtraction")
@@ -108,6 +113,7 @@ TEST_CASE_FIXTURE(RawLuaStateFixture, "Vector2: Arithmetic operators")
         Vector2 result = to_vector2(L, -1);
         CHECK(result.x == doctest::Approx(7.0));
         CHECK(result.y == doctest::Approx(13.0));
+        lua_pop(L, 1); // Pop the result Vector2
     }
 
     SUBCASE("Scalar multiplication")
@@ -119,6 +125,7 @@ TEST_CASE_FIXTURE(RawLuaStateFixture, "Vector2: Arithmetic operators")
         Vector2 result = to_vector2(L, -1);
         CHECK(result.x == doctest::Approx(5.0));
         CHECK(result.y == doctest::Approx(7.5));
+        lua_pop(L, 1); // Pop the result Vector2
     }
 
     SUBCASE("Component-wise multiplication")
@@ -131,6 +138,7 @@ TEST_CASE_FIXTURE(RawLuaStateFixture, "Vector2: Arithmetic operators")
         Vector2 result = to_vector2(L, -1);
         CHECK(result.x == doctest::Approx(8.0));
         CHECK(result.y == doctest::Approx(15.0));
+        lua_pop(L, 1); // Pop the result Vector2
     }
 
     SUBCASE("Scalar division")
@@ -142,6 +150,7 @@ TEST_CASE_FIXTURE(RawLuaStateFixture, "Vector2: Arithmetic operators")
         Vector2 result = to_vector2(L, -1);
         CHECK(result.x == doctest::Approx(5.0));
         CHECK(result.y == doctest::Approx(10.0));
+        lua_pop(L, 1); // Pop the result Vector2
     }
 
     SUBCASE("Component-wise division")
@@ -154,6 +163,7 @@ TEST_CASE_FIXTURE(RawLuaStateFixture, "Vector2: Arithmetic operators")
         Vector2 result = to_vector2(L, -1);
         CHECK(result.x == doctest::Approx(3.0));
         CHECK(result.y == doctest::Approx(4.0));
+        lua_pop(L, 1); // Pop the result Vector2
     }
 
     SUBCASE("Unary negation")
@@ -165,6 +175,7 @@ TEST_CASE_FIXTURE(RawLuaStateFixture, "Vector2: Arithmetic operators")
         Vector2 result = to_vector2(L, -1);
         CHECK(result.x == doctest::Approx(-5.0));
         CHECK(result.y == doctest::Approx(3.0));
+        lua_pop(L, 1); // Pop the result Vector2
     }
 }
 
@@ -185,6 +196,7 @@ TEST_CASE_FIXTURE(RawLuaStateFixture, "Vector2: Equality and tostring")
 
         lua_getglobal(L, "not_equal");
         CHECK(!lua_toboolean(L, -1));
+        lua_pop(L, 1); // Pop the not_equal boolean
     }
 
     SUBCASE("String conversion")
@@ -197,6 +209,7 @@ TEST_CASE_FIXTURE(RawLuaStateFixture, "Vector2: Equality and tostring")
         CHECK(str != nullptr);
         // String should contain the coordinates in some form
         // Expected format: "Vector2(3.5, 4.2)" or similar
+        lua_pop(L, 1); // Pop the string
     }
 }
 
@@ -213,6 +226,7 @@ TEST_CASE_FIXTURE(RawLuaStateFixture, "Vector2i: Integer vector operations")
         Vector2i result = to_vector2i(L, -1);
         CHECK(result.x == 10);
         CHECK(result.y == 20);
+        lua_pop(L, 1); // Pop the Vector2i
     }
 
     SUBCASE("Integer arithmetic")
@@ -232,6 +246,7 @@ TEST_CASE_FIXTURE(RawLuaStateFixture, "Vector2i: Integer vector operations")
         Vector2i diff = to_vector2i(L, -1);
         CHECK(diff.x == 7);
         CHECK(diff.y == 13);
+        lua_pop(L, 1); // Pop the diff Vector2i
     }
 }
 
@@ -249,6 +264,7 @@ TEST_CASE_FIXTURE(RawLuaStateFixture, "Vector3: Native vector type operations")
         CHECK(retrieved.x == doctest::Approx(1.5));
         CHECK(retrieved.y == doctest::Approx(2.5));
         CHECK(retrieved.z == doctest::Approx(3.5));
+        lua_pop(L, 1); // Pop the Vector3
     }
 
     SUBCASE("Lua constructor")
@@ -260,6 +276,7 @@ TEST_CASE_FIXTURE(RawLuaStateFixture, "Vector3: Native vector type operations")
         CHECK(result.x == doctest::Approx(10));
         CHECK(result.y == doctest::Approx(20));
         CHECK(result.z == doctest::Approx(30));
+        lua_pop(L, 1); // Pop the Vector3
     }
 
     SUBCASE("Native vector arithmetic")
@@ -274,6 +291,7 @@ TEST_CASE_FIXTURE(RawLuaStateFixture, "Vector3: Native vector type operations")
         CHECK(sum.x == doctest::Approx(5));
         CHECK(sum.y == doctest::Approx(7));
         CHECK(sum.z == doctest::Approx(9));
+        lua_pop(L, 1); // Pop the sum Vector3
     }
 
     SUBCASE("Property access")
@@ -293,6 +311,7 @@ TEST_CASE_FIXTURE(RawLuaStateFixture, "Vector3: Native vector type operations")
 
         lua_getglobal(L, "z");
         CHECK(lua_tonumber(L, -1) == doctest::Approx(9));
+        lua_pop(L, 1); // Pop the z value
     }
 }
 
@@ -310,6 +329,7 @@ TEST_CASE_FIXTURE(RawLuaStateFixture, "Vector3i: Integer 3D vector")
         CHECK(retrieved.x == 100);
         CHECK(retrieved.y == 200);
         CHECK(retrieved.z == 300);
+        lua_pop(L, 1); // Pop the Vector3i
     }
 
     SUBCASE("Operations")
@@ -322,6 +342,7 @@ TEST_CASE_FIXTURE(RawLuaStateFixture, "Vector3i: Integer 3D vector")
         CHECK(result.x == 10);
         CHECK(result.y == 20);
         CHECK(result.z == 30);
+        lua_pop(L, 1); // Pop the doubled Vector3i
     }
 }
 
@@ -340,6 +361,7 @@ TEST_CASE_FIXTURE(RawLuaStateFixture, "Color: RGBA color operations")
         CHECK(result.g == doctest::Approx(0.5));
         CHECK(result.b == doctest::Approx(0.0));
         CHECK(result.a == doctest::Approx(1.0)); // Default alpha
+        lua_pop(L, 1); // Pop the Color
     }
 
     SUBCASE("Construction with RGBA")
@@ -352,6 +374,7 @@ TEST_CASE_FIXTURE(RawLuaStateFixture, "Color: RGBA color operations")
         CHECK(result.g == doctest::Approx(0.4));
         CHECK(result.b == doctest::Approx(0.6));
         CHECK(result.a == doctest::Approx(0.8));
+        lua_pop(L, 1); // Pop the Color
     }
 
     SUBCASE("Property access and modification")
@@ -366,6 +389,7 @@ TEST_CASE_FIXTURE(RawLuaStateFixture, "Color: RGBA color operations")
         CHECK(result.g == doctest::Approx(0.5));
         CHECK(result.b == doctest::Approx(0.0));
         CHECK(result.a == doctest::Approx(0.7));
+        lua_pop(L, 1); // Pop the modified Color
     }
 
     SUBCASE("Color arithmetic")
@@ -380,6 +404,7 @@ TEST_CASE_FIXTURE(RawLuaStateFixture, "Color: RGBA color operations")
         CHECK(sum.g == doctest::Approx(0.5));
         CHECK(sum.b == doctest::Approx(0.5));
         CHECK(sum.a == doctest::Approx(1.0));
+        lua_pop(L, 1); // Pop the sum Color
     }
 
     SUBCASE("Scalar multiplication")
@@ -393,6 +418,7 @@ TEST_CASE_FIXTURE(RawLuaStateFixture, "Color: RGBA color operations")
         CHECK(result.g == doctest::Approx(1.0));
         CHECK(result.b == doctest::Approx(1.0));
         CHECK(result.a == doctest::Approx(2.0)); // Alpha is also scaled
+        lua_pop(L, 1); // Pop the brighter Color
     }
 
     SUBCASE("Round-trip conversion")
@@ -405,6 +431,7 @@ TEST_CASE_FIXTURE(RawLuaStateFixture, "Color: RGBA color operations")
         CHECK(retrieved.g == doctest::Approx(0.2));
         CHECK(retrieved.b == doctest::Approx(0.3));
         CHECK(retrieved.a == doctest::Approx(0.4));
+        lua_pop(L, 1); // Pop the Color
     }
 }
 
@@ -429,6 +456,7 @@ TEST_CASE_FIXTURE(RawLuaStateFixture, "Math types: Type checking")
         CHECK(is_color(L, -1));
         CHECK_FALSE(is_vector2(L, -1));
         CHECK_FALSE(is_vector3(L, -1));
+        lua_pop(L, 1); // Pop the Color
     }
 }
 
@@ -446,6 +474,7 @@ TEST_CASE_FIXTURE(RawLuaStateFixture, "Vector4: Construction and round-trip conv
         CHECK(retrieved.y == doctest::Approx(2.5));
         CHECK(retrieved.z == doctest::Approx(3.5));
         CHECK(retrieved.w == doctest::Approx(4.5));
+        lua_pop(L, 1); // Pop the Vector4
     }
 
     SUBCASE("Create Vector4 in Lua via constructor")
@@ -460,6 +489,7 @@ TEST_CASE_FIXTURE(RawLuaStateFixture, "Vector4: Construction and round-trip conv
         CHECK(result.y == doctest::Approx(20.3));
         CHECK(result.z == doctest::Approx(30.1));
         CHECK(result.w == doctest::Approx(40.9));
+        lua_pop(L, 1); // Pop the Vector4
     }
 }
 
@@ -474,6 +504,7 @@ TEST_CASE_FIXTURE(RawLuaStateFixture, "Vector4: Arithmetic operators")
         CHECK(result.y == doctest::Approx(8.0));
         CHECK(result.z == doctest::Approx(10.0));
         CHECK(result.w == doctest::Approx(12.0));
+        lua_pop(L, 1); // Pop the result Vector4
     }
 
     SUBCASE("Scalar multiplication")
@@ -485,6 +516,7 @@ TEST_CASE_FIXTURE(RawLuaStateFixture, "Vector4: Arithmetic operators")
         CHECK(result.y == doctest::Approx(7.5));
         CHECK(result.z == doctest::Approx(10.0));
         CHECK(result.w == doctest::Approx(12.5));
+        lua_pop(L, 1); // Pop the result Vector4
     }
 
     SUBCASE("Unary negation")
@@ -496,6 +528,7 @@ TEST_CASE_FIXTURE(RawLuaStateFixture, "Vector4: Arithmetic operators")
         CHECK(result.y == doctest::Approx(3.0));
         CHECK(result.z == doctest::Approx(-2.0));
         CHECK(result.w == doctest::Approx(1.0));
+        lua_pop(L, 1); // Pop the result Vector4
     }
 }
 
@@ -513,6 +546,7 @@ TEST_CASE_FIXTURE(RawLuaStateFixture, "Vector4i: Construction and operators")
         CHECK(result.y == 20);
         CHECK(result.z == 30);
         CHECK(result.w == 40);
+        lua_pop(L, 1); // Pop the Vector4i
     }
 
     SUBCASE("Addition")
@@ -524,6 +558,7 @@ TEST_CASE_FIXTURE(RawLuaStateFixture, "Vector4i: Construction and operators")
         CHECK(result.y == 8);
         CHECK(result.z == 10);
         CHECK(result.w == 12);
+        lua_pop(L, 1); // Pop the result Vector4i
     }
 }
 
@@ -541,6 +576,7 @@ TEST_CASE_FIXTURE(RawLuaStateFixture, "Rect2: Construction and properties")
         CHECK(retrieved.position.y == doctest::Approx(20.0));
         CHECK(retrieved.size.x == doctest::Approx(100.0));
         CHECK(retrieved.size.y == doctest::Approx(200.0));
+        lua_pop(L, 1); // Pop the Rect2
     }
 
     SUBCASE("Create Rect2 in Lua via constructor")
@@ -555,6 +591,7 @@ TEST_CASE_FIXTURE(RawLuaStateFixture, "Rect2: Construction and properties")
         CHECK(result.position.y == doctest::Approx(10.0));
         CHECK(result.size.x == doctest::Approx(50.0));
         CHECK(result.size.y == doctest::Approx(100.0));
+        lua_pop(L, 1); // Pop the Rect2
     }
 
     SUBCASE("Property access")
@@ -568,6 +605,7 @@ TEST_CASE_FIXTURE(RawLuaStateFixture, "Rect2: Construction and properties")
 
         lua_getglobal(L, "w");
         CHECK(lua_tonumber(L, -1) == doctest::Approx(3.0));
+        lua_pop(L, 1); // Pop the width value
     }
 }
 
@@ -585,6 +623,7 @@ TEST_CASE_FIXTURE(RawLuaStateFixture, "Rect2i: Construction and properties")
         CHECK(result.position.y == 20);
         CHECK(result.size.x == 100);
         CHECK(result.size.y == 200);
+        lua_pop(L, 1); // Pop the Rect2i
     }
 }
 
@@ -604,6 +643,7 @@ TEST_CASE_FIXTURE(RawLuaStateFixture, "AABB: Construction and properties")
         CHECK(retrieved.size.x == doctest::Approx(10.0));
         CHECK(retrieved.size.y == doctest::Approx(20.0));
         CHECK(retrieved.size.z == doctest::Approx(30.0));
+        lua_pop(L, 1); // Pop the AABB
     }
 
     SUBCASE("Create AABB in Lua via constructor")
@@ -620,6 +660,7 @@ TEST_CASE_FIXTURE(RawLuaStateFixture, "AABB: Construction and properties")
         CHECK(result.size.x == doctest::Approx(50.0));
         CHECK(result.size.y == doctest::Approx(100.0));
         CHECK(result.size.z == doctest::Approx(150.0));
+        lua_pop(L, 1); // Pop the AABB
     }
 }
 
@@ -637,6 +678,7 @@ TEST_CASE_FIXTURE(RawLuaStateFixture, "Plane: Construction and properties")
         CHECK(retrieved.normal.y == doctest::Approx(0.0));
         CHECK(retrieved.normal.z == doctest::Approx(0.0));
         CHECK(retrieved.d == doctest::Approx(5.0));
+        lua_pop(L, 1); // Pop the Plane
     }
 
     SUBCASE("Create Plane in Lua via constructor")
@@ -651,6 +693,7 @@ TEST_CASE_FIXTURE(RawLuaStateFixture, "Plane: Construction and properties")
         CHECK(result.normal.y == doctest::Approx(1.0));
         CHECK(result.normal.z == doctest::Approx(0.0));
         CHECK(result.d == doctest::Approx(10.0));
+        lua_pop(L, 1); // Pop the Plane
     }
 
     SUBCASE("Unary negation")
@@ -660,6 +703,7 @@ TEST_CASE_FIXTURE(RawLuaStateFixture, "Plane: Construction and properties")
         Plane result = to_plane(L, -1);
         CHECK(result.normal.x == doctest::Approx(-1.0));
         CHECK(result.d == doctest::Approx(-5.0));
+        lua_pop(L, 1); // Pop the result Plane
     }
 }
 
@@ -677,6 +721,7 @@ TEST_CASE_FIXTURE(RawLuaStateFixture, "Quaternion: Construction and operators")
         CHECK(retrieved.y == doctest::Approx(0.0));
         CHECK(retrieved.z == doctest::Approx(0.0));
         CHECK(retrieved.w == doctest::Approx(1.0));
+        lua_pop(L, 1); // Pop the Quaternion
     }
 
     SUBCASE("Create Quaternion in Lua via constructor")
@@ -691,6 +736,7 @@ TEST_CASE_FIXTURE(RawLuaStateFixture, "Quaternion: Construction and operators")
         CHECK(result.y == doctest::Approx(2.0));
         CHECK(result.z == doctest::Approx(3.0));
         CHECK(result.w == doctest::Approx(4.0));
+        lua_pop(L, 1); // Pop the Quaternion
     }
 
     SUBCASE("Addition")
@@ -702,6 +748,7 @@ TEST_CASE_FIXTURE(RawLuaStateFixture, "Quaternion: Construction and operators")
         CHECK(result.y == doctest::Approx(8.0));
         CHECK(result.z == doctest::Approx(10.0));
         CHECK(result.w == doctest::Approx(12.0));
+        lua_pop(L, 1); // Pop the result Quaternion
     }
 
     SUBCASE("Scalar multiplication")
@@ -713,6 +760,7 @@ TEST_CASE_FIXTURE(RawLuaStateFixture, "Quaternion: Construction and operators")
         CHECK(result.y == doctest::Approx(4.0));
         CHECK(result.z == doctest::Approx(6.0));
         CHECK(result.w == doctest::Approx(8.0));
+        lua_pop(L, 1); // Pop the result Quaternion
     }
 }
 
@@ -727,6 +775,7 @@ TEST_CASE_FIXTURE(RawLuaStateFixture, "Basis: Construction")
 
         Basis retrieved = to_basis(L, -1);
         CHECK(retrieved == Basis()); // Should be identity
+        lua_pop(L, 1); // Pop the Basis
     }
 
     SUBCASE("Create Basis in Lua via constructor")
@@ -738,6 +787,7 @@ TEST_CASE_FIXTURE(RawLuaStateFixture, "Basis: Construction")
 
         Basis result = to_basis(L, -1);
         CHECK(result == Basis()); // Should be identity
+        lua_pop(L, 1); // Pop the Basis
     }
 }
 
@@ -752,6 +802,7 @@ TEST_CASE_FIXTURE(RawLuaStateFixture, "Transform2D: Construction")
 
         Transform2D retrieved = to_transform2d(L, -1);
         CHECK(retrieved == Transform2D()); // Should be identity
+        lua_pop(L, 1); // Pop the Transform2D
     }
 
     SUBCASE("Create Transform2D in Lua via constructor")
@@ -763,6 +814,7 @@ TEST_CASE_FIXTURE(RawLuaStateFixture, "Transform2D: Construction")
 
         Transform2D result = to_transform2d(L, -1);
         CHECK(result == Transform2D()); // Should be identity
+        lua_pop(L, 1); // Pop the Transform2D
     }
 }
 
@@ -777,6 +829,7 @@ TEST_CASE_FIXTURE(RawLuaStateFixture, "Transform3D: Construction")
 
         Transform3D retrieved = to_transform3d(L, -1);
         CHECK(retrieved == Transform3D()); // Should be identity
+        lua_pop(L, 1); // Pop the Transform3D
     }
 
     SUBCASE("Create Transform3D in Lua via constructor")
@@ -788,6 +841,7 @@ TEST_CASE_FIXTURE(RawLuaStateFixture, "Transform3D: Construction")
 
         Transform3D result = to_transform3d(L, -1);
         CHECK(result == Transform3D()); // Should be identity
+        lua_pop(L, 1); // Pop the Transform3D
     }
 }
 
@@ -802,6 +856,7 @@ TEST_CASE_FIXTURE(RawLuaStateFixture, "Projection: Construction")
 
         Projection retrieved = to_projection(L, -1);
         CHECK(retrieved == Projection()); // Should be identity
+        lua_pop(L, 1); // Pop the Projection
     }
 
     SUBCASE("Create Projection in Lua via constructor")
@@ -813,5 +868,6 @@ TEST_CASE_FIXTURE(RawLuaStateFixture, "Projection: Construction")
 
         Projection result = to_projection(L, -1);
         CHECK(result == Projection()); // Should be identity
+        lua_pop(L, 1); // Pop the Projection
     }
 }

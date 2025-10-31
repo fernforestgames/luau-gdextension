@@ -36,6 +36,7 @@ TEST_CASE_FIXTURE(LuaStateFixture, "Dictionary: Simple dictionary Godot -> Lua")
         state->push_string("active");
         state->get_table(-2);
         CHECK(state->to_boolean(-1) == true);
+        state->pop(2); // Pop value and table
     }
 
     SUBCASE("Integer keys")
@@ -62,6 +63,7 @@ TEST_CASE_FIXTURE(LuaStateFixture, "Dictionary: Simple dictionary Godot -> Lua")
 
         state->get_global("v100");
         CHECK(state->to_string(-1) == "hundred");
+        state->pop(1); // Pop value
     }
 
     SUBCASE("Empty dictionary")
@@ -85,6 +87,7 @@ TEST_CASE_FIXTURE(LuaStateFixture, "Dictionary: Simple dictionary Godot -> Lua")
         exec_lua(code);
 
         CHECK(state->to_integer(-1) == 0);
+        state->pop(1); // Pop count value
     }
 
 }
@@ -110,6 +113,7 @@ TEST_CASE_FIXTURE(LuaStateFixture, "Dictionary: Lua table -> Godot Dictionary")
         CHECK((String)dict["name"] == "Alice");
         CHECK((int)dict["age"] == 30);
         CHECK((bool)dict["active"] == true);
+        state->pop(1); // Pop table
     }
 
     SUBCASE("Integer-keyed table")
@@ -130,6 +134,7 @@ TEST_CASE_FIXTURE(LuaStateFixture, "Dictionary: Lua table -> Godot Dictionary")
         CHECK((String)dict[10] == "ten");
         CHECK((String)dict[20] == "twenty");
         CHECK((String)dict[30] == "thirty");
+        state->pop(1); // Pop table
     }
 
     SUBCASE("Mixed key types")
@@ -155,6 +160,7 @@ TEST_CASE_FIXTURE(LuaStateFixture, "Dictionary: Lua table -> Godot Dictionary")
         CHECK((String)dict["name"] == "test");
         CHECK((String)dict[1] == "first");
         CHECK((int)dict["count"] == 99);
+        state->pop(1); // Pop table
     }
 
 }
@@ -194,6 +200,7 @@ TEST_CASE_FIXTURE(LuaStateFixture, "Dictionary: Nested dictionaries")
 
         state->get_global("name");
         CHECK(state->to_string(-1) == "entity");
+        state->pop(1); // Pop value
     }
 
     SUBCASE("Lua nested table to Dictionary")
@@ -225,6 +232,7 @@ TEST_CASE_FIXTURE(LuaStateFixture, "Dictionary: Nested dictionaries")
         Dictionary settings = dict["settings"];
         CHECK((int)settings["volume"] == 80);
         CHECK((bool)settings["fullscreen"] == true);
+        state->pop(1); // Pop table
     }
 
 }
@@ -265,6 +273,7 @@ TEST_CASE_FIXTURE(LuaStateFixture, "Dictionary: Mixed with arrays")
 
         state->get_global("count");
         CHECK(state->to_integer(-1) == 3);
+        state->pop(1); // Pop value
     }
 
     SUBCASE("Array containing dictionaries")
@@ -298,6 +307,7 @@ TEST_CASE_FIXTURE(LuaStateFixture, "Dictionary: Mixed with arrays")
 
         state->get_global("second_id");
         CHECK(state->to_integer(-1) == 2);
+        state->pop(1); // Pop value
     }
 
 }
@@ -325,6 +335,7 @@ TEST_CASE_FIXTURE(LuaStateFixture, "Dictionary: Round-trip conversion")
         CHECK((String)retrieved["name"] == "test");
         CHECK((int)retrieved["value"] == 42);
         CHECK((bool)retrieved["flag"] == true);
+        state->pop(1); // Pop table
     }
 
     SUBCASE("Nested structure round-trip")
@@ -358,6 +369,7 @@ TEST_CASE_FIXTURE(LuaStateFixture, "Dictionary: Round-trip conversion")
         CHECK(retrieved_items.size() == 2);
         CHECK((int)retrieved_items[0] == 10);
         CHECK((int)retrieved_items[1] == 20);
+        state->pop(1); // Pop table
     }
 
 }
@@ -383,6 +395,7 @@ TEST_CASE_FIXTURE(LuaStateFixture, "Dictionary: Edge cases")
         CHECK(dict.has("a"));
         CHECK(dict.has("c"));
         // "b" might be missing or have a nil Variant
+        state->pop(1); // Pop table
     }
 
     SUBCASE("Large dictionary")
@@ -403,6 +416,7 @@ TEST_CASE_FIXTURE(LuaStateFixture, "Dictionary: Edge cases")
         CHECK((int)retrieved["key0"] == 0);
         CHECK((int)retrieved["key50"] == 50);
         CHECK((int)retrieved["key99"] == 99);
+        state->pop(1); // Pop table
     }
 
     SUBCASE("Special string keys")
@@ -435,6 +449,7 @@ TEST_CASE_FIXTURE(LuaStateFixture, "Dictionary: Edge cases")
 
         state->get_global("v4");
         CHECK(state->to_integer(-1) == 4);
+        state->pop(1); // Pop value
     }
 
 }
