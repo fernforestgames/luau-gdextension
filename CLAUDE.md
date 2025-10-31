@@ -270,3 +270,5 @@ Read these if you ever need more information:
   - The
     [Object](https://docs.godotengine.org/en/stable/engine_details/architecture/object_class.html)
     class
+- Don't use `tail`, `grep`, etc. over `ctest` output. Just run the tests and see the output in full each time.
+- Don't manually invoke Godot to run tests. Use `ctest` as the test runner.
