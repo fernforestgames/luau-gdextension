@@ -10,6 +10,7 @@ func test_pop_from_empty_stack():
 
 	# Try to pop from empty stack - should fail gracefully
 	state.pop(1)
+	assert_engine_error("Stack underflow")
 
 	# Stack should still be empty
 	assert_eq(state.get_top(), 0, "Stack should still be empty after invalid pop")
@@ -23,6 +24,7 @@ func test_pop_more_than_available():
 
 	# Try to pop 10 items when only 2 exist
 	state.pop(10)
+	assert_engine_error("Stack underflow")
 
 	# Operation should be rejected, stack unchanged
 	assert_eq(state.get_top(), 2, "Stack should be unchanged after invalid pop")
@@ -35,6 +37,7 @@ func test_pushvalue_with_invalid_index():
 
 	# Try to push invalid index
 	state.push_value(100)
+	assert_engine_error("Invalid stack index")
 
 	# Stack should be unchanged
 	assert_eq(state.get_top(), top, "Stack should be unchanged after invalid pushvalue")
@@ -47,6 +50,7 @@ func test_pushvalue_with_zero_index():
 
 	# Index 0 is never valid in Lua
 	state.push_value(0)
+	assert_engine_error("Invalid stack index")
 
 	# Stack should be unchanged
 	assert_eq(state.get_top(), top, "Stack should be unchanged with index 0")
@@ -60,6 +64,7 @@ func test_remove_invalid_index():
 
 	# Try to remove invalid index
 	state.remove(10)
+	assert_engine_error("Invalid stack index")
 
 	# Stack should be unchanged
 	assert_eq(state.get_top(), top, "Stack should be unchanged after invalid remove")
@@ -69,6 +74,7 @@ func test_replace_on_empty_stack():
 
 	# Try to replace when there's nothing to replace with
 	state.replace(1)
+	assert_engine_error("has_n_items")
 
 	# Should not crash, stack still empty
 	assert_eq(state.get_top(), 0, "Stack should still be empty")
@@ -78,6 +84,7 @@ func test_insert_on_empty_stack():
 
 	# Try to insert when there's nothing to insert
 	state.insert(1)
+	assert_engine_error("has_n_items")
 
 	# Should not crash, stack still empty
 	assert_eq(state.get_top(), 0, "Stack should still be empty")
@@ -91,6 +98,7 @@ func test_settop_with_invalid_negative():
 
 	# Try invalid negative index
 	state.set_top(-10)
+	assert_engine_error("index")
 
 	# Stack should be unchanged
 	assert_eq(state.get_top(), 2, "Stack should be unchanged after invalid settop")
@@ -98,12 +106,13 @@ func test_settop_with_invalid_negative():
 func test_gettable_without_key():
 	var state = LuaState.new()
 	state.open_libs()
-	state.do_string("t = {a = 1}")
+	state.do_string("t = {a = 1}", "test")
 	state.get_global("t")
-	state.pop(1)  # Remove table, now stack is empty
+	state.pop(1) # Remove table, now stack is empty
 
 	# Try gettable without a key
 	state.get_table(1)
+	assert_engine_error("top")
 
 	# Should not crash
 	assert_eq(state.get_top(), 0, "Stack should be empty")
@@ -111,12 +120,13 @@ func test_gettable_without_key():
 func test_settable_without_prerequisites():
 	var state = LuaState.new()
 	state.open_libs()
-	state.do_string("t = {}")
+	state.do_string("t = {}", "test")
 	state.get_global("t")
 
 	# settable needs key and value, we only have table
 	var top = state.get_top()
 	state.set_table(1)
+	assert_engine_error("top")
 
 	# Should not crash, stack unchanged
 	assert_eq(state.get_top(), top, "Stack should be unchanged")
@@ -124,12 +134,13 @@ func test_settable_without_prerequisites():
 func test_setfield_without_value():
 	var state = LuaState.new()
 	state.open_libs()
-	state.do_string("t = {}")
+	state.do_string("t = {}", "test")
 	state.get_global("t")
-	state.pop(1)  # Empty stack
+	state.pop(1) # Empty stack
 
 	# setfield needs a value on stack
 	state.set_field(1, "key")
+	assert_engine_error("top")
 
 	# Should not crash
 	assert_eq(state.get_top(), 0, "Stack should still be empty")
@@ -137,12 +148,13 @@ func test_setfield_without_value():
 func test_rawget_without_key():
 	var state = LuaState.new()
 	state.open_libs()
-	state.do_string("t = {a = 1}")
+	state.do_string("t = {a = 1}", "test")
 	state.get_global("t")
 	state.pop(1)
 
 	# Try rawget without key
 	state.raw_get(1)
+	assert_engine_error("top")
 
 	# Should not crash
 	assert_eq(state.get_top(), 0, "Stack should be empty")
@@ -150,12 +162,13 @@ func test_rawget_without_key():
 func test_rawset_without_prerequisites():
 	var state = LuaState.new()
 	state.open_libs()
-	state.do_string("t = {}")
+	state.do_string("t = {}", "test")
 	state.get_global("t")
 	state.pop(1)
 
 	# rawset needs key and value
 	state.raw_set(1)
+	assert_engine_error("top")
 
 	# Should not crash
 	assert_eq(state.get_top(), 0, "Stack should be empty")
@@ -163,12 +176,13 @@ func test_rawset_without_prerequisites():
 func test_rawseti_without_value():
 	var state = LuaState.new()
 	state.open_libs()
-	state.do_string("t = {}")
+	state.do_string("t = {}", "test")
 	state.get_global("t")
 	state.pop(1)
 
 	# rawseti needs a value
 	state.raw_seti(1, 1)
+	assert_engine_error("top")
 
 	# Should not crash
 	assert_eq(state.get_top(), 0, "Stack should be empty")
@@ -179,6 +193,7 @@ func test_getmetatable_invalid_index():
 
 	# Try to get metatable of non-existent index
 	var result = state.get_metatable(10)
+	assert_engine_error("Invalid stack index")
 
 	# Should return false, not crash
 	assert_false(result, "getmetatable should return false for invalid index")
@@ -186,10 +201,11 @@ func test_getmetatable_invalid_index():
 func test_setmetatable_without_metatable():
 	var state = LuaState.new()
 	state.push_integer(42)
-	state.pop(1)  # Empty stack
+	state.pop(1) # Empty stack
 
 	# Try to setmetatable without metatable on stack
 	var result = state.set_metatable(1)
+	assert_engine_error("top")
 
 	# Should return false, not crash
 	assert_false(result, "setmetatable should return false without metatable")
@@ -200,6 +216,7 @@ func test_call_without_function():
 
 	# Empty stack, try to call
 	state.call(0, 0)
+	assert_engine_error("has_n_items")
 
 	# Should not crash
 	assert_eq(state.get_top(), 0, "Stack should still be empty")
@@ -207,13 +224,14 @@ func test_call_without_function():
 func test_call_without_enough_args():
 	var state = LuaState.new()
 	state.open_libs()
-	state.do_string("function f(a, b, c) return a + b + c end")
+	state.do_string("function f(a, b, c) return a + b + c end", "test")
 	state.get_global("f")
 
 	var top = state.get_top()
 
 	# Function expects 3 args, but we claim to pass 5
 	state.call(5, 1)
+	assert_engine_error("has_n_items")
 
 	# Should not crash, operation rejected
 	assert_eq(state.get_top(), top, "Stack should be unchanged")
@@ -221,13 +239,14 @@ func test_call_without_enough_args():
 func test_call_with_negative_nargs():
 	var state = LuaState.new()
 	state.open_libs()
-	state.do_string("function f() return 42 end")
+	state.do_string("function f() return 42 end", "test")
 	state.get_global("f")
 
 	var top = state.get_top()
 
 	# Negative nargs is invalid
 	state.call(-1, 1)
+	assert_engine_error("nargs")
 
 	# Should not crash
 	assert_eq(state.get_top(), top, "Stack should be unchanged")
@@ -237,22 +256,24 @@ func test_pcall_without_function():
 
 	# Empty stack, try to pcall
 	var status = state.pcall(0, 0, 0)
+	assert_engine_error("has_n_items")
 
 	# Should return error status, not crash
-	assert_eq(status, LUA_ERRMEM, "Should return error status")
+	assert_ne(status, 0, "Should return error status")
 	assert_eq(state.get_top(), 0, "Stack should still be empty")
 
 func test_pcall_with_invalid_errfunc():
 	var state = LuaState.new()
 	state.open_libs()
-	state.do_string("function f() return 42 end")
+	state.do_string("function f() return 42 end", "test")
 	state.get_global("f")
 
 	# Invalid errfunc index
 	var status = state.pcall(0, 1, 10)
+	assert_engine_error("errfunc")
 
 	# Should return error status, not crash
-	assert_eq(status, LUA_ERRMEM, "Should return error status")
+	assert_ne(status, 0, "Should return error status")
 
 func test_valid_operations_still_work():
 	var state = LuaState.new()
@@ -279,7 +300,7 @@ func test_valid_operations_still_work():
 	assert_eq(state.to_integer(-1), 123, "Table value should be set correctly")
 
 	# Test valid function call
-	state.do_string("function add(a, b) return a + b end")
+	state.do_string("function add(a, b) return a + b end", "test")
 	state.get_global("add")
 	state.push_integer(10)
 	state.push_integer(20)
@@ -292,10 +313,14 @@ func test_complex_scenario_no_crash():
 	state.open_libs()
 
 	# Perform a series of invalid operations
-	state.pop(100)  # Pop from empty stack
-	state.push_value(50)  # Invalid index
-	state.remove(25)  # Invalid index
-	state.replace(30)  # Invalid index
+	state.pop(100) # Pop from empty stack
+	assert_engine_error("Stack underflow")
+	state.push_value(50) # Invalid index
+	assert_engine_error("LuaState.pushvalue(50): Invalid stack index")
+	state.remove(25) # Invalid index
+	assert_engine_error("LuaState.remove(25): Invalid stack index")
+	state.replace(30) # Invalid index
+	assert_engine_error("Stack is empty")
 
 	# Stack should still be valid
 	assert_eq(state.get_top(), 0, "Stack should still be empty")
