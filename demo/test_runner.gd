@@ -64,6 +64,20 @@ func run_gut_tests() -> bool:
 	print("=== Running GDScript Integration Tests (GUT) ===")
 	print("")
 
+	# Count expected test files
+	var expected_test_count = 0
+	var test_dir = DirAccess.open("res://test")
+	if test_dir:
+		test_dir.list_dir_begin()
+		var file_name = test_dir.get_next()
+		while file_name != "":
+			if file_name.begins_with("test_") and file_name.ends_with(".gd"):
+				expected_test_count += 1
+			file_name = test_dir.get_next()
+		test_dir.list_dir_end()
+
+	print("Found %d test files in res://test/" % expected_test_count)
+
 	# Load GUT configuration
 	var GutConfig = load("res://addons/gut/gut_config.gd")
 	var gut_config = GutConfig.new()
@@ -94,6 +108,16 @@ func run_gut_tests() -> bool:
 	var gut = runner.get_gut()
 	if gut:
 		await gut.end_run
+
+		# Check if all test scripts were loaded successfully
+		var loaded_script_count = gut.get_test_script_count()
+		print("")
+		print("Loaded %d/%d test scripts" % [loaded_script_count, expected_test_count])
+
+		if loaded_script_count < expected_test_count:
+			push_error("Some test scripts failed to load! Expected %d but only loaded %d" % [expected_test_count, loaded_script_count])
+			print("✗ Test script loading failed")
+			return false
 
 		# Get results
 		var passed = gut.get_pass_count()
