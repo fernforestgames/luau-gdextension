@@ -20,4 +20,6 @@ namespace godot
 } // namespace godot
 
 VARIANT_ENUM_CAST(lua_Status);
+VARIANT_ENUM_CAST(lua_CoStatus);
+VARIANT_ENUM_CAST(lua_Type);
 VARIANT_ENUM_CAST(lua_GCOp);
