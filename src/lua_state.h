@@ -143,6 +143,64 @@ namespace godot
         void push_string(const String &s);
         void push_variant(const Variant &value);
 
+        // Godot math type wrappers (wrapping lua_godotlib functions)
+        // Push operations
+        void push_vector2(const Vector2 &value);
+        void push_vector2i(const Vector2i &value);
+        void push_vector3(const Vector3 &value);
+        void push_vector3i(const Vector3i &value);
+        void push_vector4(const Vector4 &value);
+        void push_vector4i(const Vector4i &value);
+        void push_rect2(const Rect2 &value);
+        void push_rect2i(const Rect2i &value);
+        void push_aabb(const AABB &value);
+        void push_color(const Color &value);
+        void push_plane(const Plane &value);
+        void push_quaternion(const Quaternion &value);
+        void push_basis(const Basis &value);
+        void push_transform2d(const Transform2D &value);
+        void push_transform3d(const Transform3D &value);
+        void push_projection(const Projection &value);
+        void push_callable(const Callable &value);
+
+        // Type checking operations
+        bool is_vector2(int index);
+        bool is_vector2i(int index);
+        bool is_vector3(int index);
+        bool is_vector3i(int index);
+        bool is_vector4(int index);
+        bool is_vector4i(int index);
+        bool is_rect2(int index);
+        bool is_rect2i(int index);
+        bool is_aabb(int index);
+        bool is_color(int index);
+        bool is_plane(int index);
+        bool is_quaternion(int index);
+        bool is_basis(int index);
+        bool is_transform2d(int index);
+        bool is_transform3d(int index);
+        bool is_projection(int index);
+        bool is_callable(int index);
+
+        // Conversion operations
+        Vector2 to_vector2(int index);
+        Vector2i to_vector2i(int index);
+        Vector3 to_vector3(int index);
+        Vector3i to_vector3i(int index);
+        Vector4 to_vector4(int index);
+        Vector4i to_vector4i(int index);
+        Rect2 to_rect2(int index);
+        Rect2i to_rect2i(int index);
+        AABB to_aabb(int index);
+        Color to_color(int index);
+        Plane to_plane(int index);
+        Quaternion to_quaternion(int index);
+        Basis to_basis(int index);
+        Transform2D to_transform2d(int index);
+        Transform3D to_transform3d(int index);
+        Projection to_projection(int index);
+        Callable to_callable(int index);
+
         // Internal state accessor (for LuaCallable and other internal use)
         lua_State *get_lua_state() const;
 

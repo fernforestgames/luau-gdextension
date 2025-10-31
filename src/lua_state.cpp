@@ -117,6 +117,63 @@ void LuaState::_bind_methods()
     ClassDB::bind_method(D_METHOD("push_dictionary", "value"), &LuaState::push_dictionary);
     ClassDB::bind_method(D_METHOD("push_variant", "value"), &LuaState::push_variant);
 
+    // Godot math type wrappers - Push operations
+    ClassDB::bind_method(D_METHOD("push_vector2", "value"), &LuaState::push_vector2);
+    ClassDB::bind_method(D_METHOD("push_vector2i", "value"), &LuaState::push_vector2i);
+    ClassDB::bind_method(D_METHOD("push_vector3", "value"), &LuaState::push_vector3);
+    ClassDB::bind_method(D_METHOD("push_vector3i", "value"), &LuaState::push_vector3i);
+    ClassDB::bind_method(D_METHOD("push_vector4", "value"), &LuaState::push_vector4);
+    ClassDB::bind_method(D_METHOD("push_vector4i", "value"), &LuaState::push_vector4i);
+    ClassDB::bind_method(D_METHOD("push_rect2", "value"), &LuaState::push_rect2);
+    ClassDB::bind_method(D_METHOD("push_rect2i", "value"), &LuaState::push_rect2i);
+    ClassDB::bind_method(D_METHOD("push_aabb", "value"), &LuaState::push_aabb);
+    ClassDB::bind_method(D_METHOD("push_color", "value"), &LuaState::push_color);
+    ClassDB::bind_method(D_METHOD("push_plane", "value"), &LuaState::push_plane);
+    ClassDB::bind_method(D_METHOD("push_quaternion", "value"), &LuaState::push_quaternion);
+    ClassDB::bind_method(D_METHOD("push_basis", "value"), &LuaState::push_basis);
+    ClassDB::bind_method(D_METHOD("push_transform2d", "value"), &LuaState::push_transform2d);
+    ClassDB::bind_method(D_METHOD("push_transform3d", "value"), &LuaState::push_transform3d);
+    ClassDB::bind_method(D_METHOD("push_projection", "value"), &LuaState::push_projection);
+    ClassDB::bind_method(D_METHOD("push_callable", "value"), &LuaState::push_callable);
+
+    // Godot math type wrappers - Type checking operations
+    ClassDB::bind_method(D_METHOD("is_vector2", "index"), &LuaState::is_vector2);
+    ClassDB::bind_method(D_METHOD("is_vector2i", "index"), &LuaState::is_vector2i);
+    ClassDB::bind_method(D_METHOD("is_vector3", "index"), &LuaState::is_vector3);
+    ClassDB::bind_method(D_METHOD("is_vector3i", "index"), &LuaState::is_vector3i);
+    ClassDB::bind_method(D_METHOD("is_vector4", "index"), &LuaState::is_vector4);
+    ClassDB::bind_method(D_METHOD("is_vector4i", "index"), &LuaState::is_vector4i);
+    ClassDB::bind_method(D_METHOD("is_rect2", "index"), &LuaState::is_rect2);
+    ClassDB::bind_method(D_METHOD("is_rect2i", "index"), &LuaState::is_rect2i);
+    ClassDB::bind_method(D_METHOD("is_aabb", "index"), &LuaState::is_aabb);
+    ClassDB::bind_method(D_METHOD("is_color", "index"), &LuaState::is_color);
+    ClassDB::bind_method(D_METHOD("is_plane", "index"), &LuaState::is_plane);
+    ClassDB::bind_method(D_METHOD("is_quaternion", "index"), &LuaState::is_quaternion);
+    ClassDB::bind_method(D_METHOD("is_basis", "index"), &LuaState::is_basis);
+    ClassDB::bind_method(D_METHOD("is_transform2d", "index"), &LuaState::is_transform2d);
+    ClassDB::bind_method(D_METHOD("is_transform3d", "index"), &LuaState::is_transform3d);
+    ClassDB::bind_method(D_METHOD("is_projection", "index"), &LuaState::is_projection);
+    ClassDB::bind_method(D_METHOD("is_callable", "index"), &LuaState::is_callable);
+
+    // Godot math type wrappers - Conversion operations
+    ClassDB::bind_method(D_METHOD("to_vector2", "index"), &LuaState::to_vector2);
+    ClassDB::bind_method(D_METHOD("to_vector2i", "index"), &LuaState::to_vector2i);
+    ClassDB::bind_method(D_METHOD("to_vector3", "index"), &LuaState::to_vector3);
+    ClassDB::bind_method(D_METHOD("to_vector3i", "index"), &LuaState::to_vector3i);
+    ClassDB::bind_method(D_METHOD("to_vector4", "index"), &LuaState::to_vector4);
+    ClassDB::bind_method(D_METHOD("to_vector4i", "index"), &LuaState::to_vector4i);
+    ClassDB::bind_method(D_METHOD("to_rect2", "index"), &LuaState::to_rect2);
+    ClassDB::bind_method(D_METHOD("to_rect2i", "index"), &LuaState::to_rect2i);
+    ClassDB::bind_method(D_METHOD("to_aabb", "index"), &LuaState::to_aabb);
+    ClassDB::bind_method(D_METHOD("to_color", "index"), &LuaState::to_color);
+    ClassDB::bind_method(D_METHOD("to_plane", "index"), &LuaState::to_plane);
+    ClassDB::bind_method(D_METHOD("to_quaternion", "index"), &LuaState::to_quaternion);
+    ClassDB::bind_method(D_METHOD("to_basis", "index"), &LuaState::to_basis);
+    ClassDB::bind_method(D_METHOD("to_transform2d", "index"), &LuaState::to_transform2d);
+    ClassDB::bind_method(D_METHOD("to_transform3d", "index"), &LuaState::to_transform3d);
+    ClassDB::bind_method(D_METHOD("to_projection", "index"), &LuaState::to_projection);
+    ClassDB::bind_method(D_METHOD("to_callable", "index"), &LuaState::to_callable);
+
     BIND_ENUM_CONSTANT(LUA_GCSTOP);
     BIND_ENUM_CONSTANT(LUA_GCRESTART);
     BIND_ENUM_CONSTANT(LUA_GCCOLLECT);
@@ -425,6 +482,315 @@ void LuaState::push_variant(const Variant &value)
 {
     ERR_FAIL_COND_MSG(!is_valid_state(), "Lua state is invalid. Cannot push Variant.");
     godot::push_variant(L, value);
+}
+
+// Godot math type wrappers - Push operations
+void LuaState::push_vector2(const Vector2 &value)
+{
+    ERR_FAIL_COND_MSG(!is_valid_state(), "Lua state is invalid. Cannot push Vector2.");
+    godot::push_vector2(L, value);
+}
+
+void LuaState::push_vector2i(const Vector2i &value)
+{
+    ERR_FAIL_COND_MSG(!is_valid_state(), "Lua state is invalid. Cannot push Vector2i.");
+    godot::push_vector2i(L, value);
+}
+
+void LuaState::push_vector3(const Vector3 &value)
+{
+    ERR_FAIL_COND_MSG(!is_valid_state(), "Lua state is invalid. Cannot push Vector3.");
+    godot::push_vector3(L, value);
+}
+
+void LuaState::push_vector3i(const Vector3i &value)
+{
+    ERR_FAIL_COND_MSG(!is_valid_state(), "Lua state is invalid. Cannot push Vector3i.");
+    godot::push_vector3i(L, value);
+}
+
+void LuaState::push_vector4(const Vector4 &value)
+{
+    ERR_FAIL_COND_MSG(!is_valid_state(), "Lua state is invalid. Cannot push Vector4.");
+    godot::push_vector4(L, value);
+}
+
+void LuaState::push_vector4i(const Vector4i &value)
+{
+    ERR_FAIL_COND_MSG(!is_valid_state(), "Lua state is invalid. Cannot push Vector4i.");
+    godot::push_vector4i(L, value);
+}
+
+void LuaState::push_rect2(const Rect2 &value)
+{
+    ERR_FAIL_COND_MSG(!is_valid_state(), "Lua state is invalid. Cannot push Rect2.");
+    godot::push_rect2(L, value);
+}
+
+void LuaState::push_rect2i(const Rect2i &value)
+{
+    ERR_FAIL_COND_MSG(!is_valid_state(), "Lua state is invalid. Cannot push Rect2i.");
+    godot::push_rect2i(L, value);
+}
+
+void LuaState::push_aabb(const AABB &value)
+{
+    ERR_FAIL_COND_MSG(!is_valid_state(), "Lua state is invalid. Cannot push AABB.");
+    godot::push_aabb(L, value);
+}
+
+void LuaState::push_color(const Color &value)
+{
+    ERR_FAIL_COND_MSG(!is_valid_state(), "Lua state is invalid. Cannot push Color.");
+    godot::push_color(L, value);
+}
+
+void LuaState::push_plane(const Plane &value)
+{
+    ERR_FAIL_COND_MSG(!is_valid_state(), "Lua state is invalid. Cannot push Plane.");
+    godot::push_plane(L, value);
+}
+
+void LuaState::push_quaternion(const Quaternion &value)
+{
+    ERR_FAIL_COND_MSG(!is_valid_state(), "Lua state is invalid. Cannot push Quaternion.");
+    godot::push_quaternion(L, value);
+}
+
+void LuaState::push_basis(const Basis &value)
+{
+    ERR_FAIL_COND_MSG(!is_valid_state(), "Lua state is invalid. Cannot push Basis.");
+    godot::push_basis(L, value);
+}
+
+void LuaState::push_transform2d(const Transform2D &value)
+{
+    ERR_FAIL_COND_MSG(!is_valid_state(), "Lua state is invalid. Cannot push Transform2D.");
+    godot::push_transform2d(L, value);
+}
+
+void LuaState::push_transform3d(const Transform3D &value)
+{
+    ERR_FAIL_COND_MSG(!is_valid_state(), "Lua state is invalid. Cannot push Transform3D.");
+    godot::push_transform3d(L, value);
+}
+
+void LuaState::push_projection(const Projection &value)
+{
+    ERR_FAIL_COND_MSG(!is_valid_state(), "Lua state is invalid. Cannot push Projection.");
+    godot::push_projection(L, value);
+}
+
+void LuaState::push_callable(const Callable &value)
+{
+    ERR_FAIL_COND_MSG(!is_valid_state(), "Lua state is invalid. Cannot push Callable.");
+    godot::push_callable(L, value);
+}
+
+// Godot math type wrappers - Type checking operations
+bool LuaState::is_vector2(int index)
+{
+    ERR_FAIL_COND_V_MSG(!is_valid_state(), false, "Lua state is invalid. Cannot check type.");
+    return godot::is_vector2(L, index);
+}
+
+bool LuaState::is_vector2i(int index)
+{
+    ERR_FAIL_COND_V_MSG(!is_valid_state(), false, "Lua state is invalid. Cannot check type.");
+    return godot::is_vector2i(L, index);
+}
+
+bool LuaState::is_vector3(int index)
+{
+    ERR_FAIL_COND_V_MSG(!is_valid_state(), false, "Lua state is invalid. Cannot check type.");
+    return godot::is_vector3(L, index);
+}
+
+bool LuaState::is_vector3i(int index)
+{
+    ERR_FAIL_COND_V_MSG(!is_valid_state(), false, "Lua state is invalid. Cannot check type.");
+    return godot::is_vector3i(L, index);
+}
+
+bool LuaState::is_vector4(int index)
+{
+    ERR_FAIL_COND_V_MSG(!is_valid_state(), false, "Lua state is invalid. Cannot check type.");
+    return godot::is_vector4(L, index);
+}
+
+bool LuaState::is_vector4i(int index)
+{
+    ERR_FAIL_COND_V_MSG(!is_valid_state(), false, "Lua state is invalid. Cannot check type.");
+    return godot::is_vector4i(L, index);
+}
+
+bool LuaState::is_rect2(int index)
+{
+    ERR_FAIL_COND_V_MSG(!is_valid_state(), false, "Lua state is invalid. Cannot check type.");
+    return godot::is_rect2(L, index);
+}
+
+bool LuaState::is_rect2i(int index)
+{
+    ERR_FAIL_COND_V_MSG(!is_valid_state(), false, "Lua state is invalid. Cannot check type.");
+    return godot::is_rect2i(L, index);
+}
+
+bool LuaState::is_aabb(int index)
+{
+    ERR_FAIL_COND_V_MSG(!is_valid_state(), false, "Lua state is invalid. Cannot check type.");
+    return godot::is_aabb(L, index);
+}
+
+bool LuaState::is_color(int index)
+{
+    ERR_FAIL_COND_V_MSG(!is_valid_state(), false, "Lua state is invalid. Cannot check type.");
+    return godot::is_color(L, index);
+}
+
+bool LuaState::is_plane(int index)
+{
+    ERR_FAIL_COND_V_MSG(!is_valid_state(), false, "Lua state is invalid. Cannot check type.");
+    return godot::is_plane(L, index);
+}
+
+bool LuaState::is_quaternion(int index)
+{
+    ERR_FAIL_COND_V_MSG(!is_valid_state(), false, "Lua state is invalid. Cannot check type.");
+    return godot::is_quaternion(L, index);
+}
+
+bool LuaState::is_basis(int index)
+{
+    ERR_FAIL_COND_V_MSG(!is_valid_state(), false, "Lua state is invalid. Cannot check type.");
+    return godot::is_basis(L, index);
+}
+
+bool LuaState::is_transform2d(int index)
+{
+    ERR_FAIL_COND_V_MSG(!is_valid_state(), false, "Lua state is invalid. Cannot check type.");
+    return godot::is_transform2d(L, index);
+}
+
+bool LuaState::is_transform3d(int index)
+{
+    ERR_FAIL_COND_V_MSG(!is_valid_state(), false, "Lua state is invalid. Cannot check type.");
+    return godot::is_transform3d(L, index);
+}
+
+bool LuaState::is_projection(int index)
+{
+    ERR_FAIL_COND_V_MSG(!is_valid_state(), false, "Lua state is invalid. Cannot check type.");
+    return godot::is_projection(L, index);
+}
+
+bool LuaState::is_callable(int index)
+{
+    ERR_FAIL_COND_V_MSG(!is_valid_state(), false, "Lua state is invalid. Cannot check type.");
+    return godot::is_callable(L, index);
+}
+
+// Godot math type wrappers - Conversion operations
+Vector2 LuaState::to_vector2(int index)
+{
+    ERR_FAIL_COND_V_MSG(!is_valid_state(), Vector2(), "Lua state is invalid. Cannot convert to Vector2.");
+    return godot::to_vector2(L, index);
+}
+
+Vector2i LuaState::to_vector2i(int index)
+{
+    ERR_FAIL_COND_V_MSG(!is_valid_state(), Vector2i(), "Lua state is invalid. Cannot convert to Vector2i.");
+    return godot::to_vector2i(L, index);
+}
+
+Vector3 LuaState::to_vector3(int index)
+{
+    ERR_FAIL_COND_V_MSG(!is_valid_state(), Vector3(), "Lua state is invalid. Cannot convert to Vector3.");
+    return godot::to_vector3(L, index);
+}
+
+Vector3i LuaState::to_vector3i(int index)
+{
+    ERR_FAIL_COND_V_MSG(!is_valid_state(), Vector3i(), "Lua state is invalid. Cannot convert to Vector3i.");
+    return godot::to_vector3i(L, index);
+}
+
+Vector4 LuaState::to_vector4(int index)
+{
+    ERR_FAIL_COND_V_MSG(!is_valid_state(), Vector4(), "Lua state is invalid. Cannot convert to Vector4.");
+    return godot::to_vector4(L, index);
+}
+
+Vector4i LuaState::to_vector4i(int index)
+{
+    ERR_FAIL_COND_V_MSG(!is_valid_state(), Vector4i(), "Lua state is invalid. Cannot convert to Vector4i.");
+    return godot::to_vector4i(L, index);
+}
+
+Rect2 LuaState::to_rect2(int index)
+{
+    ERR_FAIL_COND_V_MSG(!is_valid_state(), Rect2(), "Lua state is invalid. Cannot convert to Rect2.");
+    return godot::to_rect2(L, index);
+}
+
+Rect2i LuaState::to_rect2i(int index)
+{
+    ERR_FAIL_COND_V_MSG(!is_valid_state(), Rect2i(), "Lua state is invalid. Cannot convert to Rect2i.");
+    return godot::to_rect2i(L, index);
+}
+
+AABB LuaState::to_aabb(int index)
+{
+    ERR_FAIL_COND_V_MSG(!is_valid_state(), AABB(), "Lua state is invalid. Cannot convert to AABB.");
+    return godot::to_aabb(L, index);
+}
+
+Color LuaState::to_color(int index)
+{
+    ERR_FAIL_COND_V_MSG(!is_valid_state(), Color(), "Lua state is invalid. Cannot convert to Color.");
+    return godot::to_color(L, index);
+}
+
+Plane LuaState::to_plane(int index)
+{
+    ERR_FAIL_COND_V_MSG(!is_valid_state(), Plane(), "Lua state is invalid. Cannot convert to Plane.");
+    return godot::to_plane(L, index);
+}
+
+Quaternion LuaState::to_quaternion(int index)
+{
+    ERR_FAIL_COND_V_MSG(!is_valid_state(), Quaternion(), "Lua state is invalid. Cannot convert to Quaternion.");
+    return godot::to_quaternion(L, index);
+}
+
+Basis LuaState::to_basis(int index)
+{
+    ERR_FAIL_COND_V_MSG(!is_valid_state(), Basis(), "Lua state is invalid. Cannot convert to Basis.");
+    return godot::to_basis(L, index);
+}
+
+Transform2D LuaState::to_transform2d(int index)
+{
+    ERR_FAIL_COND_V_MSG(!is_valid_state(), Transform2D(), "Lua state is invalid. Cannot convert to Transform2D.");
+    return godot::to_transform2d(L, index);
+}
+
+Transform3D LuaState::to_transform3d(int index)
+{
+    ERR_FAIL_COND_V_MSG(!is_valid_state(), Transform3D(), "Lua state is invalid. Cannot convert to Transform3D.");
+    return godot::to_transform3d(L, index);
+}
+
+Projection LuaState::to_projection(int index)
+{
+    ERR_FAIL_COND_V_MSG(!is_valid_state(), Projection(), "Lua state is invalid. Cannot convert to Projection.");
+    return godot::to_projection(L, index);
+}
+
+Callable LuaState::to_callable(int index)
+{
+    ERR_FAIL_COND_V_MSG(!is_valid_state(), Callable(), "Lua state is invalid. Cannot convert to Callable.");
+    return godot::to_callable(L, index);
 }
 
 lua_State *LuaState::get_lua_state() const
