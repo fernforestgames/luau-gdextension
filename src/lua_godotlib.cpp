@@ -2095,10 +2095,16 @@ static int callable_call(lua_State *L)
         args[i] = to_variant(L, idx);
     }
 
+    // Pop all arguments and the callable itself from the stack
+    // Stack was: [callable, arg1, arg2, ..., argN]
+    // After pop: []
+    lua_pop(L, arg_count + 1);
+
     // Call the Callable with array of arguments
     Variant result = callable->callv(args);
 
     // Convert result back to Lua using push_variant
+    // Stack after: [result]
     push_variant(L, result);
 
     return 1;
