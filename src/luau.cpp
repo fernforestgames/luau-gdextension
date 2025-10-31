@@ -59,6 +59,8 @@ void Luau::_bind_methods()
     BIND_CONSTANT(LUA_REFNIL);
 
     ClassDB::bind_static_method(Luau::get_class_static(), D_METHOD("compile", "source_code"), &Luau::compile);
+    ClassDB::bind_static_method(Luau::get_class_static(), D_METHOD("upvalue_index", "i"), &Luau::upvalue_index);
+    ClassDB::bind_static_method(Luau::get_class_static(), D_METHOD("is_pseudo", "index"), &Luau::is_pseudo);
 }
 
 PackedByteArray Luau::compile(const String &source_code)
@@ -75,4 +77,14 @@ PackedByteArray Luau::compile(const String &source_code)
     result.resize(bytecode_size);
     memcpy(result.ptrw(), bytecode, bytecode_size);
     return result;
+}
+
+int Luau::upvalue_index(int i)
+{
+    return lua_upvalueindex(i);
+}
+
+bool Luau::is_pseudo(int index)
+{
+    return lua_ispseudo(index) != 0;
 }

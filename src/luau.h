@@ -15,6 +15,8 @@ namespace godot
 
     public:
         static PackedByteArray compile(const String &source_code);
+        static int upvalue_index(int i);
+        static bool is_pseudo(int index);
     };
 
 } // namespace godot
