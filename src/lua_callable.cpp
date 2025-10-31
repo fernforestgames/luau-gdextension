@@ -115,6 +115,15 @@ void LuaCallable::call(const Variant **p_arguments, int p_argcount, Variant &r_r
     // This is important for nested calls where the stack isn't empty
     int stack_top = lua_gettop(L);
 
+    // Check stack space for function + all arguments
+    // We need: 1 slot for the function, p_argcount slots for arguments
+    if (!lua_checkstack(L, 1 + p_argcount))
+    {
+        ERR_PRINT(vformat("LuaCallable::call() - Stack overflow. Cannot grow stack for %d arguments.", p_argcount));
+        r_call_error.error = GDEXTENSION_CALL_ERROR_INVALID_ARGUMENT;
+        return;
+    }
+
     // Get the function from the registry
     lua_rawgeti(L, LUA_REGISTRYINDEX, func_ref);
 

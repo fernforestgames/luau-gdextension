@@ -30,6 +30,7 @@ static const char *GODOT_DICTIONARY_MT = "__godot_dictionary_mt";
 
 static Ref<LuaState> get_godot_lua_state(lua_State *L)
 {
+    ERR_FAIL_COND_V_MSG(!lua_checkstack(L, 1), Ref<LuaState>(), "get_godot_lua_state(): Stack overflow. Cannot grow stack.");
     lua_getfield(L, LUA_REGISTRYINDEX, GDLUAU_STATE_REGISTRY_KEY);
     LuaState *state = static_cast<LuaState *>(lua_tolightuserdata(L, -1));
     lua_pop(L, 1);
@@ -164,6 +165,9 @@ static int vector2_tostring(lua_State *L)
 
 static void register_vector2_metatable(lua_State *L)
 {
+    // Reserve enough stack space for metatable operations (3 slots: metatable + function + setfield)
+    ERR_FAIL_COND_MSG(!lua_checkstack(L, 3), "register_vector2_metatable(): Stack overflow. Cannot grow stack.");
+
     luaL_newmetatable(L, "Vector2");
 
     lua_pushcfunction(L, vector2_index, "__index");
@@ -327,6 +331,8 @@ static int vector2i_tostring(lua_State *L)
 
 static void register_vector2i_metatable(lua_State *L)
 {
+    ERR_FAIL_COND_MSG(!lua_checkstack(L, 3), "register_vector2i_metatable(): Stack overflow. Cannot grow stack.");
+
     luaL_newmetatable(L, "Vector2i");
 
     lua_pushcfunction(L, vector2i_index, "__index");
@@ -517,6 +523,8 @@ static int vector3i_tostring(lua_State *L)
 
 static void register_vector3i_metatable(lua_State *L)
 {
+    ERR_FAIL_COND_MSG(!lua_checkstack(L, 3), "register_vector3i_metatable(): Stack overflow. Cannot grow stack.");
+
     luaL_newmetatable(L, "Vector3i");
 
     lua_pushcfunction(L, vector3i_index, "__index");
@@ -700,6 +708,8 @@ static int vector4_tostring(lua_State *L)
 
 static void register_vector4_metatable(lua_State *L)
 {
+    ERR_FAIL_COND_MSG(!lua_checkstack(L, 3), "register_vector4_metatable(): Stack overflow. Cannot grow stack.");
+
     luaL_newmetatable(L, "Vector4");
 
     lua_pushcfunction(L, vector4_index, "__index");
@@ -883,6 +893,8 @@ static int vector4i_tostring(lua_State *L)
 
 static void register_vector4i_metatable(lua_State *L)
 {
+    ERR_FAIL_COND_MSG(!lua_checkstack(L, 3), "register_vector4i_metatable(): Stack overflow. Cannot grow stack.");
+
     luaL_newmetatable(L, "Vector4i");
 
     lua_pushcfunction(L, vector4i_index, "__index");
@@ -1066,6 +1078,8 @@ static int color_tostring(lua_State *L)
 
 static void register_color_metatable(lua_State *L)
 {
+    ERR_FAIL_COND_MSG(!lua_checkstack(L, 3), "register_color_metatable(): Stack overflow. Cannot grow stack.");
+
     luaL_newmetatable(L, "Color");
 
     lua_pushcfunction(L, color_index, "__index");
@@ -1199,6 +1213,8 @@ static int rect2_tostring(lua_State *L)
 
 static void register_rect2_metatable(lua_State *L)
 {
+    ERR_FAIL_COND_MSG(!lua_checkstack(L, 3), "register_rect2_metatable(): Stack overflow. Cannot grow stack.");
+
     luaL_newmetatable(L, "Rect2");
 
     lua_pushcfunction(L, rect2_index, "__index");
@@ -1317,6 +1333,8 @@ static int rect2i_tostring(lua_State *L)
 
 static void register_rect2i_metatable(lua_State *L)
 {
+    ERR_FAIL_COND_MSG(!lua_checkstack(L, 3), "register_rect2i_metatable(): Stack overflow. Cannot grow stack.");
+
     luaL_newmetatable(L, "Rect2i");
 
     lua_pushcfunction(L, rect2i_index, "__index");
@@ -1411,6 +1429,8 @@ static int aabb_tostring(lua_State *L)
 
 static void register_aabb_metatable(lua_State *L)
 {
+    ERR_FAIL_COND_MSG(!lua_checkstack(L, 3), "register_aabb_metatable(): Stack overflow. Cannot grow stack.");
+
     luaL_newmetatable(L, "AABB");
 
     lua_pushcfunction(L, aabb_index, "__index");
@@ -1508,6 +1528,8 @@ static int plane_tostring(lua_State *L)
 
 static void register_plane_metatable(lua_State *L)
 {
+    ERR_FAIL_COND_MSG(!lua_checkstack(L, 3), "register_plane_metatable(): Stack overflow. Cannot grow stack.");
+
     luaL_newmetatable(L, "Plane");
 
     lua_pushcfunction(L, plane_index, "__index");
@@ -1669,6 +1691,8 @@ static int quaternion_tostring(lua_State *L)
 
 static void register_quaternion_metatable(lua_State *L)
 {
+    ERR_FAIL_COND_MSG(!lua_checkstack(L, 3), "register_quaternion_metatable(): Stack overflow. Cannot grow stack.");
+
     luaL_newmetatable(L, "Quaternion");
 
     lua_pushcfunction(L, quaternion_index, "__index");
@@ -1781,6 +1805,8 @@ static int basis_tostring(lua_State *L)
 
 static void register_basis_metatable(lua_State *L)
 {
+    ERR_FAIL_COND_MSG(!lua_checkstack(L, 3), "register_basis_metatable(): Stack overflow. Cannot grow stack.");
+
     luaL_newmetatable(L, "Basis");
 
     lua_pushcfunction(L, basis_index, "__index");
@@ -1868,6 +1894,8 @@ static int transform2d_tostring(lua_State *L)
 
 static void register_transform2d_metatable(lua_State *L)
 {
+    ERR_FAIL_COND_MSG(!lua_checkstack(L, 3), "register_transform2d_metatable(): Stack overflow. Cannot grow stack.");
+
     luaL_newmetatable(L, "Transform2D");
 
     lua_pushcfunction(L, transform2d_index, "__index");
@@ -1947,6 +1975,8 @@ static int transform3d_tostring(lua_State *L)
 
 static void register_transform3d_metatable(lua_State *L)
 {
+    ERR_FAIL_COND_MSG(!lua_checkstack(L, 3), "register_transform3d_metatable(): Stack overflow. Cannot grow stack.");
+
     luaL_newmetatable(L, "Transform3D");
 
     lua_pushcfunction(L, transform3d_index, "__index");
@@ -2003,6 +2033,8 @@ static int projection_tostring(lua_State *L)
 
 static void register_projection_metatable(lua_State *L)
 {
+    ERR_FAIL_COND_MSG(!lua_checkstack(L, 3), "register_projection_metatable(): Stack overflow. Cannot grow stack.");
+
     luaL_newmetatable(L, "Projection");
 
     lua_pushcfunction(L, projection_mul, "__mul");
@@ -2102,6 +2134,8 @@ static int callable_tostring(lua_State *L)
 
 static void register_callable_metatable(lua_State *L)
 {
+    ERR_FAIL_COND_MSG(!lua_checkstack(L, 3), "register_callable_metatable(): Stack overflow. Cannot grow stack.");
+
     luaL_newmetatable(L, "Callable");
 
     lua_pushcfunction(L, callable_call, "__call");
@@ -2472,6 +2506,24 @@ Callable godot::to_callable(lua_State *L, int index)
 // Array/Dictionary/Variant conversion helpers
 // =============================================================================
 
+// Helper to check if a table has the dictionary marker metatable
+// Returns true if the table has the marker, false otherwise
+// Checks stack space internally
+static bool has_dictionary_metatable(lua_State *L, int abs_index)
+{
+    // Reserve space for both lua_getmetatable and luaL_getmetatable
+    ERR_FAIL_COND_V_MSG(!lua_checkstack(L, 2), false, "has_dictionary_metatable(): Stack overflow. Cannot grow stack.");
+
+    if (lua_getmetatable(L, abs_index))
+    {
+        luaL_getmetatable(L, GODOT_DICTIONARY_MT);
+        bool is_dict = lua_rawequal(L, -1, -2);
+        lua_pop(L, 2); // Pop both metatables
+        return is_dict;
+    }
+    return false;
+}
+
 bool godot::is_array(lua_State *L, int index)
 {
     if (!lua_istable(L, index))
@@ -2481,17 +2533,12 @@ bool godot::is_array(lua_State *L, int index)
     int abs_index = index < 0 ? lua_gettop(L) + index + 1 : index;
 
     // Check if table has the dictionary marker metatable
-    if (lua_getmetatable(L, abs_index))
-    {
-        luaL_getmetatable(L, GODOT_DICTIONARY_MT);
-        bool is_dict = lua_rawequal(L, -1, -2);
-        lua_pop(L, 2); // Pop both metatables
-        if (is_dict)
-            return false; // Has dictionary marker
-    }
+    if (has_dictionary_metatable(L, abs_index))
+        return false; // Has dictionary marker
 
     // Check if table has consecutive integer keys starting from 1
     int n = 0;
+    ERR_FAIL_COND_V_MSG(!lua_checkstack(L, 2), false, "is_array(): Stack overflow. Cannot grow stack for iteration.");
     lua_pushnil(L);
     while (lua_next(L, abs_index) != 0)
     {
@@ -2532,6 +2579,7 @@ bool godot::is_array(lua_State *L, int index)
     // Check if all keys from 1 to n are present
     for (int i = 1; i <= n; i++)
     {
+        ERR_FAIL_COND_V_MSG(!lua_checkstack(L, 1), false, "is_array(): Stack overflow. Cannot grow stack for key verification.");
         lua_rawgeti(L, abs_index, i);
         if (lua_isnil(L, -1))
         {
@@ -2554,14 +2602,8 @@ bool godot::is_dictionary(lua_State *L, int index)
     int abs_index = index < 0 ? lua_gettop(L) + index + 1 : index;
 
     // Check if this table has the dictionary marker metatable
-    if (lua_getmetatable(L, abs_index))
-    {
-        luaL_getmetatable(L, GODOT_DICTIONARY_MT);
-        bool is_dict = lua_rawequal(L, -1, -2);
-        lua_pop(L, 2); // Pop both metatables
-        if (is_dict)
-            return true; // Has dictionary metatable
-    }
+    if (has_dictionary_metatable(L, abs_index))
+        return true; // Has dictionary metatable
 
     return !is_array(L, index);
 }
@@ -2581,6 +2623,7 @@ Array godot::to_array(lua_State *L, int index)
     // Convert each element
     for (int i = 1; i <= len; i++)
     {
+        ERR_FAIL_COND_V_MSG(!lua_checkstack(L, 1), arr, "to_array(): Stack overflow. Cannot grow stack.");
         lua_rawgeti(L, abs_index, i);
         arr.append(to_variant(L, -1));
         lua_pop(L, 1);
@@ -2599,6 +2642,7 @@ Dictionary godot::to_dictionary(lua_State *L, int index)
     int abs_index = index < 0 ? lua_gettop(L) + index + 1 : index;
 
     // Push nil as the first key for lua_next
+    ERR_FAIL_COND_V_MSG(!lua_checkstack(L, 2), dict, "to_dictionary(): Stack overflow. Cannot grow stack for iteration.");
     lua_pushnil(L);
 
     // Iterate over the table
@@ -2954,6 +2998,9 @@ void godot::push_variant(lua_State *L, const Variant &value)
 
 int luaopen_godot(lua_State *L)
 {
+    // Ensure sufficient stack space for library initialization
+    ERR_FAIL_COND_V_MSG(!lua_checkstack(L, 10), 0, "luaopen_godot(): Stack overflow. Cannot grow stack.");
+
     // Register dictionary marker metatable (empty, just used as a marker)
     luaL_newmetatable(L, GODOT_DICTIONARY_MT);
     lua_pop(L, 1);
