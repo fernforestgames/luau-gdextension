@@ -98,7 +98,7 @@ void LuaCallable::call(const Variant **p_arguments, int p_argcount, Variant &r_r
     // Check if state is still valid
     if (!state)
     {
-        ERR_PRINT(vformat("LuaCallable::call() - state pointer is null (refcount would be %d)", func_ref));
+        ERR_PRINT("LuaCallable::call() - state pointer is null");
         r_call_error.error = GDEXTENSION_CALL_ERROR_INSTANCE_IS_NULL;
         return;
     }
@@ -166,7 +166,7 @@ void LuaCallable::call(const Variant **p_arguments, int p_argcount, Variant &r_r
         // Multiple return values - return first and warn
         WARN_PRINT(vformat("LuaCallable: Lua function returned %d values, returning only the first.", nresults));
         r_return_value = state->to_variant(-nresults); // Get first return value
-        lua_pop(L, nresults);                         // Pop all return values
+        lua_pop(L, nresults);                          // Pop all return values
     }
 }
 
