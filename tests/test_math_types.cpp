@@ -166,7 +166,6 @@ TEST_CASE_FIXTURE(RawLuaStateFixture, "Vector2: Arithmetic operators")
         CHECK(result.x == doctest::Approx(-5.0));
         CHECK(result.y == doctest::Approx(3.0));
     }
-
 }
 
 TEST_CASE_FIXTURE(RawLuaStateFixture, "Vector2: Equality and tostring")
@@ -181,11 +180,11 @@ TEST_CASE_FIXTURE(RawLuaStateFixture, "Vector2: Equality and tostring")
         exec_lua("not_equal = (v1 == v3)");
 
         lua_getglobal(L, "equal");
-        CHECK(lua_toboolean(L, -1) == true);
+        CHECK(lua_toboolean(L, -1));
         lua_pop(L, 1);
 
         lua_getglobal(L, "not_equal");
-        CHECK(lua_toboolean(L, -1) == false);
+        CHECK(!lua_toboolean(L, -1));
     }
 
     SUBCASE("String conversion")
@@ -199,7 +198,6 @@ TEST_CASE_FIXTURE(RawLuaStateFixture, "Vector2: Equality and tostring")
         // String should contain the coordinates in some form
         // Expected format: "Vector2(3.5, 4.2)" or similar
     }
-
 }
 
 TEST_CASE_FIXTURE(RawLuaStateFixture, "Vector2i: Integer vector operations")
@@ -235,7 +233,6 @@ TEST_CASE_FIXTURE(RawLuaStateFixture, "Vector2i: Integer vector operations")
         CHECK(diff.x == 7);
         CHECK(diff.y == 13);
     }
-
 }
 
 TEST_CASE_FIXTURE(RawLuaStateFixture, "Vector3: Native vector type operations")
@@ -297,7 +294,6 @@ TEST_CASE_FIXTURE(RawLuaStateFixture, "Vector3: Native vector type operations")
         lua_getglobal(L, "z");
         CHECK(lua_tonumber(L, -1) == doctest::Approx(9));
     }
-
 }
 
 TEST_CASE_FIXTURE(RawLuaStateFixture, "Vector3i: Integer 3D vector")
@@ -327,7 +323,6 @@ TEST_CASE_FIXTURE(RawLuaStateFixture, "Vector3i: Integer 3D vector")
         CHECK(result.y == 20);
         CHECK(result.z == 30);
     }
-
 }
 
 TEST_CASE_FIXTURE(RawLuaStateFixture, "Color: RGBA color operations")
@@ -411,7 +406,6 @@ TEST_CASE_FIXTURE(RawLuaStateFixture, "Color: RGBA color operations")
         CHECK(retrieved.b == doctest::Approx(0.3));
         CHECK(retrieved.a == doctest::Approx(0.4));
     }
-
 }
 
 TEST_CASE_FIXTURE(RawLuaStateFixture, "Math types: Type checking")
@@ -436,7 +430,6 @@ TEST_CASE_FIXTURE(RawLuaStateFixture, "Math types: Type checking")
         CHECK_FALSE(is_vector2(L, -1));
         CHECK_FALSE(is_vector3(L, -1));
     }
-
 }
 
 TEST_CASE_FIXTURE(RawLuaStateFixture, "Vector4: Construction and round-trip conversion")
