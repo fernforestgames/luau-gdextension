@@ -2060,6 +2060,8 @@ static void register_projection_metatable(lua_State *L)
 // Callable __call metamethod - allows calling from Lua
 static int callable_call(lua_State *L)
 {
+    int initial_top = lua_gettop(L);
+
     // Get the callable userdata (first argument is self)
     Callable *callable = static_cast<Callable *>(lua_touserdatatagged(L, 1, LUA_TAG_CALLABLE));
     if (!callable)
@@ -2107,6 +2109,8 @@ static int callable_call(lua_State *L)
     // Stack after: [result]
     push_variant(L, result);
 
+    ERR_FAIL_COND_V_MSG(lua_gettop(L) != initial_top - arg_count, 1,
+                        vformat("callable_call(): Stack imbalance after call. Expected top %d but got %d.", initial_top - arg_count, lua_gettop(L)));
     return 1;
 }
 
@@ -2618,6 +2622,7 @@ Array godot::to_array(lua_State *L, int index)
 {
     ERR_FAIL_COND_V_MSG(!lua_istable(L, index), Array(), "Value at index is not a table.");
 
+    int initial_top = lua_gettop(L);
     Array arr;
 
     // Normalize negative indices
@@ -2635,6 +2640,7 @@ Array godot::to_array(lua_State *L, int index)
         lua_pop(L, 1);
     }
 
+    ERR_FAIL_COND_V_MSG(lua_gettop(L) != initial_top, arr, vformat("to_array(): Stack imbalance. Expected top %d but got %d.", initial_top, lua_gettop(L)));
     return arr;
 }
 
@@ -2642,6 +2648,7 @@ Dictionary godot::to_dictionary(lua_State *L, int index)
 {
     ERR_FAIL_COND_V_MSG(!lua_istable(L, index), Dictionary(), "Value at index is not a table.");
 
+    int initial_top = lua_gettop(L);
     Dictionary dict;
 
     // Normalize negative indices
@@ -2663,6 +2670,7 @@ Dictionary godot::to_dictionary(lua_State *L, int index)
         lua_pop(L, 1);
     }
 
+    ERR_FAIL_COND_V_MSG(lua_gettop(L) != initial_top, dict, vformat("to_dictionary(): Stack imbalance. Expected top %d but got %d.", initial_top, lua_gettop(L)));
     return dict;
 }
 
@@ -2803,6 +2811,7 @@ void godot::push_array(lua_State *L, const Array &arr)
     // We check for 3 slots per iteration to be safe (variant might push nested structures)
     ERR_FAIL_COND_MSG(!lua_checkstack(L, 1), "push_array(): Stack overflow. Cannot grow stack.");
 
+    int initial_top = lua_gettop(L);
     lua_createtable(L, arr.size(), 0);
 
     // Lua arrays are 1-indexed
@@ -2814,6 +2823,8 @@ void godot::push_array(lua_State *L, const Array &arr)
         push_variant(L, arr[i]);
         lua_rawseti(L, -2, i + 1);
     }
+
+    ERR_FAIL_COND_MSG(lua_gettop(L) != initial_top + 1, vformat("push_array(): Stack imbalance. Expected top %d but got %d.", initial_top + 1, lua_gettop(L)));
 }
 
 void godot::push_dictionary(lua_State *L, const Dictionary &dict)
@@ -2821,6 +2832,7 @@ void godot::push_dictionary(lua_State *L, const Dictionary &dict)
     // Check stack space: 1 for table + 3 for metatable operations at end
     ERR_FAIL_COND_MSG(!lua_checkstack(L, 4), "push_dictionary(): Stack overflow. Cannot grow stack.");
 
+    int initial_top = lua_gettop(L);
     lua_createtable(L, 0, dict.size());
 
     Array keys = dict.keys();
@@ -2844,6 +2856,8 @@ void godot::push_dictionary(lua_State *L, const Dictionary &dict)
     // Set the dictionary marker metatable
     luaL_getmetatable(L, GODOT_DICTIONARY_MT);
     lua_setmetatable(L, -2);
+
+    ERR_FAIL_COND_MSG(lua_gettop(L) != initial_top + 1, vformat("push_dictionary(): Stack imbalance. Expected top %d but got %d.", initial_top + 1, lua_gettop(L)));
 }
 
 void godot::push_string(lua_State *L, const String &value)
