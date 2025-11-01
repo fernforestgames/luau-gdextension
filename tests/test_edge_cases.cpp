@@ -560,3 +560,243 @@ TEST_CASE_FIXTURE(LuaStateFixture, "Edge cases: Table iteration edge cases")
         state->pop(1); // Pop the table
     }
 }
+
+TEST_CASE_FIXTURE(LuaStateFixture, "Table operations: raw_get_field and raw_set_field")
+{
+    SUBCASE("Set and get field without metamethods")
+    {
+        state->new_table();
+
+        state->push_number(42);
+        state->raw_set_field(-2, "answer");
+
+        state->raw_get_field(-1, "answer");
+        CHECK(state->to_number(-1) == 42);
+        state->pop(1);
+
+        state->pop(1); // Pop table
+    }
+
+    SUBCASE("Get non-existent field returns nil")
+    {
+        state->new_table();
+
+        state->raw_get_field(-1, "missing");
+        CHECK(state->is_nil(-1));
+        state->pop(1);
+
+        state->pop(1); // Pop table
+    }
+
+    SUBCASE("raw_set_field bypasses __newindex metamethod")
+    {
+        const char *code = R"(
+            local t = {}
+            local mt = {
+                __newindex = function(t, k, v)
+                    error("__newindex should not be called")
+                end
+            }
+            setmetatable(t, mt)
+            return t
+        )";
+
+        exec_lua(code);
+
+        // This should NOT trigger the metamethod
+        state->push_number(100);
+        state->raw_set_field(-2, "value");
+
+        state->raw_get_field(-1, "value");
+        CHECK(state->to_number(-1) == 100);
+        state->pop(1);
+
+        state->pop(1); // Pop table
+    }
+
+    SUBCASE("raw_get_field bypasses __index metamethod")
+    {
+        const char *code = R"(
+            local t = {real = 42}
+            local mt = {
+                __index = function(t, k)
+                    error("__index should not be called")
+                end
+            }
+            setmetatable(t, mt)
+            return t
+        )";
+
+        exec_lua(code);
+
+        // This should NOT trigger the metamethod
+        state->raw_get_field(-1, "real");
+        CHECK(state->to_number(-1) == 42);
+        state->pop(1);
+
+        state->pop(1); // Pop table
+    }
+}
+
+TEST_CASE_FIXTURE(LuaStateFixture, "Table operations: get_read_only and set_read_only")
+{
+    SUBCASE("Tables are not read-only by default")
+    {
+        state->new_table();
+        CHECK_FALSE(state->get_read_only(-1));
+        state->pop(1);
+    }
+
+    SUBCASE("Can make table read-only")
+    {
+        state->new_table();
+
+        state->set_read_only(-1, true);
+        CHECK(state->get_read_only(-1));
+
+        state->pop(1);
+    }
+
+    SUBCASE("Can make table writable again")
+    {
+        state->new_table();
+
+        state->set_read_only(-1, true);
+        CHECK(state->get_read_only(-1));
+
+        state->set_read_only(-1, false);
+        CHECK_FALSE(state->get_read_only(-1));
+
+        state->pop(1);
+    }
+}
+
+TEST_CASE_FIXTURE(LuaStateFixture, "Table operations: get_fenv and set_fenv")
+{
+    SUBCASE("Get function environment")
+    {
+        exec_lua("return function() return x end");
+
+        state->get_fenv(-1);
+        CHECK(state->is_table(-1));
+        state->pop(1);
+
+        state->pop(1); // Pop function
+    }
+
+    SUBCASE("Set function environment")
+    {
+        exec_lua("return function() return x end");
+
+        // Create new environment with x=42
+        state->new_table();
+        state->push_number(42);
+        state->set_field(-2, "x");
+
+        // Set as function environment
+        bool fenv_set = state->set_fenv(-2);
+        CHECK(fenv_set);
+
+        // Call function - should return 42
+        CHECK(state->pcall(0, 1, 0) == LUA_OK);
+        CHECK(state->to_number(-1) == 42);
+
+        state->pop(1);
+    }
+
+    SUBCASE("Function environment is isolated")
+    {
+        const char *code = R"(
+            -- Global x
+            x = 100
+
+            -- Function that reads x
+            function f() return x end
+
+            return f
+        )";
+
+        exec_lua(code);
+
+        // Create new environment with different x
+        state->new_table();
+        state->push_number(999);
+        state->set_field(-2, "x");
+
+        // Set as function environment
+        bool fenv_set = state->set_fenv(-2);
+        CHECK(fenv_set);
+
+        // Call function - should return 999, not 100
+        CHECK(state->pcall(0, 1, 0) == LUA_OK);
+        CHECK(state->to_number(-1) == 999);
+
+        state->pop(1);
+    }
+}
+
+TEST_CASE_FIXTURE(LuaStateFixture, "Table operations: next iteration")
+{
+    SUBCASE("Iterate empty table")
+    {
+        state->new_table();
+
+        state->push_nil();
+        bool has_next = state->next(-2);
+
+        CHECK_FALSE(has_next);
+        state->pop(1); // Pop table
+    }
+
+    SUBCASE("Iterate table with entries")
+    {
+        exec_lua("return {a=1, b=2, c=3}");
+
+        int count = 0;
+        state->push_nil();
+
+        while (state->next(-2))
+        {
+            count++;
+            state->pop(1); // Pop value, keep key
+        }
+
+        CHECK(count == 3);
+        state->pop(1); // Pop table
+    }
+
+    SUBCASE("Iterate array-like table")
+    {
+        exec_lua("return {10, 20, 30}");
+
+        int sum = 0;
+        state->push_nil();
+
+        while (state->next(-2))
+        {
+            // Stack: table, key, value
+            sum += state->to_integer(-1);
+            state->pop(1); // Pop value
+        }
+
+        CHECK(sum == 60);
+        state->pop(1); // Pop table
+    }
+
+    SUBCASE("Iterate mixed table")
+    {
+        exec_lua("return {[1]='a', [2]='b', name='John', age=30}");
+
+        int count = 0;
+        state->push_nil();
+
+        while (state->next(-2))
+        {
+            count++;
+            state->pop(1);
+        }
+
+        CHECK(count == 4);
+        state->pop(1); // Pop table
+    }
+}

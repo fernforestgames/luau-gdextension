@@ -321,3 +321,248 @@ TEST_CASE_FIXTURE(LuaStateFixture, "Thread: Error handling")
         state->pop(3); // Clean up table, string, and number from parent stack
     }
 }
+
+TEST_CASE_FIXTURE(LuaStateFixture, "Thread: reset_thread and is_thread_reset")
+{
+    SUBCASE("New thread is reset")
+    {
+        state->new_thread();
+        Ref<LuaState> thread = state->to_thread(-1);
+        state->pop(1);
+
+        // In Luau, a fresh thread is considered reset (empty stack, no frames, status OK)
+        CHECK(thread->is_thread_reset());
+    }
+
+    SUBCASE("Thread with code is not reset, reset_thread marks it as reset")
+    {
+        state->new_thread();
+        Ref<LuaState> thread = state->to_thread(-1);
+        state->pop(1);
+
+        // Load code onto thread (but don't execute)
+        thread->get_global("print");  // Put a function on the stack
+        CHECK_FALSE(thread->is_thread_reset());  // Stack not empty, so not reset
+        thread->pop(1);
+
+        // Reset
+        thread->reset_thread();
+        CHECK(thread->is_thread_reset());
+    }
+
+    SUBCASE("Can reuse reset thread")
+    {
+        state->new_thread();
+        Ref<LuaState> thread = state->to_thread(-1);
+        state->pop(1);
+
+        // Execute something
+        thread->do_string("return 42", "test");
+        thread->pop(1);
+
+        // Reset
+        thread->reset_thread();
+
+        // Should be able to execute again
+        CHECK(thread->do_string("return 99", "test") == LUA_OK);
+        CHECK(thread->to_number(-1) == 99);
+        thread->pop(1);
+    }
+}
+
+TEST_CASE_FIXTURE(LuaStateFixture, "Thread: xmove transfers values between threads")
+{
+    SUBCASE("Move single value")
+    {
+        state->new_thread();
+        Ref<LuaState> thread = state->to_thread(-1);
+        state->pop(1);
+
+        // Push value on main
+        state->push_number(42);
+        CHECK(state->get_top() == 1);
+
+        // Move to thread
+        state->xmove(thread.ptr(), 1);
+
+        // Main should be empty, thread should have value
+        CHECK(state->get_top() == 0);
+        CHECK(thread->get_top() == 1);
+        CHECK(thread->to_number(-1) == 42);
+        thread->pop(1);
+    }
+
+    SUBCASE("Move multiple values")
+    {
+        state->new_thread();
+        Ref<LuaState> thread = state->to_thread(-1);
+        state->pop(1);
+
+        // Push multiple values
+        state->push_number(1);
+        state->push_number(2);
+        state->push_number(3);
+
+        // Move 2 values
+        state->xmove(thread.ptr(), 2);
+
+        // Main has 1, thread has 2
+        CHECK(state->get_top() == 1);
+        CHECK(state->to_number(-1) == 1);
+
+        CHECK(thread->get_top() == 2);
+        CHECK(thread->to_number(-2) == 2);
+        CHECK(thread->to_number(-1) == 3);
+
+        state->pop(1);
+        thread->pop(2);
+    }
+
+    SUBCASE("Move preserves value types")
+    {
+        state->new_thread();
+        Ref<LuaState> thread = state->to_thread(-1);
+        state->pop(1);
+
+        // Push various types
+        state->push_nil();
+        state->push_boolean(true);
+        state->push_number(3.14);
+        state->push_string("test");
+        state->new_table();
+
+        // Move all
+        state->xmove(thread.ptr(), 5);
+
+        // Verify types in thread
+        CHECK(thread->type(-5) == LUA_TNIL);
+        CHECK(thread->type(-4) == LUA_TBOOLEAN);
+        CHECK(thread->type(-3) == LUA_TNUMBER);
+        CHECK(thread->type(-2) == LUA_TSTRING);
+        CHECK(thread->type(-1) == LUA_TTABLE);
+
+        thread->pop(5);
+    }
+}
+
+TEST_CASE_FIXTURE(LuaStateFixture, "Thread: xpush copies value to another thread")
+{
+    SUBCASE("Copy value to thread")
+    {
+        state->new_thread();
+        Ref<LuaState> thread = state->to_thread(-1);
+        state->pop(1);
+
+        // Push value on main
+        state->push_number(42);
+
+        // Copy to thread
+        state->xpush(thread.ptr(), -1);
+
+        // Both should have value
+        CHECK(state->to_number(-1) == 42);
+        CHECK(thread->to_number(-1) == 42);
+
+        state->pop(1);
+        thread->pop(1);
+    }
+
+    SUBCASE("Copy table reference")
+    {
+        state->new_thread();
+        Ref<LuaState> thread = state->to_thread(-1);
+        state->pop(1);
+
+        // Create table on main
+        state->new_table();
+        state->push_number(100);
+        state->set_field(-2, "value");
+
+        // Copy to thread
+        state->xpush(thread.ptr(), -1);
+
+        // Both should reference same table
+        thread->get_field(-1, "value");
+        CHECK(thread->to_number(-1) == 100);
+        thread->pop(1);
+
+        // Modify in thread
+        thread->push_number(200);
+        thread->set_field(-2, "value");
+
+        // Should reflect in main
+        state->get_field(-1, "value");
+        CHECK(state->to_number(-1) == 200);
+
+        state->pop(2);  // Pop value and table
+        thread->pop(1); // Pop table
+    }
+}
+
+TEST_CASE_FIXTURE(LuaStateFixture, "Thread: co_status returns coroutine status")
+{
+    SUBCASE("Fresh thread status")
+    {
+        state->new_thread();
+        Ref<LuaState> thread = state->to_thread(-1);
+        state->pop(1);
+
+        lua_CoStatus status = state->co_status(thread.ptr());
+        // In Luau, a fresh thread with empty stack is considered finished (LUA_COFIN)
+        CHECK(status == LUA_COFIN);
+    }
+
+    SUBCASE("Running coroutine status")
+    {
+        exec_lua_ok(R"(
+            function yielder()
+                coroutine.yield(1)
+                return 2
+            end
+        )");
+
+        state->new_thread();
+        Ref<LuaState> thread = state->to_thread(-1);
+        state->pop(1);
+
+        // Load function
+        thread->get_global("yielder");
+
+        // Start coroutine
+        CHECK(thread->resume(0) == LUA_YIELD);
+        thread->pop(1);
+
+        // Check status - should be suspended
+        lua_CoStatus status = state->co_status(thread.ptr());
+        CHECK((status == LUA_COSUS || status == LUA_CONOR));
+    }
+}
+
+TEST_CASE_FIXTURE(LuaStateFixture, "Thread: sandbox_thread isolates thread environment")
+{
+    SUBCASE("sandbox_thread can be called on thread")
+    {
+        state->new_thread();
+        Ref<LuaState> thread = state->to_thread(-1);
+        state->pop(1);
+
+        // Should not error
+        thread->sandbox_thread();
+
+        // Thread should still be usable
+        thread->push_number(42);
+        CHECK(thread->to_number(-1) == 42);
+        thread->pop(1);
+    }
+
+    SUBCASE("Main thread cannot call sandbox_thread")
+    {
+        // This should error (per the implementation)
+        state->sandbox_thread();
+
+        // State should still be valid
+        state->push_number(123);
+        CHECK(state->to_number(-1) == 123);
+        state->pop(1);
+    }
+}

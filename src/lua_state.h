@@ -36,13 +36,13 @@ namespace godot
             LIB_BASE = 1 << 0,      // Basic functions (_G, print, etc.)
             LIB_COROUTINE = 1 << 1, // Coroutine library
             LIB_TABLE = 1 << 2,     // Table manipulation
-            LIB_OS = 1 << 3,        // OS library (use with caution in sandboxed environments)
+            LIB_OS = 1 << 3,        // OS library
             LIB_STRING = 1 << 4,    // String manipulation
             LIB_BIT32 = 1 << 5,     // Bit manipulation
             LIB_BUFFER = 1 << 6,    // Buffer library
             LIB_UTF8 = 1 << 7,      // UTF-8 support
             LIB_MATH = 1 << 8,      // Math functions
-            LIB_DEBUG = 1 << 9,     // Debug library (use with caution)
+            LIB_DEBUG = 1 << 9,     // Debug library
             LIB_VECTOR = 1 << 10,   // Luau vector type
             LIB_GODOT = 1 << 11,    // Godot math types (Vector2, Vector3, Color, etc.)
             LIB_ALL = LIB_BASE | LIB_COROUTINE | LIB_TABLE | LIB_OS | LIB_STRING |
@@ -54,6 +54,7 @@ namespace godot
 
         void open_libs(int libs = LIB_ALL);
         void sandbox();
+        void sandbox_thread();
         void close();
 
         // Helper to open a single library via lua_call
@@ -64,10 +65,14 @@ namespace godot
         lua_Status do_string(const String &code, const String &chunk_name);
         lua_Status resume(int narg = 0);
 
+        lua_Status status() const;
         void single_step(bool enable);
+        void yield(int nresults);
+        bool is_yieldable() const;
         void pause(); // a.k.a. break
 
         // Stack manipulation
+        int abs_index(int index) const;
         int get_top() const;
         void set_top(int index);
         bool check_stack(int extra);
@@ -86,13 +91,19 @@ namespace godot
         bool is_userdata(int index) const;
         bool is_boolean(int index) const;
         bool is_thread(int index) const;
-        int type(int index) const;
+        lua_Type type(int index) const;
         String type_name(int type_id) const;
 
         // Value access
-        double to_number(int index);
-        int to_integer(int index);
-        bool to_boolean(int index);
+        double to_number(int index) const;
+        int to_integer(int index) const;
+        bool to_boolean(int index) const;
+        int obj_len(int index);
+
+        // Comparisons
+        bool equal(int index1, int index2) const;
+        bool raw_equal(int index1, int index2) const;
+        bool less_than(int index1, int index2) const;
 
         // Push operations
         void push_nil();
@@ -110,10 +121,17 @@ namespace godot
         void set_field(int index, const String &key);
         void get_global(const String &key);
         void set_global(const String &key);
-        void raw_get(int index);
+        void raw_get(int index) const;
         void raw_set(int index);
-        void raw_geti(int index, int n);
+        void raw_get_field(int index, const String &key) const;
+        void raw_set_field(int index, const String &key);
+        void raw_geti(int index, int n) const;
         void raw_seti(int index, int n);
+        bool get_read_only(int index) const;
+        void set_read_only(int index, bool read_only);
+        void get_fenv(int index);
+        bool set_fenv(int index);
+        bool next(int index);
 
         // Metatable operations
         bool get_metatable(int index);
@@ -127,16 +145,24 @@ namespace godot
         Ref<LuaState> new_thread();
         Ref<LuaState> to_thread(int index);
         Ref<LuaState> get_main_thread();
+        void reset_thread();
+        bool is_thread_reset() const;
+        void xmove(LuaState *to_state, int n);
+        void xpush(LuaState *to_state, int index);
+        lua_CoStatus co_status(LuaState *co);
 
         // Garbage collection
         int gc(lua_GCOp what, int data);
+        int ref(int index);
+        void get_ref(int ref);
+        void unref(int ref);
 
         // Godot integration helpers
         bool is_array(int index);      // requires manipulating the stack, so cannot be const
         bool is_dictionary(int index); // requires manipulating the stack, so cannot be const
         Array to_array(int index);
         Dictionary to_dictionary(int index);
-        String to_string(int index);
+        String to_string(int index) const;
         Variant to_variant(int index);
         void push_array(const Array &arr);
         void push_dictionary(const Dictionary &dict);
@@ -205,7 +231,8 @@ namespace godot
         lua_State *get_lua_state() const;
 
         // Exposed inside Godot:
-        //  signal step(state: LuaState)
+        //  signal debugstep(state: LuaState)
+        //  signal interrupt(state: LuaState, gc_state: int)
     };
 } // namespace godot
 

@@ -424,7 +424,7 @@ func test_create_thread_during_single_step() -> void:
 			L.resume.call_deferred(0)
 			lambda_captures["main_resumed"] = true
 
-	L.step.connect(on_step)
+	L.debugstep.connect(on_step)
 	L.single_step(true)
 
 	# Start executing main_func
@@ -498,7 +498,7 @@ func test_execute_preexisting_thread_during_single_step() -> void:
 			L.resume.call_deferred(0)
 			lambda_captures["main_resumed"] = true
 
-	L.step.connect(on_step)
+	L.debugstep.connect(on_step)
 	L.single_step(true)
 
 	# Start executing main_func

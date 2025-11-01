@@ -477,3 +477,161 @@ TEST_CASE_FIXTURE(LuaStateFixture, "Boundary checks: Edge cases in index validat
         state->pop(3);
     }
 }
+
+TEST_CASE_FIXTURE(LuaStateFixture, "Stack manipulation: abs_index")
+{
+    SUBCASE("Converts negative indices to absolute")
+    {
+        state->push_number(1.0);
+        state->push_number(2.0);
+        state->push_number(3.0);
+
+        // Positive indices are already absolute
+        CHECK(state->abs_index(1) == 1);
+        CHECK(state->abs_index(2) == 2);
+        CHECK(state->abs_index(3) == 3);
+
+        // Negative indices get converted
+        CHECK(state->abs_index(-1) == 3);
+        CHECK(state->abs_index(-2) == 2);
+        CHECK(state->abs_index(-3) == 1);
+
+        state->pop(3);
+    }
+
+    SUBCASE("Handles pseudo-indices correctly")
+    {
+        // Pseudo-indices should be returned as-is
+        CHECK(state->abs_index(LUA_GLOBALSINDEX) == LUA_GLOBALSINDEX);
+        CHECK(state->abs_index(LUA_REGISTRYINDEX) == LUA_REGISTRYINDEX);
+    }
+}
+
+TEST_CASE_FIXTURE(LuaStateFixture, "Stack manipulation: obj_len")
+{
+    SUBCASE("Returns correct length for strings")
+    {
+        state->push_string("hello");
+        CHECK(state->obj_len(-1) == 5);
+        state->pop(1);
+
+        state->push_string("");
+        CHECK(state->obj_len(-1) == 0);
+        state->pop(1);
+    }
+
+    SUBCASE("Returns correct length for tables")
+    {
+        exec_lua("return {1, 2, 3, 4, 5}");
+        CHECK(state->obj_len(-1) == 5);
+        state->pop(1);
+
+        state->new_table();
+        CHECK(state->obj_len(-1) == 0);
+        state->pop(1);
+    }
+
+    SUBCASE("Handles invalid indices safely")
+    {
+        // Invalid index should return 0 and not crash
+        int len = state->obj_len(10);
+        CHECK(len == 0);
+    }
+}
+
+TEST_CASE_FIXTURE(LuaStateFixture, "Comparisons: equal")
+{
+    SUBCASE("Compares equal numbers")
+    {
+        state->push_number(42);
+        state->push_number(42);
+        CHECK(state->equal(-1, -2));
+        state->pop(2);
+    }
+
+    SUBCASE("Compares unequal numbers")
+    {
+        state->push_number(1);
+        state->push_number(2);
+        CHECK_FALSE(state->equal(-1, -2));
+        state->pop(2);
+    }
+
+    SUBCASE("Compares equal strings")
+    {
+        state->push_string("test");
+        state->push_string("test");
+        CHECK(state->equal(-1, -2));
+        state->pop(2);
+    }
+
+    SUBCASE("Handles invalid indices safely")
+    {
+        state->push_number(1);
+        // One valid, one invalid index
+        CHECK_FALSE(state->equal(-1, 10));
+        state->pop(1);
+    }
+}
+
+TEST_CASE_FIXTURE(LuaStateFixture, "Comparisons: raw_equal")
+{
+    SUBCASE("Compares equal numbers")
+    {
+        state->push_number(42);
+        state->push_number(42);
+        CHECK(state->raw_equal(-1, -2));
+        state->pop(2);
+    }
+
+    SUBCASE("Different tables are not equal")
+    {
+        state->new_table();
+        state->new_table();
+        CHECK_FALSE(state->raw_equal(-1, -2));
+        state->pop(2);
+    }
+
+    SUBCASE("Same table reference is equal")
+    {
+        state->new_table();
+        state->push_value(-1);
+        CHECK(state->raw_equal(-1, -2));
+        state->pop(2);
+    }
+
+    SUBCASE("Handles invalid indices safely")
+    {
+        state->push_number(1);
+        CHECK_FALSE(state->raw_equal(-1, 10));
+        state->pop(1);
+    }
+}
+
+TEST_CASE_FIXTURE(LuaStateFixture, "Comparisons: less_than")
+{
+    SUBCASE("Compares numbers")
+    {
+        state->push_number(1);
+        state->push_number(2);
+        CHECK(state->less_than(-2, -1));
+        CHECK_FALSE(state->less_than(-1, -2));
+        state->pop(2);
+    }
+
+    SUBCASE("Compares strings")
+    {
+        state->push_string("abc");
+        state->push_string("def");
+        CHECK(state->less_than(-2, -1));
+        CHECK_FALSE(state->less_than(-1, -2));
+        state->pop(2);
+    }
+
+    SUBCASE("Handles invalid indices safely")
+    {
+        state->push_number(1);
+        CHECK_FALSE(state->less_than(-1, 10));
+        state->pop(1);
+    }
+}

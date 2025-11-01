@@ -22,7 +22,7 @@ func _ready() -> void:
     L.sandbox() # Now lock it down
 
     L.single_step(true)
-    L.step.connect(self._on_step)
+    L.debugstep.connect(self._on_step)
 
     var bytecode := Luau.compile(test_script)
     print("Luau script compiled")
