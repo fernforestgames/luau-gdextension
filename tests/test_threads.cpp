@@ -566,3 +566,84 @@ TEST_CASE_FIXTURE(LuaStateFixture, "Thread: sandbox_thread isolates thread envir
         state->pop(1);
     }
 }
+
+TEST_CASE_FIXTURE(LuaStateFixture, "Thread: Callable wrapper can cross thread boundaries")
+{
+    SUBCASE("Create Callable from Lua function, push to another thread, call from Lua")
+    {
+        // Define a Lua function in the main state
+        exec_lua_ok(R"(
+            function add(a, b)
+                return a + b
+            end
+        )");
+
+        // Get the function and convert it to a Callable via to_variant
+        state->get_global("add");
+        Variant callable_variant = state->to_variant(-1);
+        state->pop(1);
+
+        // Verify it's a Callable
+        CHECK(callable_variant.get_type() == Variant::CALLABLE);
+
+        // Create a thread
+        state->new_thread();
+        Ref<LuaState> thread = state->to_thread(-1);
+        state->pop(1);
+
+        // Push the Callable to the thread's stack using push_variant
+        thread->push_variant(callable_variant);
+        thread->set_global("thread_add");
+
+        // Call the Callable from within the thread's Lua code
+        CHECK(thread->do_string("result = thread_add(10, 20)", "test") == LUA_OK);
+
+        // Verify the result
+        thread->get_global("result");
+        CHECK(thread->to_number(-1) == 30);
+        thread->pop(1);
+    }
+
+    SUBCASE("Callable crosses thread boundary multiple times")
+    {
+        // Define function
+        exec_lua_ok(R"(
+            function multiply(x, y)
+                return x * y
+            end
+        )");
+
+        // Convert to Callable
+        state->get_global("multiply");
+        Variant callable_variant = state->to_variant(-1);
+        state->pop(1);
+
+        // Create thread and push Callable
+        state->new_thread();
+        Ref<LuaState> thread = state->to_thread(-1);
+        state->pop(1);
+
+        thread->push_variant(callable_variant);
+        thread->set_global("mult");
+
+        // Call multiple times from thread
+        CHECK(thread->do_string(R"(
+            r1 = mult(3, 4)
+            r2 = mult(5, 6)
+            r3 = mult(7, 8)
+        )", "test") == LUA_OK);
+
+        // Verify results
+        thread->get_global("r1");
+        CHECK(thread->to_number(-1) == 12);
+        thread->pop(1);
+
+        thread->get_global("r2");
+        CHECK(thread->to_number(-1) == 30);
+        thread->pop(1);
+
+        thread->get_global("r3");
+        CHECK(thread->to_number(-1) == 56);
+        thread->pop(1);
+    }
+}

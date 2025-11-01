@@ -2285,12 +2285,17 @@ void godot::push_callable(lua_State *L, const Callable &value)
     if (custom)
     {
         LuaCallable *lua_callable = dynamic_cast<LuaCallable *>(custom);
-        if (lua_callable && lua_callable->get_lua_state() == L)
+        if (lua_callable)
         {
-            // This is a LuaCallable from the same Lua state
-            // Push the original function from the registry
-            lua_rawgeti(L, LUA_REGISTRYINDEX, lua_callable->get_func_ref());
-            return;
+            LuaState *callable_state = lua_callable->get_lua_state();
+
+            // Ensure this LuaCallable is from the same VM (though exact thread doesn't matter)
+            if (callable_state && callable_state->get_main_thread()->get_lua_state() == lua_mainthread(L))
+            {
+                // Push the original function
+                lua_getref(L, lua_callable->get_func_ref());
+                return;
+            }
         }
     }
 
