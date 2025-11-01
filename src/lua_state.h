@@ -20,9 +20,6 @@ namespace godot
 
         void set_callbacks();
 
-        // Helper to check if this state is still valid (checks if parent is closed for threads)
-        bool is_valid_state() const;
-
         Ref<LuaState> bind_thread(lua_State *thread_L);
 
     protected:
@@ -56,6 +53,7 @@ namespace godot
         void sandbox();
         void sandbox_thread();
         void close();
+        bool is_valid() const;
 
         // Helper to open a single library via lua_call
         void open_library(lua_CFunction func, const char *name);

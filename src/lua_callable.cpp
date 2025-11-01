@@ -6,20 +6,11 @@
 using namespace godot;
 
 LuaCallable::LuaCallable(LuaState *p_state, const String &p_func_name, int p_func_ref)
-    : state(p_state), func_name(p_func_name), func_ref(p_func_ref)
+    : func_name(p_func_name), func_ref(p_func_ref)
 {
-    // Manually increment reference count to keep LuaState alive
-    if (state)
-    {
-        bool ref_success = state->reference();
+    ERR_FAIL_COND_MSG(!p_state, "LuaCallable: p_state cannot be null");
 
-        if (!ref_success)
-        {
-            // reference() returned false - object is being destroyed
-            ERR_PRINT("LuaCallable: Failed to reference LuaState (object may be destroying)");
-            state = nullptr;
-        }
-    }
+    lua_state_id = p_state->get_instance_id();
 
     if (func_name.is_empty())
     {
@@ -29,37 +20,19 @@ LuaCallable::LuaCallable(LuaState *p_state, const String &p_func_name, int p_fun
 
 LuaCallable::~LuaCallable()
 {
+    LuaState *state = get_lua_state();
+
     // Release the function reference from the Lua registry
-    // Only do this if the lua_State* is still valid (user hasn't called close())
-    if (state && func_ref != LUA_NOREF)
+    if (state && func_ref != LUA_NOREF && state->is_valid())
     {
-        lua_State *L = get_lua_state();
-        if (L)
-        {
-            lua_unref(L, func_ref);
-        }
-        // If L is null, the LuaState was closed but the object still exists
-        // In this case we can't unref, but that's okay - the registry is gone anyway
-    }
-
-    // Manually decrement reference count
-    // If unreference() returns true, we were the last reference and must free the object
-    if (state)
-    {
-        bool should_delete = state->unreference();
-
-        if (should_delete)
-        {
-            memdelete(state);
-        }
+        state->unref(func_ref);
     }
 }
 
 uint32_t LuaCallable::hash() const
 {
-    // Simple hash combining state pointer and func_ref
-    uint64_t ptr_hash = (uint64_t)(uintptr_t)state;
-    uint64_t combined = (ptr_hash << 32) | (uint32_t)func_ref;
+    // Simple hash combining state ID and func_ref
+    uint64_t combined = ((uint64_t)lua_state_id << 32) | (uint64_t)func_ref;
     return (uint32_t)(combined ^ (combined >> 32));
 }
 
@@ -80,14 +53,12 @@ CallableCustom::CompareLessFunc LuaCallable::get_compare_less_func() const
 
 ObjectID LuaCallable::get_object() const
 {
-    // No associated Object
-    return ObjectID();
+    return lua_state_id;
 }
 
 bool LuaCallable::is_valid() const
 {
-    // Callable is valid if we have a state and it hasn't been closed
-    return state != nullptr && get_lua_state() != nullptr;
+    return get_lua_state() != nullptr && get_lua_state()->is_valid();
 }
 
 void LuaCallable::call(const Variant **p_arguments, int p_argcount, Variant &r_return_value, GDExtensionCallError &r_call_error) const
@@ -96,17 +67,25 @@ void LuaCallable::call(const Variant **p_arguments, int p_argcount, Variant &r_r
     r_return_value = Variant(); // Default to nil
 
     // Check if state is still valid
+    LuaState *state = get_lua_state();
     if (!state)
     {
-        ERR_PRINT("LuaCallable::call() - state pointer is null");
+        ERR_PRINT("LuaCallable::call() - LuaState is null");
         r_call_error.error = GDEXTENSION_CALL_ERROR_INSTANCE_IS_NULL;
         return;
     }
 
-    lua_State *L = get_lua_state();
+    if (!state->is_valid())
+    {
+        ERR_PRINT(vformat("LuaCallable::call() - LuaState is not valid, refcount=%d", state->get_reference_count()));
+        r_call_error.error = GDEXTENSION_CALL_ERROR_INSTANCE_IS_NULL;
+        return;
+    }
+
+    lua_State *L = state->get_lua_state();
     if (!L)
     {
-        ERR_PRINT(vformat("LuaCallable::call() - lua_State* is null (LuaState was probably closed), refcount=%d", state->get_reference_count()));
+        ERR_PRINT("LuaCallable::call() - lua_State is unexpectedly null after is_valid() check");
         r_call_error.error = GDEXTENSION_CALL_ERROR_INSTANCE_IS_NULL;
         return;
     }
@@ -185,7 +164,7 @@ bool LuaCallable::compare_equal(const CallableCustom *p_a, const CallableCustom 
     const LuaCallable *b = static_cast<const LuaCallable *>(p_b);
 
     // Two LuaCallables are equal if they reference the same function in the same state
-    return a->state == b->state && a->func_ref == b->func_ref;
+    return a->lua_state_id == b->lua_state_id && a->func_ref == b->func_ref;
 }
 
 bool LuaCallable::compare_less(const CallableCustom *p_a, const CallableCustom *p_b)
@@ -194,18 +173,21 @@ bool LuaCallable::compare_less(const CallableCustom *p_a, const CallableCustom *
     const LuaCallable *b = static_cast<const LuaCallable *>(p_b);
 
     // Compare by state pointer first, then by func_ref
-    if (a->state != b->state)
+    if (a->lua_state_id != b->lua_state_id)
     {
-        return a->state < b->state;
+        return a->lua_state_id < b->lua_state_id;
     }
+
     return a->func_ref < b->func_ref;
 }
 
-lua_State *LuaCallable::get_lua_state() const
+LuaState *LuaCallable::get_lua_state() const
 {
-    if (!state)
+    Object *obj = ObjectDB::get_instance(lua_state_id);
+    if (!obj)
     {
         return nullptr;
     }
-    return state->get_lua_state();
+
+    return Object::cast_to<LuaState>(obj);
 }

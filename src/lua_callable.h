@@ -13,9 +13,9 @@ namespace godot
     class LuaCallable : public CallableCustom
     {
     private:
-        LuaState *state;  // Raw pointer with manual reference counting
-        int func_ref;     // Reference to Lua function in registry
-        String func_name; // Optional function name for debugging
+        ObjectID lua_state_id; // Weak reference to LuaState object
+        int func_ref;          // Reference to Lua function in registry
+        String func_name;      // Optional function name for debugging
 
     public:
         LuaCallable(LuaState *p_state, const String &p_func_name, int p_func_ref);
@@ -34,8 +34,7 @@ namespace godot
         static bool compare_equal(const CallableCustom *p_a, const CallableCustom *p_b);
         static bool compare_less(const CallableCustom *p_a, const CallableCustom *p_b);
 
-        // Helper to get the underlying lua_State* for internal use
-        lua_State *get_lua_state() const;
+        LuaState *get_lua_state() const;
         int get_func_ref() const { return func_ref; }
     };
 
