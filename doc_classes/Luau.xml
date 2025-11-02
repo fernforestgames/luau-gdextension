@@ -40,6 +40,12 @@
 				Returns the index of upvalue [param upvalue] as it exists on the stack.
 			</description>
 		</method>
+		<method name="clock" qualifiers="static">
+			<return type="double" />
+			<description>
+				Returns a monotonically increasing clock value (in seconds).
+			</description>
+		</method>
 	</methods>
 	<constants>
 		<constant name="LUA_MULTRET" value="-1">

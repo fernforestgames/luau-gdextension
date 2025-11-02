@@ -17,6 +17,7 @@ namespace godot
         static PackedByteArray compile(const String &p_source_code);
         static int upvalue_index(int p_upvalue);
         static bool is_pseudo(int p_index);
+        static double clock();
     };
 
 } // namespace godot

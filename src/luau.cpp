@@ -61,6 +61,7 @@ void Luau::_bind_methods()
     ClassDB::bind_static_method(Luau::get_class_static(), D_METHOD("compile", "source_code"), &Luau::compile);
     ClassDB::bind_static_method(Luau::get_class_static(), D_METHOD("upvalue_index", "upvalue"), &Luau::upvalue_index);
     ClassDB::bind_static_method(Luau::get_class_static(), D_METHOD("is_pseudo", "index"), &Luau::is_pseudo);
+    ClassDB::bind_static_method(Luau::get_class_static(), D_METHOD("clock"), &Luau::clock);
 }
 
 PackedByteArray Luau::compile(const String &p_source_code)
@@ -87,4 +88,9 @@ int Luau::upvalue_index(int p_upvalue)
 bool Luau::is_pseudo(int p_index)
 {
     return lua_ispseudo(p_index) != 0;
+}
+
+double Luau::clock()
+{
+    return lua_clock();
 }
