@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<class name="LuauScript" inherits="Resource" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="https://raw.githubusercontent.com/godotengine/godot/master/doc/class.xsd">
+	<brief_description>
+		A Resource for storing Luau script source code.
+	</brief_description>
+	<description>
+		[LuauScript] is a [Resource] type that stores Luau source code. It can be saved as a [code].luau[/code] file and loaded through Godot's resource system.
+	</description>
+	<tutorials>
+	</tutorials>
+	<members>
+		<member name="source_code" type="String" setter="set_source_code" getter="get_source_code" default="&quot;&quot;">
+			The Luau source code contained in this resource.
+		</member>
+	</members>
+</class>

@@ -1,0 +1,134 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<class name="Luau" inherits="Object" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="https://raw.githubusercontent.com/godotengine/godot/master/doc/class.xsd">
+	<brief_description>
+		Static class for compiling Luau source code to bytecode and providing Lua C API utility functions.
+	</brief_description>
+	<description>
+		The [Luau] class provides static methods for compiling Luau source code to bytecode and utility functions from the Lua C API.
+		Luau is a fast, small, safe scripting language derived from Lua 5.1 with performance optimizations and a gradual type system.
+
+		This class also exposes constants and enums from the Lua C API, such as status codes ([constant LUA_OK], [constant LUA_YIELD], etc.) and type identifiers ([constant LUA_TNIL], [constant LUA_TNUMBER], etc.).
+	</description>
+	<tutorials>
+	</tutorials>
+	<methods>
+		<method name="compile" qualifiers="static">
+			<return type="PackedByteArray" />
+			<param index="0" name="source_code" type="String" />
+			<description>
+				Compiles Luau source code to bytecode. Returns a [PackedByteArray] containing the compiled bytecode.
+				[codeblock]
+				var bytecode = Luau.compile("return 1 + 2")
+				var state = LuaState.new()
+				state.load_bytecode(bytecode, "chunk")
+				state.pcall(0, 1, 0)
+				print(state.to_number(-1))  # Prints 3
+				[/codeblock]
+			</description>
+		</method>
+		<method name="is_pseudo" qualifiers="static">
+			<return type="bool" />
+			<param index="0" name="index" type="int" />
+			<description>
+				Returns [code]true[/code] if the given stack index is a pseudo-index (e.g., [constant LUA_REGISTRYINDEX], [constant LUA_GLOBALSINDEX]).
+			</description>
+		</method>
+		<method name="upvalue_index" qualifiers="static">
+			<return type="int" />
+			<param index="0" name="i" type="int" />
+			<description>
+				Converts an upvalue index [param i] to a pseudo-index for use with Lua stack operations.
+			</description>
+		</method>
+	</methods>
+	<constants>
+		<constant name="LUA_MULTRET" value="-1">
+		</constant>
+		<constant name="LUA_REGISTRYINDEX" value="-10000">
+		</constant>
+		<constant name="LUA_ENVIRONINDEX" value="-10001">
+		</constant>
+		<constant name="LUA_GLOBALSINDEX" value="-10002">
+		</constant>
+		<constant name="LUA_OK" value="0" enum="lua_Status">
+		</constant>
+		<constant name="LUA_YIELD" value="1" enum="lua_Status">
+		</constant>
+		<constant name="LUA_ERRRUN" value="2" enum="lua_Status">
+		</constant>
+		<constant name="LUA_ERRSYNTAX" value="3" enum="lua_Status">
+		</constant>
+		<constant name="LUA_ERRMEM" value="4" enum="lua_Status">
+		</constant>
+		<constant name="LUA_ERRERR" value="5" enum="lua_Status">
+		</constant>
+		<constant name="LUA_BREAK" value="6" enum="lua_Status">
+		</constant>
+		<constant name="LUA_CORUN" value="0" enum="lua_CoStatus">
+		</constant>
+		<constant name="LUA_COSUS" value="1" enum="lua_CoStatus">
+		</constant>
+		<constant name="LUA_CONOR" value="2" enum="lua_CoStatus">
+		</constant>
+		<constant name="LUA_COFIN" value="3" enum="lua_CoStatus">
+		</constant>
+		<constant name="LUA_COERR" value="4" enum="lua_CoStatus">
+		</constant>
+		<constant name="LUA_TNONE" value="-1">
+		</constant>
+		<constant name="LUA_TNIL" value="0" enum="lua_Type">
+		</constant>
+		<constant name="LUA_TBOOLEAN" value="1" enum="lua_Type">
+		</constant>
+		<constant name="LUA_TLIGHTUSERDATA" value="2" enum="lua_Type">
+		</constant>
+		<constant name="LUA_TNUMBER" value="3" enum="lua_Type">
+		</constant>
+		<constant name="LUA_TVECTOR" value="4" enum="lua_Type">
+		</constant>
+		<constant name="LUA_TSTRING" value="5" enum="lua_Type">
+		</constant>
+		<constant name="LUA_TTABLE" value="6" enum="lua_Type">
+		</constant>
+		<constant name="LUA_TFUNCTION" value="7" enum="lua_Type">
+		</constant>
+		<constant name="LUA_TUSERDATA" value="8" enum="lua_Type">
+		</constant>
+		<constant name="LUA_TTHREAD" value="9" enum="lua_Type">
+		</constant>
+		<constant name="LUA_TBUFFER" value="10" enum="lua_Type">
+		</constant>
+		<constant name="LUA_TPROTO" value="11" enum="lua_Type">
+		</constant>
+		<constant name="LUA_TUPVAL" value="12" enum="lua_Type">
+		</constant>
+		<constant name="LUA_TDEADKEY" value="13" enum="lua_Type">
+		</constant>
+		<constant name="LUA_T_COUNT" value="11" enum="lua_Type">
+		</constant>
+		<constant name="LUA_GCSTOP" value="0" enum="lua_GCOp">
+		</constant>
+		<constant name="LUA_GCRESTART" value="1" enum="lua_GCOp">
+		</constant>
+		<constant name="LUA_GCCOLLECT" value="2" enum="lua_GCOp">
+		</constant>
+		<constant name="LUA_GCCOUNT" value="3" enum="lua_GCOp">
+		</constant>
+		<constant name="LUA_GCCOUNTB" value="4" enum="lua_GCOp">
+		</constant>
+		<constant name="LUA_GCISRUNNING" value="5" enum="lua_GCOp">
+		</constant>
+		<constant name="LUA_GCSTEP" value="6" enum="lua_GCOp">
+		</constant>
+		<constant name="LUA_GCSETGOAL" value="7" enum="lua_GCOp">
+		</constant>
+		<constant name="LUA_GCSETSTEPMUL" value="8" enum="lua_GCOp">
+		</constant>
+		<constant name="LUA_GCSETSTEPSIZE" value="9" enum="lua_GCOp">
+		</constant>
+		<constant name="LUA_NOREF" value="-1">
+		</constant>
+		<constant name="LUA_REFNIL" value="0">
+		</constant>
+	</constants>
+</class>

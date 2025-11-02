@@ -36,6 +36,8 @@ src/
   lua_godotlib.h/cpp  - Godot type userdata and metatables for Luau
   luau_script.h/cpp   - LuauScript resource type for managing Luau scripts
   register_types.h/cpp- GDExtension registration
+doc_classes/
+  *.xml               - XML documentation files for GDExtension classes
 demo/
   main.gd             - Example integration code
   test_script.luau    - Sample Luau script with math types
@@ -238,6 +240,110 @@ print(thread.to_number(-1))  # Prints 2
    pointer but doesn't affect the parent
 5. **Multiple wrappers OK**: Creating multiple LuaState wrappers for the same
    thread is safe - they each independently ref-count the parent
+
+## Documentation
+
+This project uses Godot's GDExtension documentation system (Godot 4.3+) to provide
+built-in documentation for all exposed classes and methods.
+
+### Documentation Structure
+
+Documentation files are located in `doc_classes/*.xml` and follow Godot's XML
+documentation format. These files are automatically compiled into the extension
+and appear in the Godot editor's built-in help system.
+
+**Available classes:**
+
+- `Luau.xml` - Static compiler class
+- `LuaState.xml` - Lua VM state management
+- `LuauScript.xml` - Script resource type
+- `ResourceFormatLoaderLuauScript.xml` - Resource loader
+- `ResourceFormatSaverLuauScript.xml` - Resource saver
+
+### Generating Initial Documentation
+
+To generate or update XML documentation files after adding new classes or methods:
+
+```bash
+cd /path/to/luau-gdextension/demo
+godot --doctool ../ --gdextension-docs
+```
+
+This command:
+
+1. Runs Godot's documentation tool on the GDExtension
+2. Generates XML files for all exposed classes
+3. Places them in `doc_classes/` in the root
+
+### Building with Documentation
+
+Documentation is automatically compiled into the extension during the build
+process. The CMake build system:
+
+1. Finds all `doc_classes/*.xml` files
+2. Generates a C++ source file (`build/gen/doc_source.cpp`) containing the docs
+3. Compiles it into the extension library
+
+This happens automatically for all build configurations (Debug and Release).
+
+### Editing Documentation
+
+Documentation files use BBCode-style formatting. Common tags:
+
+- `[b]bold[/b]` - Bold text
+- `[i]italic[/i]` - Italic text
+- `[code]code[/code]` - Inline code
+- `[codeblock]...[/codeblock]` - Code blocks
+- `[param name]` - Reference to a parameter
+- `[method name]` - Reference to a method
+- `[constant NAME]` - Reference to a constant
+- `[enum EnumName]` - Reference to an enum
+
+**Example method documentation:**
+
+```xml
+<method name="do_string">
+    <return type="int" enum="lua_Status" />
+    <param index="0" name="code" type="String" />
+    <param index="1" name="chunk_name" type="String" />
+    <description>
+        Compiles and executes Luau source code. Returns [constant LUA_OK] on success.
+        The [param chunk_name] is used for error messages and debugging.
+        [codeblock]
+        var state = LuaState.new()
+        state.open_libs()
+        state.do_string("return 1 + 2", "example")
+        print(state.to_number(-1))  # Prints 3
+        [/codeblock]
+    </description>
+</method>
+```
+
+### Viewing Documentation
+
+Once built, documentation appears in Godot 4.3+ editor:
+
+1. **Script editor**: Ctrl+Click on a class/method name
+2. **Help menu**: Search > "LuaState" (or any class name)
+3. **Code completion**: Shows brief descriptions in tooltips
+
+### Adding Documentation for New Features
+
+When adding new classes or methods:
+
+1. Build the extension first (so classes are registered)
+2. Run `godot --doctool` to regenerate XML files
+3. Edit the XML files to add descriptions, examples, and formatting
+4. Rebuild the extension to include the new documentation
+
+### Documentation Best Practices
+
+- **Brief description**: One-sentence summary of what the class/method does
+- **Description**: Detailed explanation with usage notes
+- **Code examples**: Include practical examples in `[codeblock]` tags
+- **Cross-references**: Link related methods, parameters, and constants
+- **Parameter documentation**: Explain what each parameter does
+- **Return values**: Document what the method returns and when
 
 ## Documentation Resources
 

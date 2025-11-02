@@ -36,10 +36,12 @@ FetchContent_Declare(
 )
 FetchContent_MakeAvailable(Luau GodotCpp)
 
+# Import GodotCPP module for documentation generation
+list(APPEND CMAKE_MODULE_PATH "${godotcpp_SOURCE_DIR}/cmake")
+include(GodotCPPModule)
+
 # Collect source files (excluding register_types.cpp which is added separately)
-file(GLOB_RECURSE SOURCES
-    "src/*.cpp"
-)
+file(GLOB_RECURSE SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp")
 list(FILTER SOURCES EXCLUDE REGEX ".*register_types\\.cpp$")
 
 # Create object library for shared code (used by both main and test libraries)
@@ -75,6 +77,13 @@ target_link_libraries(${PROJECT_NAME} PRIVATE
     Luau.Compiler
     Luau.VM
 )
+
+# Generate documentation source and add to target
+file(GLOB_RECURSE DOC_XML "${CMAKE_CURRENT_SOURCE_DIR}/doc_classes/*.xml")
+set(DOC_SOURCE_FILE "${CMAKE_CURRENT_BINARY_DIR}/gen/doc_source.cpp")
+generate_doc_source("${DOC_SOURCE_FILE}" "${DOC_XML}")
+target_sources(${PROJECT_NAME} PRIVATE "${DOC_SOURCE_FILE}")
+add_dependencies(${PROJECT_NAME} generate_doc_source)
 
 string(TOLOWER ${CMAKE_SYSTEM_NAME} PLATFORM_NAME)
 string(TOLOWER ${CMAKE_SYSTEM_PROCESSOR} ARCH_NAME)
@@ -142,6 +151,10 @@ if(BUILD_TESTING)
         OUTPUT_NAME "gdluau_tests.${PLATFORM_NAME}.${ARCH_NAME}"
         SUFFIX ".${LIBRARY_SUFFIX}"
     )
+
+    # Reuse the same doc source file for tests
+    target_sources(${PROJECT_NAME}_tests PRIVATE "${DOC_SOURCE_FILE}")
+    add_dependencies(${PROJECT_NAME}_tests generate_doc_source)
 
     # Copy test library to demo addon directory (same location as main library)
     add_custom_command(TARGET ${PROJECT_NAME}_tests POST_BUILD
