@@ -6,6 +6,8 @@
 
 namespace godot
 {
+    class LuaCompileOptions;
+
     class Luau : public Object
     {
         GDCLASS(Luau, Object)
@@ -14,7 +16,7 @@ namespace godot
         static void _bind_methods();
 
     public:
-        static PackedByteArray compile(const String &p_source_code);
+        static PackedByteArray compile(const String &p_source_code, const LuaCompileOptions *p_options = nullptr);
         static int upvalue_index(int p_upvalue);
         static bool is_pseudo(int p_index);
         static double clock();

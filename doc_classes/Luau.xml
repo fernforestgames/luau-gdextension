@@ -11,11 +11,18 @@
 	<tutorials>
 	</tutorials>
 	<methods>
+		<method name="clock" qualifiers="static">
+			<return type="float" />
+			<description>
+			</description>
+		</method>
 		<method name="compile" qualifiers="static">
 			<return type="PackedByteArray" />
 			<param index="0" name="source_code" type="String" />
+			<param index="1" name="options" type="LuaCompileOptions" default="null" />
 			<description>
 				Compiles Luau source code to bytecode. Returns a [PackedByteArray] containing the compiled bytecode.
+				When source compilation fails, the resulting bytecode contains the encoded error.
 				[codeblock]
 				var bytecode := Luau.compile("return 1 + 2")
 				var state := LuaState.new()
@@ -38,12 +45,6 @@
 			<param index="0" name="upvalue" type="int" />
 			<description>
 				Returns the index of upvalue [param upvalue] as it exists on the stack.
-			</description>
-		</method>
-		<method name="clock" qualifiers="static">
-			<return type="double" />
-			<description>
-				Returns a monotonically increasing clock value (in seconds).
 			</description>
 		</method>
 	</methods>
@@ -131,7 +132,7 @@
 		</constant>
 		<constant name="LUA_TBUFFER" value="10" enum="lua_Type">
 			Type representing a Luau buffer, a fixed-size mutable block of memory. The [code]buffer[/code] library can be used to manipulate these.
-Not to be confused with Lua string buffers.
+			Not to be confused with Lua string buffers.
 		</constant>
 		<constant name="LUA_TPROTO" value="11" enum="lua_Type">
 			Type representing a Luau function prototype. This will only show up in garbage collection and debugging APIs.
@@ -165,20 +166,20 @@ Not to be confused with Lua string buffers.
 		</constant>
 		<constant name="LUA_GCSTEP" value="6" enum="lua_GCOp">
 			Perform an explicit GC step, with the step size specified in KB.
-Garbage collection is handled by "assists" that perform some amount of GC work matching the pace of allocation. Explicit GC steps allow you to perform some amount of work at custom points to offset the need for GC assists.
-Note that GC might also be paused for some duration (until bytes allocated meet the threshold). If an explicit step is performed during this pause, it will trigger the start of the next collection cycle.
+			Garbage collection is handled by "assists" that perform some amount of GC work matching the pace of allocation. Explicit GC steps allow you to perform some amount of work at custom points to offset the need for GC assists.
+			Note that GC might also be paused for some duration (until bytes allocated meet the threshold). If an explicit step is performed during this pause, it will trigger the start of the next collection cycle.
 		</constant>
 		<constant name="LUA_GCSETGOAL" value="7" enum="lua_GCOp">
 			Tune GC parameter [code]G[/code] (goal).
-Garbage collection is incremental and tries to maintain the heap size to balance memory and performance overhead. This overhead is determined by [code]G[/code] (goal) which is the ratio between total heap size and the amount of live data in it. [code]G[/code] is specified in percentages; by default, [code]G[/code] is 200%, which means that the heap is allowed to grow to ~2x the size of live data.
+			Garbage collection is incremental and tries to maintain the heap size to balance memory and performance overhead. This overhead is determined by [code]G[/code] (goal) which is the ratio between total heap size and the amount of live data in it. [code]G[/code] is specified in percentages; by default, [code]G[/code] is 200%, which means that the heap is allowed to grow to ~2x the size of live data.
 		</constant>
 		<constant name="LUA_GCSETSTEPMUL" value="8" enum="lua_GCOp">
 			Tune GC parameter [code]S[/code] (step multiplier).
-The collector tries to collect [code]S%[/code] of allocated bytes by interrupting the application after [code]step size[/code] bytes were allocated. When [code]S[/code] is too small, the collector may not be able to catch up, and the effective goal that can be reached will be larger. [code]S[/code] is specified in percentages; by default, [code]S[/code] is 200%, which means that collector will run at ~2x the pace of allocations.
-It is recommended to set [code]S[/code] in the interval [code][100 / (G - 100), 100 + 100 / (G - 100)][/code] with a minimum value of 150%; for example:
-- For [code]G=200%[/code], [code]S[/code] should be in the interval [code][150%, 200%][/code]
-- For [code]G=150%[/code], [code]S[/code] should be in the interval [code][200%, 300%][/code]
-- For [code]G=125%[/code], [code]S[/code] should be in the interval [code][400%, 500%][/code]
+			The collector tries to collect [code]S%[/code] of allocated bytes by interrupting the application after [code]step size[/code] bytes were allocated. When [code]S[/code] is too small, the collector may not be able to catch up, and the effective goal that can be reached will be larger. [code]S[/code] is specified in percentages; by default, [code]S[/code] is 200%, which means that collector will run at ~2x the pace of allocations.
+			It is recommended to set [code]S[/code] in the interval [code][100 / (G - 100), 100 + 100 / (G - 100)][/code] with a minimum value of 150%; for example:
+			- For [code]G=200%[/code], [code]S[/code] should be in the interval [code][150%, 200%][/code]
+			- For [code]G=150%[/code], [code]S[/code] should be in the interval [code][200%, 300%][/code]
+			- For [code]G=125%[/code], [code]S[/code] should be in the interval [code][400%, 500%][/code]
 		</constant>
 		<constant name="LUA_GCSETSTEPSIZE" value="9" enum="lua_GCOp">
 			Tune GC step size. This is usually best left ignored.

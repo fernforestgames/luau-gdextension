@@ -41,7 +41,7 @@ list(APPEND CMAKE_MODULE_PATH "${godotcpp_SOURCE_DIR}/cmake")
 include(GodotCPPModule)
 
 # Collect source files (excluding register_types.cpp which is added separately)
-file(GLOB_RECURSE SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp")
+file(GLOB_RECURSE SOURCES CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp")
 list(FILTER SOURCES EXCLUDE REGEX ".*register_types\\.cpp$")
 
 # Create object library for shared code (used by both main and test libraries)
@@ -79,7 +79,7 @@ target_link_libraries(${PROJECT_NAME} PRIVATE
 )
 
 # Generate documentation source and add to target
-file(GLOB_RECURSE DOC_XML "${CMAKE_CURRENT_SOURCE_DIR}/doc_classes/*.xml")
+file(GLOB_RECURSE DOC_XML CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/doc_classes/*.xml")
 set(DOC_SOURCE_FILE "${CMAKE_CURRENT_BINARY_DIR}/gen/doc_source.cpp")
 generate_doc_source("${DOC_SOURCE_FILE}" "${DOC_XML}")
 target_sources(${PROJECT_NAME} PRIVATE "${DOC_SOURCE_FILE}")

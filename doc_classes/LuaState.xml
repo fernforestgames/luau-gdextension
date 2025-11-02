@@ -28,7 +28,7 @@
 
 		[b]Important:[/b] When resuming threads from signal handlers, always use [code]call_deferred()[/code] to prevent reentrancy crashes:
 		[codeblock]
-		func _on_step(state: LuaState) -> void:
+		func _on_step(state: LuaState) -&gt; void:
 		    # Do work...
 		    state.resume.call_deferred()  # Correct
 		[/codeblock]
@@ -283,6 +283,11 @@
 		<method name="is_userdata" qualifiers="const">
 			<return type="bool" />
 			<param index="0" name="index" type="int" />
+			<description>
+			</description>
+		</method>
+		<method name="is_valid" qualifiers="const">
+			<return type="bool" />
 			<description>
 			</description>
 		</method>

@@ -1,0 +1,88 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<class name="LuaCompileOptions" inherits="RefCounted" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="https://raw.githubusercontent.com/godotengine/godot/master/doc/class.xsd">
+	<brief_description>
+		Options for compiling Luau source code to bytecode.
+	</brief_description>
+	<description>
+		Defines various options that control how Luau source code is compiled to bytecode.
+		Not all options from Luau's [code]lua_CompileOptions[/code] are exposed here, particularly where they might conflict with environment customization performed by this GDExtension.
+	</description>
+	<tutorials>
+	</tutorials>
+	<methods>
+		<method name="get_optimization_level" qualifiers="const">
+			<return type="int" />
+			<description>
+			Returns the optimization level.
+			</description>
+		</method>
+		<method name="get_coverage_level" qualifiers="const">
+			<return type="int" />
+			<description>
+			Returns the code coverage level.
+			</description>
+		</method>
+		<method name="get_debug_level" qualifiers="const">
+			<return type="int" />
+			<description>
+			Returns the debugging support level.
+			</description>
+		</method>
+		<method name="get_type_info_level" qualifiers="const">
+			<return type="int" />
+			<description>
+			Returns the type information level.
+			</description>
+		</method>
+		<method name="set_optimization_level">
+			<return type="void" />
+			<param index="0" name="level" type="int" />
+			<description>
+			Sets the optimization level.
+			</description>
+		</method>
+		<method name="set_coverage_level">
+			<return type="void" />
+			<param index="0" name="level" type="int" />
+			<description>
+			Sets the code coverage level.
+			</description>
+		</method>
+		<method name="set_debug_level">
+			<return type="void" />
+			<param index="0" name="level" type="int" />
+			<description>
+			Sets the debugging support level.
+			</description>
+		</method>
+		<method name="set_type_info_level">
+			<return type="void" />
+			<param index="0" name="level" type="int" />
+			<description>
+			Sets the type information level.
+			</description>
+		</method>
+	</methods>
+	<members>
+		<member name="optimization_level" type="int" setter="set_optimization_level" getter="get_optimization_level" default="1">
+		0 - no optimization
+		1 - baseline optimization level that doesn't prevent debuggability
+		2 - includes optimizations that harm debuggability such as inlining
+		</member>
+		<member name="debug_level" type="int" setter="set_debug_level" getter="get_debug_level" default="1">
+		0 - no debugging support
+		1 - line info &amp; function names only; sufficient for backtraces
+		2 - full debug info with local &amp; upvalue names; necessary for debugger
+		</member>
+		<member name="type_info_level" type="int" setter="set_type_info_level" getter="get_type_info_level" default="0">
+		Type information is used to guide native code generation decisions. Information includes testable types for function arguments, labels, upvalues, and some temporaries.
+		0 - generate for native modules
+		1 - generate for all modules
+		</member>
+		<member name="coverage_level" type="int" setter="set_coverage_level" getter="get_coverage_level" default="0">
+		0 - no code coverage support
+		1 - statement coverage
+		2 - statement and expression coverage (verbose)
+		</member>
+	</members>
+</class>

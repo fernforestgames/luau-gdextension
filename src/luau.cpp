@@ -1,4 +1,5 @@
 #include "luau.h"
+#include "lua_compileoptions.h"
 #include <godot_cpp/core/class_db.hpp>
 #include <luacode.h>
 
@@ -58,18 +59,16 @@ void Luau::_bind_methods()
     BIND_CONSTANT(LUA_NOREF);
     BIND_CONSTANT(LUA_REFNIL);
 
-    ClassDB::bind_static_method(Luau::get_class_static(), D_METHOD("compile", "source_code"), &Luau::compile);
+    ClassDB::bind_static_method(Luau::get_class_static(), D_METHOD("compile", "source_code", "options"), &Luau::compile);
     ClassDB::bind_static_method(Luau::get_class_static(), D_METHOD("upvalue_index", "upvalue"), &Luau::upvalue_index);
     ClassDB::bind_static_method(Luau::get_class_static(), D_METHOD("is_pseudo", "index"), &Luau::is_pseudo);
     ClassDB::bind_static_method(Luau::get_class_static(), D_METHOD("clock"), &Luau::clock);
 }
 
-PackedByteArray Luau::compile(const String &p_source_code)
+PackedByteArray Luau::compile(const String &p_source_code, const LuaCompileOptions *p_options)
 {
     CharString utf8 = p_source_code.utf8();
-
-    lua_CompileOptions options = {0};
-    // TODO: Expose compile options
+    lua_CompileOptions options = p_options ? p_options->get_options() : LuaCompileOptions::default_options();
 
     size_t bytecode_size;
     char *bytecode = luau_compile(utf8.get_data(), utf8.length(), &options, &bytecode_size);
