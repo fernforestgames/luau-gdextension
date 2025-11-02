@@ -14,9 +14,9 @@ namespace godot
         static void _bind_methods();
 
     public:
-        static PackedByteArray compile(const String &source_code);
-        static int upvalue_index(int i);
-        static bool is_pseudo(int index);
+        static PackedByteArray compile(const String &p_source_code);
+        static int upvalue_index(int p_upvalue);
+        static bool is_pseudo(int p_index);
     };
 
 } // namespace godot
