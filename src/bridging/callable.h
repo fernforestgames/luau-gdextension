@@ -1,15 +1,20 @@
 #pragma once
 
+#include <godot_cpp/variant/callable.hpp>
 #include <godot_cpp/variant/callable_custom.hpp>
-#include <godot_cpp/variant/variant.hpp>
-#include "lua_state.h"
-#include <lua.h>
-#include <gdextension_interface.h>
+
+struct lua_State;
 
 namespace godot
 {
-    // Custom Callable that wraps a Lua function
-    // Allows Lua functions to be called from Godot as Callables
+    class LuaState;
+    class Variant;
+
+    Callable to_callable(lua_State *p_L, int p_index);
+    void push_callable(lua_State *p_L, const Callable &p_callable);
+
+    // Custom Callable that wraps a Lua function.
+    // Allows Lua functions to be called from Godot as Callables.
     class LuaCallable : public CallableCustom
     {
     private:
@@ -37,5 +42,4 @@ namespace godot
         LuaState *get_lua_state() const;
         int get_func_ref() const { return func_ref; }
     };
-
 } // namespace godot

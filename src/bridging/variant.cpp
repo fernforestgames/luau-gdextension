@@ -1,0 +1,361 @@
+#include "bridging/variant.h"
+#include "bridging/array.h"
+#include "bridging/callable.h"
+#include "bridging/dictionary.h"
+#include "bridging/object.h"
+#include "helpers.h"
+#include "lua_state.h"
+
+#include <godot_cpp/core/error_macros.hpp>
+#include <godot_cpp/classes/ref_counted.hpp>
+#include <lua.h>
+#include <lualib.h>
+
+using namespace godot;
+
+static const char *const VARIANT_METATABLE_NAME = "GDVariant";
+
+static void variant_dtor(void *ud)
+{
+    Variant *var = static_cast<Variant *>(ud);
+    var->~Variant();
+}
+
+// Variant.__tostring metamethod
+static int variant_tostring(lua_State *L)
+{
+    Variant *var = static_cast<Variant *>(lua_touserdata(L, 1));
+    CharString utf8 = var->stringify().utf8();
+    lua_pop(L, 1);
+
+    lua_pushlstring(L, utf8.get_data(), utf8.length());
+    return 1;
+}
+
+// Binary operators for Variant
+template <Variant::Operator op>
+static int variant_op(lua_State *L)
+{
+    Variant a = to_variant(L, 1);
+    Variant b = to_variant(L, 2);
+    lua_pop(L, 2);
+
+    Variant result;
+    bool is_valid = false;
+    Variant::evaluate(op, a, b, result, is_valid);
+
+    if (!is_valid)
+    {
+        String error_msg = vformat("Cannot use operator %d on Variant types %s and %s", op, Variant::get_type_name(a.get_type()), Variant::get_type_name(b.get_type()));
+        lua_pushstring(L, error_msg.utf8().get_data());
+        lua_error(L);
+    }
+
+    godot::push_variant(L, result);
+    return 1;
+}
+
+// Variant.__unm metamethod
+static int variant_negate(lua_State *L)
+{
+    Variant var = *static_cast<Variant *>(lua_touserdata(L, 1));
+    lua_pop(L, 1);
+
+    Variant result;
+    bool is_valid = false;
+    Variant::evaluate(Variant::OP_NEGATE, var, Variant(), result, is_valid);
+
+    if (!is_valid)
+    {
+        String error_msg = vformat("Cannot use negation operator on Variant type %s", Variant::OP_NEGATE, Variant::get_type_name(var.get_type()));
+        lua_pushstring(L, error_msg.utf8().get_data());
+        lua_error(L);
+    }
+
+    godot::push_variant(L, result);
+    return 1;
+}
+
+// Variant.__index metamethod
+static int variant_index(lua_State *L)
+{
+    Variant var = *static_cast<Variant *>(lua_touserdata(L, 1));
+    Variant key = to_variant(L, 2);
+    lua_pop(L, 2);
+
+    bool is_valid = false;
+    Variant result = var.get(key, &is_valid);
+
+    if (!is_valid)
+    {
+        String error_msg = vformat("Cannot index Variant type %s with key of type %s", Variant::get_type_name(var.get_type()), Variant::get_type_name(key.get_type()));
+        lua_pushstring(L, error_msg.utf8().get_data());
+        lua_error(L);
+    }
+
+    godot::push_variant(L, result);
+    return 1;
+}
+
+// Variant.__newindex metamethod
+static int variant_newindex(lua_State *L)
+{
+    Variant var = *static_cast<Variant *>(lua_touserdata(L, 1));
+    Variant key = to_variant(L, 2);
+    Variant value = to_variant(L, 3);
+    lua_pop(L, 3);
+
+    bool is_valid = false;
+    var.set(key, value, &is_valid);
+
+    if (!is_valid)
+    {
+        String error_msg = vformat("Cannot index Variant type %s with key of type %s", Variant::get_type_name(var.get_type()), Variant::get_type_name(key.get_type()));
+        lua_pushstring(L, error_msg.utf8().get_data());
+        lua_error(L);
+    }
+
+    return 0;
+}
+
+static void push_variant_metatable(lua_State *L)
+{
+    if (!luaL_newmetatable(L, VARIANT_METATABLE_NAME))
+    {
+        // Metatable already configured
+        return;
+    }
+
+    // TODO: __namecall optimization
+
+    lua_pushcfunction(L, variant_tostring, "Variant.__tostring");
+    lua_setfield(L, -2, "__tostring");
+
+    lua_pushcfunction(L, variant_op<Variant::OP_ADD>, "Variant.__add");
+    lua_setfield(L, -2, "__add");
+
+    lua_pushcfunction(L, variant_op<Variant::OP_SUBTRACT>, "Variant.__sub");
+    lua_setfield(L, -2, "__sub");
+
+    lua_pushcfunction(L, variant_op<Variant::OP_MULTIPLY>, "Variant.__mul");
+    lua_setfield(L, -2, "__mul");
+
+    lua_pushcfunction(L, variant_op<Variant::OP_DIVIDE>, "Variant.__div");
+    lua_setfield(L, -2, "__div");
+
+    lua_pushcfunction(L, variant_op<Variant::OP_MODULE>, "Variant.__mod");
+    lua_setfield(L, -2, "__mod");
+
+    lua_pushcfunction(L, variant_op<Variant::OP_POWER>, "Variant.__pow");
+    lua_setfield(L, -2, "__pow");
+
+    lua_pushcfunction(L, variant_negate, "Variant.__unm");
+    lua_setfield(L, -2, "__unm");
+
+    lua_pushcfunction(L, generic_lua_concat, "Variant.__concat");
+    lua_setfield(L, -2, "__concat");
+
+    lua_pushcfunction(L, variant_op<Variant::OP_EQUAL>, "Variant.__eq");
+    lua_setfield(L, -2, "__eq");
+
+    lua_pushcfunction(L, variant_op<Variant::OP_LESS>, "Variant.__lt");
+    lua_setfield(L, -2, "__lt");
+
+    lua_pushcfunction(L, variant_op<Variant::OP_LESS_EQUAL>, "Variant.__le");
+    lua_setfield(L, -2, "__le");
+
+    lua_pushcfunction(L, variant_index, "Variant.__index");
+    lua_setfield(L, -2, "__index");
+
+    lua_pushcfunction(L, variant_newindex, "Variant.__newindex");
+    lua_setfield(L, -2, "__newindex");
+}
+
+Variant godot::to_variant(lua_State *L, int p_index)
+{
+    ERR_FAIL_COND_V_MSG(p_index > lua_gettop(L), Variant(), vformat("to_variant(%d): Invalid stack index. Stack has %d elements.", p_index, lua_gettop(L)));
+
+    lua_Type type = static_cast<lua_Type>(lua_type(L, p_index));
+    switch (type)
+    {
+    case LUA_TNIL:
+        return Variant();
+
+    case LUA_TBOOLEAN:
+        return Variant(lua_toboolean(L, p_index) != 0);
+
+    case LUA_TLIGHTUSERDATA:
+        return to_light_object(L, p_index);
+
+    case LUA_TNUMBER:
+    {
+        double num = lua_tonumber(L, p_index);
+        if (num == nearbyint(num))
+            return Variant(static_cast<int64_t>(num));
+        else
+            return Variant(num);
+    }
+
+    case LUA_TSTRING:
+    {
+        size_t len;
+        const char *str = lua_tolstring(L, p_index, &len);
+        return Variant(String::utf8(str, len));
+    }
+
+    case LUA_TTABLE:
+    {
+        bool is_array = false;
+        Array arr = to_array(L, p_index, &is_array);
+        if (is_array)
+            return Variant(arr);
+        else
+        {
+            return Variant(to_dictionary(L, p_index));
+        }
+    }
+
+    case LUA_TFUNCTION:
+        return Variant(to_callable(L, p_index));
+
+    case LUA_TUSERDATA:
+    {
+        if (metatable_matches(L, p_index, VARIANT_METATABLE_NAME))
+        {
+            return *static_cast<Variant *>(lua_touserdata(L, p_index));
+        }
+
+        Object *obj = to_full_object(L, p_index);
+        if (obj)
+        {
+            return obj;
+        }
+
+        Callable callable = to_callable(L, p_index);
+        if (callable.is_valid())
+        {
+            return callable;
+        }
+
+        return Variant();
+    }
+
+    case LUA_TTHREAD:
+    {
+        lua_State *thread_L = lua_tothread(L, p_index);
+        return Variant(LuaState::find_lua_state(thread_L));
+    }
+
+    case LUA_TBUFFER:
+    {
+        size_t len;
+        void *ptr = lua_tobuffer(L, p_index, &len);
+
+        PackedByteArray arr;
+        arr.resize(len);
+        memcpy(arr.ptrw(), ptr, len);
+
+        return Variant(arr);
+    }
+
+    case LUA_TPROTO:
+        [[fallthrough]];
+
+    case LUA_TUPVAL:
+        [[fallthrough]];
+
+    case LUA_TDEADKEY:
+        [[fallthrough]];
+
+    default:
+        ERR_FAIL_V_MSG(Variant(), vformat("to_variant(%d): Unsupported Lua type: %d", p_index, type));
+    }
+}
+
+static void refcounted_dtor(void *ud)
+{
+    RefCounted *rc = static_cast<RefCounted *>(ud);
+    if (rc->unreference())
+    {
+        memdelete(rc);
+    }
+}
+
+void godot::push_variant(lua_State *L, const Variant &p_variant)
+{
+    ERR_FAIL_COND_MSG(!lua_checkstack(L, 2), "push_variant(): Stack overflow. Cannot grow stack."); // Variant + possible metatable
+
+    switch (p_variant.get_type())
+    {
+    case Variant::NIL:
+        lua_pushnil(L);
+        return;
+
+    case Variant::BOOL:
+    {
+        bool b = p_variant;
+        lua_pushboolean(L, b ? 1 : 0);
+        return;
+    }
+
+    case Variant::INT:
+        // Lua only has floating point numbers
+        [[fallthrough]];
+
+    case Variant::FLOAT:
+        lua_pushnumber(L, p_variant);
+        return;
+
+    case Variant::NODE_PATH:
+        [[fallthrough]];
+
+    case Variant::STRING:
+    {
+        String str = p_variant;
+        CharString utf8 = str.utf8();
+        lua_pushlstring(L, utf8.get_data(), utf8.length());
+        return;
+    }
+
+    case Variant::VECTOR3:
+    {
+        Vector3 vec = p_variant;
+        lua_pushvector(L, vec.x, vec.y, vec.z);
+        return;
+    }
+
+    case Variant::STRING_NAME:
+    {
+        StringName name = p_variant;
+        PackedByteArray utf8 = name.to_utf8_buffer();
+        lua_pushlstring(L, reinterpret_cast<const char *>(utf8.ptr()), utf8.size());
+        return;
+    }
+
+    case Variant::OBJECT:
+        push_full_object(L, p_variant);
+        return;
+
+    case Variant::CALLABLE:
+        push_callable(L, p_variant);
+        return;
+
+    case Variant::DICTIONARY:
+        push_dictionary(L, p_variant);
+        return;
+
+    case Variant::ARRAY:
+        push_array(L, p_variant);
+        return;
+
+    default:
+    {
+        // For all other types (geometry, etc.), push as userdata
+        void *ptr = lua_newuserdatadtor(L, sizeof(Variant), variant_dtor);
+        memnew_placement(ptr, Variant(p_variant));
+
+        push_variant_metatable(L);
+        lua_setmetatable(L, -2);
+    }
+    }
+}

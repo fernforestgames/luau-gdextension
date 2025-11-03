@@ -1,8 +1,6 @@
 #pragma once
 
-#include "godot_cpp/core/class_db.hpp"
+#include <godot_cpp/godot.hpp>
 
-using namespace godot;
-
-void initialize_gdluau(ModuleInitializationLevel p_level);
-void uninitialize_gdluau(ModuleInitializationLevel p_level);
+void initialize_gdluau(godot::ModuleInitializationLevel p_level);
+void uninitialize_gdluau(godot::ModuleInitializationLevel p_level);

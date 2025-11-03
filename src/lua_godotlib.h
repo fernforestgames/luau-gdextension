@@ -1,7 +1,8 @@
 #pragma once
 
 #include <godot_cpp/variant/variant.hpp>
-#include <lua.h>
+
+struct lua_State;
 
 namespace godot
 {
@@ -43,11 +44,6 @@ namespace godot
     void push_transform2d(lua_State *L, const Transform2D &value);
     void push_transform3d(lua_State *L, const Transform3D &value);
     void push_projection(lua_State *L, const Projection &value);
-    void push_callable(lua_State *L, const Callable &value);
-    void push_array(lua_State *L, const Array &arr);
-    void push_dictionary(lua_State *L, const Dictionary &dict);
-    void push_variant(lua_State *L, const Variant &value);
-    void push_string(lua_State *L, const String &value);
 
     bool is_vector2(lua_State *L, int index);
     bool is_vector2i(lua_State *L, int index);
@@ -65,9 +61,6 @@ namespace godot
     bool is_transform2d(lua_State *L, int index);
     bool is_transform3d(lua_State *L, int index);
     bool is_projection(lua_State *L, int index);
-    bool is_callable(lua_State *L, int index);
-    bool is_array(lua_State *L, int index);
-    bool is_dictionary(lua_State *L, int index);
 
     Vector2 to_vector2(lua_State *L, int index);
     Vector2i to_vector2i(lua_State *L, int index);
@@ -85,11 +78,6 @@ namespace godot
     Transform2D to_transform2d(lua_State *L, int index);
     Transform3D to_transform3d(lua_State *L, int index);
     Projection to_projection(lua_State *L, int index);
-    Callable to_callable(lua_State *L, int index);
-    Array to_array(lua_State *L, int index);
-    Dictionary to_dictionary(lua_State *L, int index);
-    Variant to_variant(lua_State *L, int index);
-    String to_string(lua_State *L, int index);
 } // namespace godot
 
 #ifdef __cplusplus
@@ -98,7 +86,6 @@ extern "C"
 #endif
 
 #define LUA_GODOTLIBNAME "godot"
-#define GDLUAU_STATE_REGISTRY_KEY "GDLUAU_STATE"
     int luaopen_godot(lua_State *L);
 
 #ifdef __cplusplus
