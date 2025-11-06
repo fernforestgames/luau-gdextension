@@ -9,7 +9,7 @@ using namespace godot;
 
 bool godot::metatable_matches(lua_State *L, int p_index, const char *p_metatable_name)
 {
-    ERR_FAIL_COND_V_MSG(!lua_checkstack(L, 2), nullptr, vformat("metatable_matches(%d, %s): Stack overflow. Cannot grow stack.", p_index, p_metatable_name));
+    ERR_FAIL_COND_V_MSG(!lua_checkstack(L, 2), false, vformat("metatable_matches(%d, %s): Stack overflow. Cannot grow stack.", p_index, p_metatable_name));
 
     if (!lua_getmetatable(L, p_index))
     {
