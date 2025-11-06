@@ -4,7 +4,7 @@
 //
 // Must be used within a single expression context (e.g. function argument), to prevent premature destruction of the temporary string buffer.
 //
-// TODO: String atom optimization
+// TODO: Cache StringName <> UTF-8 conversions
 #define STRING_NAME_TO_UTF8(strname) (static_cast<String>(strname).utf8().get_data())
 
 struct lua_State;

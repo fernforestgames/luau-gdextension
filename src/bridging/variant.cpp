@@ -369,7 +369,6 @@ void godot::push_variant(lua_State *L, const Variant &p_variant)
         [[fallthrough]];
 
     case Variant::STRING_NAME:
-        // TODO: String atom optimization
         [[fallthrough]];
 
     case Variant::STRING:

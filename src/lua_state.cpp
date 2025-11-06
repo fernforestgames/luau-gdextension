@@ -9,6 +9,7 @@
 #include "lua_debug.h"
 #include "lua_godotlib.h"
 #include "luau.h"
+#include "str_atom_cache.h"
 
 #include <godot_cpp/core/class_db.hpp>
 #include <godot_cpp/core/error_macros.hpp>
@@ -379,6 +380,7 @@ void LuaState::setup_vm()
     callbacks->interrupt = callback_interrupt;
     callbacks->panic = callback_panic;
     callbacks->userthread = callback_userthread;
+    callbacks->useratom = create_atom;
     callbacks->debugstep = callback_debugstep;
 }
 
@@ -749,16 +751,23 @@ StringName LuaState::to_stringname(int p_index)
 {
     ERR_FAIL_COND_V_MSG(!is_valid(), StringName(), "Lua state is invalid. Cannot convert to StringName.");
 
-    if (lua_isstring(L, p_index))
+    if (!lua_isstring(L, p_index))
     {
-        size_t len;
-        // TODO: Use lua_tolstringatom and cache StringName <> atom association
-        const char *str = lua_tolstring(L, p_index, &len);
+        return StringName();
+    }
+
+    size_t len;
+    int atom = -1;
+    const char *str = lua_tolstringatom(L, p_index, &len, &atom);
+
+    const StringName &cached = string_name_for_atom(atom);
+    if (cached.is_empty())
+    {
         return StringName(String::utf8(str, len));
     }
     else
     {
-        return StringName();
+        return cached;
     }
 }
 
@@ -766,11 +775,19 @@ StringName LuaState::get_namecall()
 {
     ERR_FAIL_COND_V_MSG(!is_valid(), StringName(), "Lua state is invalid. Cannot get namecall.");
 
-    // TODO: Cache StringName <> atom association
-    const char *name = lua_namecallatom(L, nullptr);
+    int atom = -1;
+    const char *name = lua_namecallatom(L, &atom);
     ERR_FAIL_COND_V_MSG(!name, StringName(), "No namecall set.");
 
-    return StringName(name);
+    const StringName &cached = string_name_for_atom(atom);
+    if (cached.is_empty())
+    {
+        return StringName(name);
+    }
+    else
+    {
+        return cached;
+    }
 }
 
 int LuaState::obj_len(int p_index)
@@ -899,7 +916,6 @@ void LuaState::push_string_name(const StringName &p_string_name)
     ERR_FAIL_COND_MSG(!is_valid(), "Lua state is invalid. Cannot push string.");
     ERR_FAIL_COND_MSG(!lua_checkstack(L, 1), "LuaState.push_string(): Stack overflow. Cannot grow stack.");
 
-    // TODO: String atom optimization
     String str = p_string_name;
     CharString utf8 = str.utf8();
     lua_pushlstring(L, utf8.get_data(), utf8.length());
