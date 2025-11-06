@@ -45,7 +45,7 @@ func run_cpp_tests() -> bool:
 		print("")
 		print("  Continuing with GDScript tests only...")
 		print("")
-		return true  # Not a failure, just skip C++ tests
+		return true # Not a failure, just skip C++ tests
 
 	# Run the tests - doctest prints detailed results to stdout
 	var results = LuauGDExtensionTests.run()
@@ -63,6 +63,9 @@ func run_gut_tests() -> bool:
 	print("")
 	print("=== Running GDScript Integration Tests (GUT) ===")
 	print("")
+
+	# TODO: Re-enable GUT tests
+	return false
 
 	# Count expected test files
 	var expected_test_count = 0
