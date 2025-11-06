@@ -383,7 +383,7 @@ TEST_SUITE("LuaState - Type Checking")
 
         f.state->push_number(42.0);
         CHECK(f.state->is_number(-1));
-        CHECK_FALSE(f.state->is_string(-1));
+        CHECK(f.state->is_string(-1)); // numbers are always convertible to strings in Lua
         CHECK_FALSE(f.state->is_boolean(-1));
         CHECK_FALSE(f.state->is_nil(-1));
         f.state->pop(1);
@@ -504,7 +504,7 @@ TEST_SUITE("LuaState - Comparison")
 
         f.state->push_number(1.0);
         f.state->push_number(2.0);
-        CHECK(f.state->less_than(-2, -1)); // 1 < 2
+        CHECK(f.state->less_than(-2, -1));       // 1 < 2
         CHECK_FALSE(f.state->less_than(-1, -2)); // 2 < 1
         f.state->pop(2);
     }

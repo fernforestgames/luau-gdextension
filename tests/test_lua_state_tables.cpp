@@ -237,9 +237,9 @@ TEST_SUITE("LuaState - Tables")
 
         // Raw iteration
         int count = 0;
-        int iter = -1;
+        int iter = 0;
 
-        while ((iter = f.state->raw_iter(-1, iter)) != -1)
+        while ((iter = f.state->raw_iter(-1, iter)) >= 0)
         {
             // Key at -2, value at -1
             count++;

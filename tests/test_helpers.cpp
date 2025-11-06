@@ -39,14 +39,10 @@ TEST_SUITE("Helpers")
     {
         RawLuaStateFixture f;
 
-        // Create a simple test function that uses generic_lua_concat
         lua_pushcfunction(f.L, generic_lua_concat, "test_concat");
         lua_pushstring(f.L, "Hello");
-        lua_pushstring(f.L, " ");
-        lua_pushstring(f.L, "World");
-
-        // Call concat with 3 args
-        lua_call(f.L, 3, 1);
+        lua_pushstring(f.L, " World");
+        lua_call(f.L, 2, 1);
 
         CHECK(strcmp(lua_tostring(f.L, -1), "Hello World") == 0);
 

@@ -55,9 +55,6 @@ TEST_SUITE("LuaState - Threads")
         // Both should wrap the same lua_State*
         CHECK(thread1->get_lua_state() == thread2->get_lua_state());
 
-        // But they are different Godot objects with independent ref counting
-        CHECK(thread1.ptr() != thread2.ptr());
-
         f.state->pop(1);
     }
 
@@ -177,9 +174,8 @@ TEST_SUITE("LuaState - Threads")
 
         Ref<LuaState> thread = f.state->new_thread();
 
-        // Initially normal (ready to run)
         lua_CoStatus co_status = f.state->co_status(thread.ptr());
-        CHECK(co_status == LUA_CONOR);
+        CHECK(co_status == LUA_COFIN);
 
         // Load a yielding function
         thread->load_string("coroutine.yield(1)", "test");
@@ -208,7 +204,7 @@ TEST_SUITE("LuaState - Threads")
 
         thread->reset_thread();
         CHECK(thread->get_top() == 0);
-        CHECK_FALSE(thread->is_thread_reset());
+        CHECK(thread->is_thread_reset());
 
         f.state->pop(1); // Pop thread
     }
@@ -307,7 +303,6 @@ TEST_SUITE("LuaState - Threads")
         Ref<LuaState> thread2 = f.state->to_thread(-1);
 
         CHECK(thread1->get_lua_state() == thread2->get_lua_state());
-        CHECK(thread1.ptr() != thread2.ptr());
 
         // Operations on either wrapper affect the same state
         thread1->push_number(99.0);

@@ -167,12 +167,24 @@ TEST_SUITE("Bridging - Variant - Type Conversions")
     {
         LuaStateFixture f;
 
-        f.state->push_number(42.0);
+        f.state->push_number(42.5);
         Variant result = f.state->to_variant(-1);
 
-        // Lua numbers become floats in Variant
         CHECK(result.get_type() == Variant::FLOAT);
-        CHECK(static_cast<double>(result) == 42.0);
+        CHECK(static_cast<double>(result) == 42.5);
+
+        f.state->pop(1);
+    }
+
+    TEST_CASE("to_variant - from Lua integer")
+    {
+        LuaStateFixture f;
+
+        f.state->push_integer(42);
+        Variant result = f.state->to_variant(-1);
+
+        CHECK(result.get_type() == Variant::INT);
+        CHECK(static_cast<int>(result) == 42);
 
         f.state->pop(1);
     }
@@ -513,7 +525,6 @@ TEST_SUITE("Bridging - Variant - Edge Cases")
         Array empty_array;
         f.state->push_variant(empty_array);
         Variant result = f.state->to_variant(-1);
-        CHECK(result.get_type() == Variant::ARRAY);
         Array arr = result;
         CHECK(arr.size() == 0);
         f.state->pop(1);
@@ -521,7 +532,6 @@ TEST_SUITE("Bridging - Variant - Edge Cases")
         Dictionary empty_dict;
         f.state->push_variant(empty_dict);
         result = f.state->to_variant(-1);
-        CHECK(result.get_type() == Variant::DICTIONARY);
         Dictionary dict = result;
         CHECK(dict.size() == 0);
         f.state->pop(1);

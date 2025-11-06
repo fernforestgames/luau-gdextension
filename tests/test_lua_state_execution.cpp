@@ -43,7 +43,8 @@ TEST_SUITE("LuaState - Code Loading")
         String error_msg = f.state->to_string_inplace(-1);
         CHECK(error_msg.contains("my_chunk_name"));
 
-        f.state->pop(1);
+        // Resume does not unwind the stack on error
+        f.state->set_top(0);
     }
 
     TEST_CASE("load_string - compiles and loads code")
