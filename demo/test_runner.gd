@@ -64,9 +64,6 @@ func run_gut_tests() -> bool:
 	print("=== Running GDScript Integration Tests (GUT) ===")
 	print("")
 
-	# TODO: Re-enable GUT tests
-	return false
-
 	# Count expected test files
 	var expected_test_count = 0
 	var test_dir = DirAccess.open("res://test")

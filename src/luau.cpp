@@ -59,7 +59,7 @@ void Luau::_bind_methods()
     BIND_CONSTANT(LUA_NOREF);
     BIND_CONSTANT(LUA_REFNIL);
 
-    ClassDB::bind_static_method(Luau::get_class_static(), D_METHOD("compile", "source_code", "options"), &Luau::compile);
+    ClassDB::bind_static_method(Luau::get_class_static(), D_METHOD("compile", "source_code", "options"), &Luau::compile, DEFVAL(nullptr));
     ClassDB::bind_static_method(Luau::get_class_static(), D_METHOD("upvalue_index", "upvalue"), &Luau::upvalue_index);
     ClassDB::bind_static_method(Luau::get_class_static(), D_METHOD("is_pseudo", "index"), &Luau::is_pseudo);
     ClassDB::bind_static_method(Luau::get_class_static(), D_METHOD("clock"), &Luau::clock);

@@ -451,6 +451,9 @@ int LuaState::get_top()
 void LuaState::set_top(int p_index)
 {
     ERR_FAIL_COND_MSG(!is_valid(), "Lua state is invalid. Cannot set stack top.");
+    ERR_FAIL_COND_MSG(p_index < 0 && -p_index > lua_gettop(L),
+                      vformat("LuaState.set_top(%d): Invalid stack index. Stack has %d elements.", p_index, lua_gettop(L)));
+
     lua_settop(L, p_index);
 }
 

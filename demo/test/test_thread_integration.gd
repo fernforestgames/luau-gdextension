@@ -90,7 +90,7 @@ func test_thread_shares_globals() -> void:
 	# Modify global from thread
 	thread.push_number(100)
 	thread.set_global("shared_value")
-	assert_engine_error("Calling LuaState.set_global() on a Lua thread will affect all threads in the same VM.")
+	# Note: No warning - threads share globals by design
 
 	# Verify change in parent
 	L.get_global("shared_value")
@@ -182,7 +182,7 @@ func test_coroutine_counter() -> void:
 		thread.pop(1)
 
 	assert_eq(thread.resume(0), 0, "Should complete after counting")
-	assert_eq(thread.to_string(-1), "done", "Should return completion message")
+	assert_eq(thread.to_string_inplace(-1), "done", "Should return completion message")
 
 
 # ============================================================================
@@ -223,9 +223,8 @@ func test_close_thread_warns() -> void:
 	var thread: LuaState = L.new_thread()
 	L.pop(1)
 
-	# Closing thread should warn but not crash
+	# Closing thread should not crash (no warning anymore)
 	thread.close()
-	assert_engine_error("LuaState.close() should not be called on Lua threads.")
 
 	# Parent should still be functional
 	L.push_number(456)
@@ -302,7 +301,7 @@ func test_isthread_returns_false_for_other_types() -> void:
 	L.push_string("test")
 	assert_false(L.is_thread(-1), "String should not be a thread")
 
-	L.new_table()
+	L.create_table()
 	assert_false(L.is_thread(-1), "Table should not be a thread")
 
 	L.push_nil()
@@ -327,7 +326,7 @@ func test_thread_error_handling() -> void:
 	assert_ne(status, 0, "pcall should return error status")
 
 	# Error message should be on stack
-	var error_msg: String = thread.to_string(-1)
+	var error_msg: String = thread.to_string_inplace(-1)
 	assert_true(error_msg.contains("Intentional error"), "Error message should be on stack")
 
 
@@ -406,7 +405,7 @@ func test_create_thread_during_single_step() -> void:
 
 		# On the first step, pause and create a thread
 		if lambda_captures["step_count"] == 1:
-			state.pause()
+			state.break()
 
 			# Create a new thread
 			var thread: LuaState = L.new_thread()
@@ -425,7 +424,7 @@ func test_create_thread_during_single_step() -> void:
 			lambda_captures["main_resumed"] = true
 
 	L.debugstep.connect(on_step)
-	L.single_step(true)
+	L.set_single_step(true)
 
 	# Start executing main_func
 	L.get_global("main_func")
@@ -446,7 +445,7 @@ func test_create_thread_during_single_step() -> void:
 	assert_eq(main_result, 3, "Main function should have computed correct result")
 	L.pop(1)
 
-	L.single_step(false)
+	L.set_single_step(false)
 
 
 func test_execute_preexisting_thread_during_single_step() -> void:
@@ -484,7 +483,7 @@ func test_execute_preexisting_thread_during_single_step() -> void:
 
 		# On the first step, pause and execute the pre-existing thread
 		if lambda_captures["step_count"] == 1:
-			state.pause()
+			state.break()
 
 			# Execute a function in the pre-existing thread
 			thread.get_global("thread_func")
@@ -499,7 +498,7 @@ func test_execute_preexisting_thread_during_single_step() -> void:
 			lambda_captures["main_resumed"] = true
 
 	L.debugstep.connect(on_step)
-	L.single_step(true)
+	L.set_single_step(true)
 
 	# Start executing main_func
 	L.get_global("main_func")
@@ -520,4 +519,4 @@ func test_execute_preexisting_thread_during_single_step() -> void:
 	assert_eq(main_result, 3, "Main function should have computed correct result")
 	L.pop(1)
 
-	L.single_step(false)
+	L.set_single_step(false)

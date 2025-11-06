@@ -21,10 +21,10 @@ func _ready() -> void:
 
     L.sandbox() # Now lock it down
 
-    L.single_step(true)
+    L.set_single_step(true)
     L.debugstep.connect(self._on_step)
 
-    var bytecode := Luau.compile(test_script)
+    var bytecode := Luau.compile(test_script, null)
     print("Luau script compiled")
 
     var load_status := L.load_bytecode(bytecode, "test_script")
@@ -35,7 +35,7 @@ func _ready() -> void:
     print("Luau bytecode loaded, starting execution")
     var resume_status := L.resume()
     if resume_status != Luau.LUA_BREAK and resume_status != Luau.LUA_OK:
-        var error_msg := L.to_string(-1) if L.get_top() > 0 else "Unknown error"
+        var error_msg := L.to_string_inplace(-1) if L.get_top() > 0 else "Unknown error"
         push_error("Failed to start Luau execution: error ", resume_status, ": ", error_msg)
         return
 
@@ -45,17 +45,17 @@ func _on_step(state: LuaState) -> void:
         return
 
     print("Pausing at step ", self._step_count)
-    state.pause()
+    state.break()
 
     # Disable single-step mode and resume execution after a brief pause
-    L.single_step(false)
+    L.set_single_step(false)
     self._resume_after_break.call_deferred()
 
 func _resume_after_break() -> void:
     print("Resuming Luau execution")
     var resume_status := L.resume()
     if resume_status != Luau.LUA_OK:
-        var error_msg := L.to_string(-1) if L.get_top() > 0 else "Unknown error"
+        var error_msg := L.to_string_inplace(-1) if L.get_top() > 0 else "Unknown error"
         push_error("Failed to resume Luau execution: error ", resume_status, ": ", error_msg)
         L.pop(1) # Pop error message
         return
@@ -70,7 +70,6 @@ func _test_array_dict_conversion() -> void:
 
     # Expected values (set before sandboxing in _ready)
     var expected_array := [100.0, 200.0, 300.0, 400.0]
-    var expected_dict := {"foo": "bar", "count": 42.0, "active": true}
 
     # Test retrieving array-like table from Lua
     L.get_global("test_array")

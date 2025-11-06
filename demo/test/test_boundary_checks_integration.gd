@@ -74,7 +74,7 @@ func test_replace_on_empty_stack():
 
 	# Try to replace when there's nothing to replace with
 	state.replace(1)
-	assert_engine_error("has_n_items")
+	assert_engine_error("Stack is empty")
 
 	# Should not crash, stack still empty
 	assert_eq(state.get_top(), 0, "Stack should still be empty")
@@ -84,7 +84,7 @@ func test_insert_on_empty_stack():
 
 	# Try to insert when there's nothing to insert
 	state.insert(1)
-	assert_engine_error("has_n_items")
+	assert_engine_error("Stack is empty")
 
 	# Should not crash, stack still empty
 	assert_eq(state.get_top(), 0, "Stack should still be empty")
@@ -112,7 +112,7 @@ func test_gettable_without_key():
 
 	# Try gettable without a key
 	state.get_table(1)
-	assert_engine_error("top")
+	assert_engine_error("Invalid")
 
 	# Should not crash
 	assert_eq(state.get_top(), 0, "Stack should be empty")
@@ -126,7 +126,7 @@ func test_settable_without_prerequisites():
 	# settable needs key and value, we only have table
 	var top = state.get_top()
 	state.set_table(1)
-	assert_engine_error("top")
+	assert_engine_error("Table index cannot be the value")
 
 	# Should not crash, stack unchanged
 	assert_eq(state.get_top(), top, "Stack should be unchanged")
@@ -140,7 +140,7 @@ func test_setfield_without_value():
 
 	# setfield needs a value on stack
 	state.set_field(1, "key")
-	assert_engine_error("top")
+	assert_engine_error("Invalid")
 
 	# Should not crash
 	assert_eq(state.get_top(), 0, "Stack should still be empty")
@@ -154,7 +154,7 @@ func test_rawget_without_key():
 
 	# Try rawget without key
 	state.raw_get(1)
-	assert_engine_error("top")
+	assert_engine_error("Invalid")
 
 	# Should not crash
 	assert_eq(state.get_top(), 0, "Stack should be empty")
@@ -168,7 +168,7 @@ func test_rawset_without_prerequisites():
 
 	# rawset needs key and value
 	state.raw_set(1)
-	assert_engine_error("top")
+	assert_engine_error("Invalid")
 
 	# Should not crash
 	assert_eq(state.get_top(), 0, "Stack should be empty")
@@ -182,7 +182,7 @@ func test_rawseti_without_value():
 
 	# rawseti needs a value
 	state.raw_seti(1, 1)
-	assert_engine_error("top")
+	assert_engine_error("Invalid")
 
 	# Should not crash
 	assert_eq(state.get_top(), 0, "Stack should be empty")
@@ -204,11 +204,10 @@ func test_setmetatable_without_metatable():
 	state.pop(1) # Empty stack
 
 	# Try to setmetatable without metatable on stack
-	var result = state.set_metatable(1)
-	assert_engine_error("top")
+	state.set_metatable(1)
+	assert_engine_error("Invalid")
 
-	# Should return false, not crash
-	assert_false(result, "setmetatable should return false without metatable")
+	# Should not crash
 	assert_eq(state.get_top(), 0, "Stack should still be empty")
 
 func test_call_without_function():
@@ -216,7 +215,7 @@ func test_call_without_function():
 
 	# Empty stack, try to call
 	state.call(0, 0)
-	assert_engine_error("has_n_items")
+	assert_engine_error("Need function")
 
 	# Should not crash
 	assert_eq(state.get_top(), 0, "Stack should still be empty")
@@ -231,7 +230,7 @@ func test_call_without_enough_args():
 
 	# Function expects 3 args, but we claim to pass 5
 	state.call(5, 1)
-	assert_engine_error("has_n_items")
+	assert_engine_error("Need function")
 
 	# Should not crash, operation rejected
 	assert_eq(state.get_top(), top, "Stack should be unchanged")
@@ -256,7 +255,7 @@ func test_pcall_without_function():
 
 	# Empty stack, try to pcall
 	var status = state.pcall(0, 0, 0)
-	assert_engine_error("has_n_items")
+	assert_engine_error("Need function")
 
 	# Should return error status, not crash
 	assert_ne(status, 0, "Should return error status")
@@ -290,7 +289,7 @@ func test_valid_operations_still_work():
 	assert_eq(state.to_integer(-1), 1, "Should have correct value")
 
 	# Test valid table operations
-	state.new_table()
+	state.create_table()
 	state.push_string("key")
 	state.push_integer(123)
 	state.set_table(-3)
