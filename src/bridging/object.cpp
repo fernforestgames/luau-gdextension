@@ -12,10 +12,16 @@ using namespace godot;
 
 static const char *const OBJECT_METATABLE_NAME = "GDObject";
 
+static Object *get_userdata_instance(void *ud)
+{
+    uint64_t instance_id = *static_cast<uint64_t *>(ud);
+    return ObjectDB::get_instance(instance_id);
+}
+
 static void refcounted_dtor(void *ud)
 {
-    RefCounted *rc = static_cast<RefCounted *>(ud);
-    if (rc->unreference())
+    RefCounted *rc = static_cast<RefCounted *>(get_userdata_instance(ud));
+    if (rc && rc->unreference())
     {
         memdelete(rc);
     }
@@ -23,25 +29,29 @@ static void refcounted_dtor(void *ud)
 
 static void object_dtor(lua_State *L, void *ud)
 {
-    Object *obj = static_cast<Object *>(ud);
-    RefCounted *rc = Object::cast_to<RefCounted>(obj);
+    RefCounted *rc = Object::cast_to<RefCounted>(get_userdata_instance(ud));
     if (rc && rc->unreference())
     {
         memdelete(rc);
     }
 }
 
-static Object *userdata_to_object(lua_State *L, int p_index, int p_tag)
+static Object *to_userdata(lua_State *L, int p_index, int p_tag)
 {
-    void *ud = p_tag == -1 ? lua_touserdata(L, p_index) : lua_touserdatatagged(L, p_index, p_tag);
-    uint64_t instance_id = *static_cast<uint64_t *>(ud);
-    return ObjectDB::get_instance(instance_id);
+    if (p_tag == -1)
+    {
+        return get_userdata_instance(lua_touserdata(L, p_index));
+    }
+    else
+    {
+        return get_userdata_instance(lua_touserdatatagged(L, p_index, p_tag));
+    }
 }
 
 // Object.__tostring metamethod
 static int object_tostring(lua_State *L)
 {
-    Object *obj = userdata_to_object(L, 1, -1);
+    Object *obj = to_userdata(L, 1, -1);
     lua_pop(L, 1);
 
     CharString utf8 = obj->to_string().utf8();
@@ -114,7 +124,7 @@ Object *godot::to_full_object(lua_State *L, int p_index, int p_tag)
 
     if (lua_type(L, p_index) == LUA_TUSERDATA && metatable_matches(L, p_index, OBJECT_METATABLE_NAME))
     {
-        return userdata_to_object(L, p_index, p_tag);
+        return to_userdata(L, p_index, p_tag);
     }
     else
     {
@@ -160,7 +170,7 @@ void godot::push_full_object(lua_State *L, Object *p_obj, int p_tag)
 
     void *ptr = nullptr;
     RefCounted *rc = Object::cast_to<RefCounted>(p_obj);
-    if (rc && rc->reference())
+    if (rc && rc->init_ref())
     {
         if (p_tag == -1)
         {
