@@ -49,7 +49,7 @@ struct RawLuaStateFixture
 
         if (result == 0)
         {
-            result = lua_resume(L, nullptr, 0);
+            result = lua_pcall(L, 0, LUA_MULTRET, 0);
         }
 
         return result;
@@ -79,15 +79,13 @@ struct LuaStateFixture
     // Helper to execute Luau code and return status
     lua_Status exec_lua(const char *code, const char *chunk_name = "test")
     {
-        PackedByteArray bytecode = Luau::compile(code);
-        state->load_bytecode(bytecode, chunk_name);
-        return state->resume();
+        return state->do_string(code, chunk_name);
     }
 
     // Helper to execute and check for success
-    bool exec_lua_ok(const char *code, const char *chunk_name = "test")
+    void exec_lua_ok(const char *code, const char *chunk_name = "test")
     {
-        return exec_lua(code, chunk_name) == LUA_OK;
+        CHECK(exec_lua(code, chunk_name) == LUA_OK);
     }
 };
 
