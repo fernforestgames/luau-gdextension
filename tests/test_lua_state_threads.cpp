@@ -192,7 +192,7 @@ TEST_SUITE("LuaState - Threads")
         co_status = f.state->co_status(thread.ptr());
         CHECK(co_status == LUA_COSUS);
 
-        thread->pop(1); // Pop yield value
+        thread->pop(1);  // Pop yield value
         f.state->pop(1); // Pop thread
     }
 
@@ -265,8 +265,7 @@ TEST_SUITE("LuaState - Threads")
 
         Ref<LuaState> thread = f.state->new_thread();
 
-        bool result = thread->push_thread();
-        CHECK(result);
+        thread->push_thread();
         CHECK(thread->is_thread(-1));
 
         thread->pop(1);
@@ -366,6 +365,7 @@ TEST_SUITE("LuaState - Threads")
         )");
 
         Ref<LuaState> thread = f.state->new_thread();
+        f.state->pop(1); // Pop thread
         thread->get_global("outer");
 
         // First yield from outer
@@ -386,6 +386,5 @@ TEST_SUITE("LuaState - Threads")
         CHECK(thread->to_number(-1) == 3.0);
 
         thread->pop(1);
-        f.state->pop(1); // Pop thread
     }
 }

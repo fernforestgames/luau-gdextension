@@ -303,10 +303,11 @@ LuaState::LuaState()
 }
 
 // Private constructor for thread states
-LuaState::LuaState(lua_State *p_thread_L, Ref<LuaState> p_main_thread)
-    : L(p_thread_L), main_thread(p_main_thread)
+LuaState::LuaState(lua_State *p_thread_L, int p_thread_ref, const Ref<LuaState> &p_main_thread)
+    : L(p_thread_L), this_thread_ref(p_thread_ref), main_thread(p_main_thread)
 {
     ERR_FAIL_NULL_MSG(p_thread_L, "Thread lua_State* is null.");
+    ERR_FAIL_COND_MSG(p_thread_ref == LUA_NOREF || p_thread_ref == LUA_REFNIL, "Invalid thread reference.");
     ERR_FAIL_NULL_MSG(p_main_thread, "Main LuaState is null.");
 
     // For later lookups with find_lua_state
@@ -315,12 +316,7 @@ LuaState::LuaState(lua_State *p_thread_L, Ref<LuaState> p_main_thread)
 
 LuaState::~LuaState()
 {
-    // Only close the main thread
-    // Other threads are managed by Lua's GC, not manually closed
-    if (is_main_thread() && L)
-    {
-        lua_close(L);
-    }
+    close();
 }
 
 void LuaState::setup_vm()
@@ -332,10 +328,9 @@ void LuaState::setup_vm()
     callbacks->debugstep = callback_debugstep;
 }
 
-Ref<LuaState> LuaState::bind_thread(lua_State *p_thread_L)
+Ref<LuaState> LuaState::bind_thread(lua_State *p_thread_L, int p_thread_ref)
 {
-    ERR_FAIL_NULL_V_MSG(p_thread_L, Ref<LuaState>(), "Thread lua_State* is null.");
-    return memnew(LuaState(p_thread_L, get_main_thread()));
+    return memnew(LuaState(p_thread_L, p_thread_ref, get_main_thread()));
 }
 
 bool LuaState::is_valid_index(int p_index)
@@ -372,17 +367,18 @@ void LuaState::close()
         return;
     }
 
-    if (!is_main_thread())
+    lua_setthreaddata(L, nullptr);
+
+    lua_unref(L, this_thread_ref);
+    this_thread_ref = LUA_NOREF;
+
+    if (is_main_thread())
     {
-        WARN_PRINT("LuaState.close() should not be called on Lua threads. Threads will be automatically GC'd.");
-        L = nullptr;
-        main_thread.unref();
-        return;
+        // Only close the main thread
+        // This will invalidate all thread lua_State* pointers created from this state
+        lua_close(L);
     }
 
-    // This is the main thread - close it
-    // This will invalidate all thread lua_State* pointers created from this state
-    lua_close(L);
     L = nullptr;
 }
 
@@ -394,7 +390,7 @@ Ref<LuaState> LuaState::new_thread()
     lua_State *thread_L = lua_newthread(L);
     ERR_FAIL_NULL_V_MSG(thread_L, Ref<LuaState>(), "Failed to create new Lua thread.");
 
-    return bind_thread(thread_L);
+    return bind_thread(thread_L, lua_ref(L, -1));
 }
 
 void LuaState::reset_thread()
@@ -771,7 +767,7 @@ Ref<LuaState> LuaState::to_thread(int p_index)
     ERR_FAIL_COND_V_MSG(!is_valid_index(p_index), Ref<LuaState>(), vformat("LuaState.to_thread(%d): Invalid stack index. Stack has %d elements.", p_index, lua_gettop(L)));
 
     lua_State *thread_L = lua_tothread(L, p_index);
-    return thread_L ? bind_thread(thread_L) : Ref<LuaState>();
+    return thread_L ? bind_thread(thread_L, lua_ref(L, p_index)) : Ref<LuaState>();
 }
 
 PackedByteArray LuaState::to_buffer(int p_index)
@@ -1788,10 +1784,7 @@ void LuaState::open_libs(BitField<LuaState::LibraryFlags> libs)
     if (libs & LIB_VECTOR)
         open_library(luaopen_vector, LUA_VECLIBNAME);
     if (libs & LIB_GODOT)
-    {
         open_library(luaopen_godot, LUA_GODOTLIBNAME);
-        godotlib_opened = true;
-    }
 }
 
 void LuaState::sandbox()
