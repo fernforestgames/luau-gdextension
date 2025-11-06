@@ -1,6 +1,7 @@
 #include "register_types.h"
 
 #include "lua_compileoptions.h"
+#include "lua_debug.h"
 #include "lua_state.h"
 #include "luau.h"
 #include "luau_script.h"
@@ -38,6 +39,7 @@ void initialize_gdluau(ModuleInitializationLevel p_level)
 
     GDREGISTER_RUNTIME_CLASS(godot::Luau);
     GDREGISTER_RUNTIME_CLASS(LuaCompileOptions);
+    GDREGISTER_RUNTIME_CLASS(LuaDebug);
     GDREGISTER_RUNTIME_CLASS(LuaState);
     GDREGISTER_RUNTIME_CLASS(LuauScript);
     GDREGISTER_RUNTIME_CLASS(ResourceFormatLoaderLuauScript);

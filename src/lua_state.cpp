@@ -1,12 +1,14 @@
 #include "lua_state.h"
-#include "helpers.h"
-#include "lua_godotlib.h"
-#include "luau.h"
+
 #include "bridging/array.h"
 #include "bridging/callable.h"
 #include "bridging/dictionary.h"
 #include "bridging/object.h"
 #include "bridging/variant.h"
+#include "helpers.h"
+#include "lua_debug.h"
+#include "lua_godotlib.h"
+#include "luau.h"
 
 #include <godot_cpp/core/class_db.hpp>
 #include <godot_cpp/core/error_macros.hpp>
@@ -71,6 +73,7 @@ static void callback_debugstep(lua_State *L, lua_Debug *ar)
         return;
     }
 
+    // Purposely not passing in a LuaDebug here, as that would mean creating a new refcounted object every debug step.
     // TODO: Statically create this StringName
     state->emit_signal("debugstep", state);
 }
@@ -244,6 +247,7 @@ void LuaState::_bind_methods()
 
     // Debug API
     ClassDB::bind_method(D_METHOD("get_stack_depth"), &LuaState::get_stack_depth);
+    ClassDB::bind_method(D_METHOD("get_info", "level", "what"), &LuaState::get_info);
     ClassDB::bind_method(D_METHOD("get_argument", "level", "narg"), &LuaState::get_argument);
     ClassDB::bind_method(D_METHOD("get_local", "level", "nlocal"), &LuaState::get_local);
     ClassDB::bind_method(D_METHOD("set_local", "level", "nlocal"), &LuaState::set_local);
@@ -1385,6 +1389,22 @@ int LuaState::get_stack_depth()
 {
     ERR_FAIL_COND_V_MSG(!is_valid(), -1, "Lua state is invalid. Cannot get stack depth.");
     return lua_stackdepth(L);
+}
+
+Ref<LuaDebug> LuaState::get_info(int p_level, const String &p_what)
+{
+    ERR_FAIL_COND_V_MSG(!is_valid(), Ref<LuaDebug>(), "Lua state is invalid. Cannot get debug info.");
+
+    Ref<LuaDebug> debug_info;
+    debug_info.reference_ptr(memnew(LuaDebug));
+    if (lua_getinfo(L, p_level, p_what.utf8().get_data(), debug_info->ptrw()))
+    {
+        return debug_info;
+    }
+    else
+    {
+        return Ref<LuaDebug>();
+    }
 }
 
 bool LuaState::get_argument(int p_level, int p_narg)

@@ -6,6 +6,8 @@
 
 namespace godot
 {
+    class LuaDebug;
+
     class LuaState : public RefCounted
     {
         GDCLASS(LuaState, RefCounted)
@@ -227,7 +229,7 @@ namespace godot
 
         // Debug API
         int get_stack_depth();
-        // TODO: lua_getinfo (need lua_Debug type)
+        Ref<LuaDebug> get_info(int p_level, const String &p_what);
         bool get_argument(int p_level, int p_narg);
         StringName get_local(int p_level, int p_nlocal);
         StringName set_local(int p_level, int p_nlocal);
