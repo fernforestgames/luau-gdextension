@@ -93,6 +93,22 @@ static int cpcall_wrapper(lua_State *L)
     return 0;
 }
 
+static void coverage_wrapper(void *context, const char *function, int linedefined, int depth, const int *hits, size_t size)
+{
+    Callable *callable = static_cast<Callable *>(context);
+    String function_str(function);
+
+    PackedInt32Array hits_array;
+    hits_array.resize(size);
+
+    for (size_t i = 0; i < size; i++)
+    {
+        hits_array.set(i, hits[i]);
+    }
+
+    callable->call(function_str, linedefined, depth, hits_array);
+}
+
 void LuaState::_bind_methods()
 {
     ClassDB::bind_method(D_METHOD("is_valid"), &LuaState::is_valid);
@@ -255,6 +271,7 @@ void LuaState::_bind_methods()
     ClassDB::bind_method(D_METHOD("set_upvalue", "funcindex", "nupvalue"), &LuaState::set_upvalue);
     ClassDB::bind_method(D_METHOD("set_single_step", "enabled"), &LuaState::set_single_step);
     ClassDB::bind_method(D_METHOD("set_breakpoint", "funcindex", "nline", "enabled"), &LuaState::set_breakpoint);
+    ClassDB::bind_method(D_METHOD("get_coverage", "funcindex", "callback"), &LuaState::get_coverage);
     ClassDB::bind_method(D_METHOD("debug_trace"), &LuaState::debug_trace);
 
     // lualib functions
@@ -1493,6 +1510,14 @@ int LuaState::set_breakpoint(int p_funcindex, int p_nline, bool p_enabled)
     ERR_FAIL_COND_V_MSG(!is_valid_index(p_funcindex), -1, vformat("LuaState.set_breakpoint(%d, %d, %s): Invalid function index. Stack has %d elements.", p_funcindex, p_nline, p_enabled ? "true" : "false", lua_gettop(L)));
 
     return lua_breakpoint(L, p_funcindex, p_nline, p_enabled);
+}
+
+void LuaState::get_coverage(int p_funcindex, Callable p_callback)
+{
+    ERR_FAIL_COND_MSG(!is_valid(), "Lua state is invalid. Cannot get coverage.");
+    ERR_FAIL_COND_MSG(!is_valid_index(p_funcindex), vformat("LuaState.get_coverage(%d, ...): Invalid function index. Stack has %d elements.", p_funcindex, lua_gettop(L)));
+
+    lua_getcoverage(L, p_funcindex, static_cast<void *>(&p_callback), &coverage_wrapper);
 }
 
 String LuaState::debug_trace()
