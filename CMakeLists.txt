@@ -40,11 +40,10 @@ FetchContent_MakeAvailable(Luau GodotCpp)
 list(APPEND CMAKE_MODULE_PATH "${godotcpp_SOURCE_DIR}/cmake")
 include(GodotCPPModule)
 
-# Collect source files (excluding register_types.cpp which is added separately)
-file(GLOB_RECURSE SOURCES CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp")
-list(FILTER SOURCES EXCLUDE REGEX ".*register_types\\.cpp$")
+# Collect source files
+file(GLOB_RECURSE SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp")
 
-# Create object library for shared code (used by both main and test libraries)
+# Create object library for shared code (used by main and test libraries)
 add_library(${PROJECT_NAME}_core OBJECT ${SOURCES})
 target_compile_features(${PROJECT_NAME}_core PRIVATE
     # Disable C++ exceptions in our code (Godot doesn't use them, Luau uses setjmp/longjmp via LUAU_EXTERN_C)
@@ -62,14 +61,13 @@ target_link_libraries(${PROJECT_NAME}_core PRIVATE
 
 # Apply custom warnings (only to our source files)
 set_source_files_properties(
-    ${SOURCES} src/register_types.cpp
+    ${SOURCES}
     PROPERTIES COMPILE_OPTIONS "${WARNING_FLAGS}"
 )
 
-# GDExtension library target (uses core object library + register_types.cpp)
+# GDExtension library target
 add_library(${PROJECT_NAME} MODULE
     $<TARGET_OBJECTS:${PROJECT_NAME}_core>
-    src/register_types.cpp
 )
 target_compile_features(${PROJECT_NAME} PRIVATE
     cxx_noexcept
@@ -85,7 +83,7 @@ target_link_libraries(${PROJECT_NAME} PRIVATE
 )
 
 # Generate documentation source and add to target
-file(GLOB_RECURSE DOC_XML CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/doc_classes/*.xml")
+file(GLOB_RECURSE DOC_XML "${CMAKE_CURRENT_SOURCE_DIR}/doc_classes/*.xml")
 set(DOC_SOURCE_FILE "${CMAKE_CURRENT_BINARY_DIR}/gen/doc_source.cpp")
 generate_doc_source("${DOC_SOURCE_FILE}" "${DOC_XML}")
 target_sources(${PROJECT_NAME} PRIVATE "${DOC_SOURCE_FILE}")
@@ -98,14 +96,14 @@ set_target_properties(${PROJECT_NAME} PROPERTIES
     SUFFIX ".${LIBRARY_SUFFIX}"
 )
 
-# Custom target to copy the library to the demo addon directory
+# Copy the library to dist/
 add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E make_directory
-        "${CMAKE_CURRENT_SOURCE_DIR}/demo/addons/luau_gdextension/bin"
+        "${CMAKE_CURRENT_SOURCE_DIR}/dist/addons/luau_gdextension/bin"
     COMMAND ${CMAKE_COMMAND} -E copy_if_different
         $<TARGET_FILE:${PROJECT_NAME}>
-        "${CMAKE_CURRENT_SOURCE_DIR}/demo/addons/luau_gdextension/bin/$<TARGET_FILE_NAME:${PROJECT_NAME}>"
-    COMMENT "Copying extension library to demo addons"
+        "${CMAKE_CURRENT_SOURCE_DIR}/dist/addons/luau_gdextension/bin/$<TARGET_FILE_NAME:${PROJECT_NAME}>"
+    COMMENT "Copying extension library to dist/addons/"
 )
 
 # Copy PDB files if COPY_PDB_FILE is enabled (Windows debug builds)
@@ -113,8 +111,8 @@ if(COPY_PDB_FILE)
     add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
         COMMAND ${CMAKE_COMMAND} -E copy_if_different
             $<TARGET_PDB_FILE:${PROJECT_NAME}>
-            "${CMAKE_CURRENT_SOURCE_DIR}/demo/addons/luau_gdextension/bin/$<TARGET_PDB_FILE_NAME:${PROJECT_NAME}>"
-        COMMENT "Copying PDB file to demo addons"
+            "${CMAKE_CURRENT_SOURCE_DIR}/dist/addons/luau_gdextension/bin/$<TARGET_PDB_FILE_NAME:${PROJECT_NAME}>"
+        COMMENT "Copying PDB file to dist/addons/"
     )
 endif()
 
@@ -129,9 +127,7 @@ if(BUILD_TESTING)
     message(STATUS "Test library enabled: gdluau_tests will be built")
 
     # Collect test source files
-    file(GLOB TEST_SOURCES
-        "tests/*.cpp"
-    )
+    file(GLOB_RECURSE TEST_SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/tests/*.cpp")
 
     # Test library target (uses core object library + test files)
     add_library(${PROJECT_NAME}_tests MODULE
@@ -167,7 +163,7 @@ if(BUILD_TESTING)
     target_sources(${PROJECT_NAME}_tests PRIVATE "${DOC_SOURCE_FILE}")
     add_dependencies(${PROJECT_NAME}_tests generate_doc_source)
 
-    # Copy test library to demo addon directory (same location as main library)
+    # Copy test library to demo addon directory
     add_custom_command(TARGET ${PROJECT_NAME}_tests POST_BUILD
         COMMAND ${CMAKE_COMMAND} -E copy_if_different
             $<TARGET_FILE:${PROJECT_NAME}_tests>

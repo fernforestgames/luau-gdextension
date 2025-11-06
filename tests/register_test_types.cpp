@@ -1,4 +1,5 @@
 // GDExtension registration for test library
+#include "register_test_types.h"
 #include "register_types.h"
 #include "luau_gdextension_tests.h"
 
@@ -10,6 +11,8 @@ using namespace godot;
 
 void initialize_gdluau_tests(ModuleInitializationLevel p_level)
 {
+    initialize_gdluau(p_level);
+
     if (p_level != MODULE_INITIALIZATION_LEVEL_SCENE)
     {
         return;
@@ -20,6 +23,8 @@ void initialize_gdluau_tests(ModuleInitializationLevel p_level)
 
 void uninitialize_gdluau_tests(ModuleInitializationLevel p_level)
 {
+    uninitialize_gdluau(p_level);
+
     if (p_level != MODULE_INITIALIZATION_LEVEL_SCENE)
     {
         return;
