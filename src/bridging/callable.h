@@ -1,5 +1,6 @@
 #pragma once
 
+#include <godot_cpp/classes/ref.hpp>
 #include <godot_cpp/variant/callable.hpp>
 #include <godot_cpp/variant/callable_custom.hpp>
 
@@ -18,12 +19,14 @@ namespace godot
     class LuaCallable : public CallableCustom
     {
     private:
-        ObjectID lua_state_id; // Weak reference to LuaState object
-        int func_ref;          // Reference to Lua function in registry
-        String func_name;      // Optional function name for debugging
+        ObjectID lua_state_id;   // Weak reference to LuaState
+        Ref<LuaState> lua_state; // Optional strong reference to LuaState
+
+        int func_ref;     // Reference to Lua function in registry
+        String func_name; // Optional function name for debugging
 
     public:
-        LuaCallable(LuaState *p_state, const String &p_func_name, int p_func_ref);
+        LuaCallable(LuaState *p_state, bool p_weak_state_ref, const String &p_func_name, int p_func_ref);
         ~LuaCallable();
 
         // CallableCustom interface

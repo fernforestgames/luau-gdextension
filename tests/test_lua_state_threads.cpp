@@ -384,7 +384,6 @@ TEST_SUITE("LuaState - Threads")
         status = thread->resume();
         CHECK(status == LUA_OK);
         CHECK(thread->to_number(-1) == 3.0);
-
         thread->pop(1);
     }
 }

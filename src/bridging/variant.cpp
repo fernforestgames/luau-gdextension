@@ -127,6 +127,7 @@ static void push_variant_metatable(lua_State *L)
     }
 
     // TODO: __namecall optimization
+    // TODO: __iter metamethod
 
     lua_pushcfunction(L, variant_tostring, "Variant.__tostring");
     lua_setfield(L, -2, "__tostring");
@@ -243,7 +244,7 @@ Variant godot::to_variant(lua_State *L, int p_index)
     case LUA_TTHREAD:
     {
         lua_State *thread_L = lua_tothread(L, p_index);
-        return Variant(LuaState::find_lua_state(thread_L));
+        return LuaState::find_or_create_lua_state(thread_L);
     }
 
     case LUA_TBUFFER:

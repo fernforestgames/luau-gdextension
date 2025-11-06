@@ -12,13 +12,15 @@ namespace godot
 
     private:
         lua_State *L;
-        Ref<LuaState> main_thread;       // only set for non-main threads
-        int this_thread_ref = LUA_NOREF; // only set for non-main threads
+        Ref<LuaState> main_thread; // only set for non-main threads
 
-        // Private constructor for threads created by lua_newthread
-        LuaState(lua_State *p_thread_L, int p_thread_ref, const Ref<LuaState> &p_main_thread);
+        // Private constructor for main thread
+        LuaState(lua_State *p_L);
 
-        Ref<LuaState> bind_thread(lua_State *p_thread_L, int p_thread_ref);
+        // Private constructor for sub-threads
+        LuaState(lua_State *p_thread_L, const Ref<LuaState> &p_main_thread);
+
+        Ref<LuaState> bind_thread(lua_State *p_thread_L);
         void setup_vm();
 
         bool is_valid_index(int p_index);
@@ -296,6 +298,8 @@ namespace godot
         {
             return static_cast<LuaState *>(lua_getthreaddata(p_L));
         }
+
+        static Ref<LuaState> find_or_create_lua_state(lua_State *p_L);
 
         // Opens a library using lua_call
         void open_library(lua_CFunction p_func, const char *p_name);

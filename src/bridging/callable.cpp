@@ -115,9 +115,6 @@ Callable godot::to_callable(lua_State *L, int p_index)
 {
     ERR_FAIL_COND_V_MSG(p_index > lua_gettop(L), Callable(), vformat("to_callable(%d): Invalid stack index. Stack has %d elements.", p_index, lua_gettop(L)));
 
-    LuaState *state = LuaState::find_lua_state(L);
-    ERR_FAIL_COND_V_MSG(!state, Callable(), vformat("to_callable(%d): Unable to find LuaState object.", p_index));
-
     if (!lua_isfunction(L, p_index))
     {
         return Callable();
@@ -126,8 +123,19 @@ Callable godot::to_callable(lua_State *L, int p_index)
     // Protect the function from GC
     int func_ref = lua_ref(L, p_index);
 
+    LuaState *state = LuaState::find_lua_state(L);
     String func_name = lua_function_name(L, p_index);
-    LuaCallable *lc = memnew(LuaCallable(state, func_name, func_ref));
+    LuaCallable *lc;
+    if (state)
+    {
+        lc = memnew(LuaCallable(state, true, func_name, func_ref));
+    }
+    else
+    {
+        Ref<LuaState> created_state = LuaState::find_or_create_lua_state(L);
+        lc = memnew(LuaCallable(created_state.ptr(), false, func_name, func_ref));
+    }
+
     return Callable(lc);
 }
 
@@ -157,9 +165,13 @@ void godot::push_callable(lua_State *L, const Callable &p_callable)
     lua_setmetatable(L, -2);
 }
 
-LuaCallable::LuaCallable(LuaState *p_state, const String &p_func_name, int p_func_ref)
-    : lua_state_id(p_state->get_instance_id()), func_name(p_func_name), func_ref(p_func_ref)
+LuaCallable::LuaCallable(LuaState *p_state, bool p_weak_state_ref, const String &p_func_name, int p_func_ref)
+    : lua_state_id(p_state->get_instance_id()), lua_state(), func_name(p_func_name), func_ref(p_func_ref)
 {
+    if (!p_weak_state_ref)
+    {
+        lua_state.reference_ptr(p_state);
+    }
 }
 
 LuaCallable::~LuaCallable()

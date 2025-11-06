@@ -19,6 +19,10 @@ using namespace godot;
 static void callback_interrupt(lua_State *L, int gc)
 {
     LuaState *state = LuaState::find_lua_state(L);
+    if (!state)
+    {
+        return;
+    }
 
     // TODO: Statically create this StringName
     state->emit_signal("interrupt", state, gc);
@@ -34,12 +38,38 @@ static void callback_panic(lua_State *L, int errcode)
     ERR_PRINT(vformat("Luau panic! Error %d: %s. LuaState is now invalid and cannot be used further. Traceback:\n%s", errcode, error_msg, traceback));
 
     LuaState *state = LuaState::find_lua_state(L);
+    if (!state)
+    {
+        return;
+    }
+
     state->close();
+}
+
+static void callback_userthread(lua_State *parent, lua_State *L)
+{
+    if (parent)
+    {
+        // Notification about a thread being created. We don't need to take any
+        // action. (We'll construct a LuaState object if/when needed.)
+        return;
+    }
+
+    // Notification about a thread being destroyed. We need to invalidate any associated LuaState.
+    LuaState *state = LuaState::find_lua_state(L);
+    if (state)
+    {
+        state->close();
+    }
 }
 
 static void callback_debugstep(lua_State *L, lua_Debug *ar)
 {
     LuaState *state = LuaState::find_lua_state(L);
+    if (!state)
+    {
+        return;
+    }
 
     // TODO: Statically create this StringName
     state->emit_signal("debugstep", state);
@@ -290,11 +320,14 @@ void LuaState::_bind_methods()
     ADD_SIGNAL(MethodInfo("debugstep", PropertyInfo(Variant::OBJECT, "state")));
 }
 
-LuaState::LuaState()
-    : main_thread()
+LuaState::LuaState() : LuaState(luaL_newstate())
 {
-    L = luaL_newstate();
-    ERR_FAIL_NULL_MSG(L, "Failed to create new Lua state.");
+}
+
+LuaState::LuaState(lua_State *p_L)
+    : L(p_L)
+{
+    ERR_FAIL_NULL_MSG(L, "lua_State* is null.");
 
     // For later lookups with find_lua_state
     lua_setthreaddata(L, this);
@@ -303,11 +336,10 @@ LuaState::LuaState()
 }
 
 // Private constructor for thread states
-LuaState::LuaState(lua_State *p_thread_L, int p_thread_ref, const Ref<LuaState> &p_main_thread)
-    : L(p_thread_L), this_thread_ref(p_thread_ref), main_thread(p_main_thread)
+LuaState::LuaState(lua_State *p_thread_L, const Ref<LuaState> &p_main_thread)
+    : L(p_thread_L), main_thread(p_main_thread)
 {
     ERR_FAIL_NULL_MSG(p_thread_L, "Thread lua_State* is null.");
-    ERR_FAIL_COND_MSG(p_thread_ref == LUA_NOREF || p_thread_ref == LUA_REFNIL, "Invalid thread reference.");
     ERR_FAIL_NULL_MSG(p_main_thread, "Main LuaState is null.");
 
     // For later lookups with find_lua_state
@@ -325,12 +357,13 @@ void LuaState::setup_vm()
     lua_Callbacks *callbacks = lua_callbacks(L);
     callbacks->interrupt = callback_interrupt;
     callbacks->panic = callback_panic;
+    callbacks->userthread = callback_userthread;
     callbacks->debugstep = callback_debugstep;
 }
 
-Ref<LuaState> LuaState::bind_thread(lua_State *p_thread_L, int p_thread_ref)
+Ref<LuaState> LuaState::bind_thread(lua_State *p_thread_L)
 {
-    return memnew(LuaState(p_thread_L, p_thread_ref, get_main_thread()));
+    return memnew(LuaState(p_thread_L, get_main_thread()));
 }
 
 bool LuaState::is_valid_index(int p_index)
@@ -369,9 +402,6 @@ void LuaState::close()
 
     lua_setthreaddata(L, nullptr);
 
-    lua_unref(L, this_thread_ref);
-    this_thread_ref = LUA_NOREF;
-
     if (is_main_thread())
     {
         // Only close the main thread
@@ -390,7 +420,7 @@ Ref<LuaState> LuaState::new_thread()
     lua_State *thread_L = lua_newthread(L);
     ERR_FAIL_NULL_V_MSG(thread_L, Ref<LuaState>(), "Failed to create new Lua thread.");
 
-    return bind_thread(thread_L, lua_ref(L, -1));
+    return bind_thread(thread_L);
 }
 
 void LuaState::reset_thread()
@@ -767,7 +797,14 @@ Ref<LuaState> LuaState::to_thread(int p_index)
     ERR_FAIL_COND_V_MSG(!is_valid_index(p_index), Ref<LuaState>(), vformat("LuaState.to_thread(%d): Invalid stack index. Stack has %d elements.", p_index, lua_gettop(L)));
 
     lua_State *thread_L = lua_tothread(L, p_index);
-    return thread_L ? bind_thread(thread_L, lua_ref(L, p_index)) : Ref<LuaState>();
+    if (thread_L)
+    {
+        return find_or_create_lua_state(thread_L);
+    }
+    else
+    {
+        return Ref<LuaState>();
+    }
 }
 
 PackedByteArray LuaState::to_buffer(int p_index)
@@ -1876,6 +1913,28 @@ lua_Status LuaState::do_string(const String &p_code, const StringName &p_chunk_n
         ERR_PRINT(vformat("Failed to load Lua chunk \"%s\": %s", p_chunk_name, err_msg));
         return LUA_ERRSYNTAX;
     }
+}
+
+Ref<LuaState> LuaState::find_or_create_lua_state(lua_State *p_L)
+{
+    Ref<LuaState> state;
+    state.reference_ptr(LuaState::find_lua_state(p_L));
+
+    if (!state.is_valid())
+    {
+        lua_State *main_thread_L = lua_mainthread(p_L);
+        if (p_L == main_thread_L)
+        {
+            state.reference_ptr(memnew(LuaState(p_L)));
+        }
+        else
+        {
+            Ref<LuaState> main_thread_state = LuaState::find_or_create_lua_state(main_thread_L);
+            state.reference_ptr(memnew(LuaState(p_L, main_thread_state)));
+        }
+    }
+
+    return state;
 }
 
 // C++ only helpers
