@@ -138,7 +138,7 @@ namespace godot
         int userdata_tag(int p_index);
         Ref<LuaState> to_thread(int p_index);
         PackedByteArray to_buffer(int p_index);
-        uintptr_t to_pointer(int p_index);
+        uint64_t to_pointer(int p_index);
 
         // Push functions (C -> stack)
         void push_nil();

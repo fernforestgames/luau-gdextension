@@ -825,12 +825,12 @@ PackedByteArray LuaState::to_buffer(int p_index)
     return byte_array;
 }
 
-uintptr_t LuaState::to_pointer(int p_index)
+uint64_t LuaState::to_pointer(int p_index)
 {
     ERR_FAIL_COND_V_MSG(!is_valid(), 0, "Lua state is invalid. Cannot convert to pointer.");
     ERR_FAIL_COND_V_MSG(!is_valid_index(p_index), 0, vformat("LuaState.to_pointer(%d): Invalid stack index. Stack has %d elements.", p_index, lua_gettop(L)));
 
-    return reinterpret_cast<uintptr_t>(lua_topointer(L, p_index));
+    return reinterpret_cast<uint64_t>(lua_topointer(L, p_index));
 }
 
 // Push function (C -> stack)
