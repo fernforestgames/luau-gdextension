@@ -279,15 +279,6 @@ Variant godot::to_variant(lua_State *L, int p_index)
     }
 }
 
-static void refcounted_dtor(void *ud)
-{
-    RefCounted *rc = static_cast<RefCounted *>(ud);
-    if (rc->unreference())
-    {
-        memdelete(rc);
-    }
-}
-
 void godot::push_variant(lua_State *L, const Variant &p_variant)
 {
     ERR_FAIL_COND_MSG(!lua_checkstack(L, 2), "push_variant(): Stack overflow. Cannot grow stack."); // Variant + possible metatable

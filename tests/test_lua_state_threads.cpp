@@ -271,7 +271,6 @@ TEST_SUITE("LuaState - Threads")
     TEST_CASE_FIXTURE(LuaStateFixture, "thread - multiple wrappers for same lua_State*")
     {
         Ref<LuaState> thread1 = state->new_thread();
-        lua_State *L = thread1->get_lua_state();
 
         // Create another wrapper for the same lua_State*
         Ref<LuaState> thread2 = state->to_thread(-1);

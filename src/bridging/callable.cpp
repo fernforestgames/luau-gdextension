@@ -166,7 +166,7 @@ void godot::push_callable(lua_State *L, const Callable &p_callable)
 }
 
 LuaCallable::LuaCallable(LuaState *p_state, bool p_weak_state_ref, const String &p_func_name, int p_func_ref)
-    : lua_state_id(p_state->get_instance_id()), lua_state(), func_name(p_func_name), func_ref(p_func_ref)
+    : lua_state_id(p_state->get_instance_id()), lua_state(), func_ref(p_func_ref), func_name(p_func_name)
 {
     if (!p_weak_state_ref)
     {
@@ -245,8 +245,6 @@ void LuaCallable::call(const Variant **p_arguments, int p_argcount, Variant &r_r
         r_call_error.error = GDEXTENSION_CALL_ERROR_INSTANCE_IS_NULL;
         return;
     }
-
-    int stack_top = lua_gettop(L);
 
     // Function + all arguments
     if (!lua_checkstack(L, 1 + p_argcount))
