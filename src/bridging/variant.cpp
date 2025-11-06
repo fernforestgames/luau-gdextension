@@ -118,6 +118,67 @@ static int variant_newindex(lua_State *L)
     return 0;
 }
 
+// Inner function returned from Variant.__iter
+static int variant_iter_closure(lua_State *L)
+{
+    // Space for 2 return values + 1 upvalue replacement
+    luaL_checkstack(L, 3, "Variant.__iter.closure: could not grow stack");
+
+    Variant *var = static_cast<Variant *>(lua_touserdata(L, lua_upvalueindex(1)));
+    Variant iter = to_variant(L, lua_upvalueindex(2));
+    if (iter.get_type() == Variant::NIL)
+    {
+        // Iterator was exhausted
+        lua_pushnil(L);
+        return 1;
+    }
+
+    bool valid;
+    Variant current = var->iter_get(iter, valid);
+
+    // Return values: [i, value]
+    push_variant(L, iter);
+    push_variant(L, current);
+
+    if (var->iter_next(iter, valid))
+    {
+        // Update iterator
+        push_variant(L, iter);
+        lua_replace(L, lua_upvalueindex(2));
+    }
+    else
+    {
+        // Iterator is exhausted; we'll finish on next call
+        lua_pushnil(L);
+        lua_replace(L, lua_upvalueindex(2));
+    }
+
+    return 2;
+}
+
+// Variant.__iter metamethod
+static int variant_iter(lua_State *L)
+{
+    Variant *var = static_cast<Variant *>(lua_touserdata(L, 1));
+
+    Variant iter;
+    bool valid;
+    if (!var->iter_init(iter, valid))
+    {
+        String error_msg = vformat("Variant type %s is not iterable", Variant::get_type_name(var->get_type()));
+        lua_pushstring(L, error_msg.utf8().get_data());
+        lua_error(L);
+    }
+
+    luaL_checkstack(L, 1, "Variant.__iter: not enough stack space for iterator");
+    push_variant(L, iter);
+
+    // upvalues: [variant, iter]
+    lua_pushcclosure(L, variant_iter_closure, "Variant.__iter.closure", 2);
+
+    return 1;
+}
+
 static void push_variant_metatable(lua_State *L)
 {
     if (!luaL_newmetatable(L, VARIANT_METATABLE_NAME))
@@ -127,7 +188,6 @@ static void push_variant_metatable(lua_State *L)
     }
 
     // TODO: __namecall optimization
-    // TODO: __iter metamethod
 
     lua_pushcfunction(L, variant_tostring, "Variant.__tostring");
     lua_setfield(L, -2, "__tostring");
@@ -170,6 +230,9 @@ static void push_variant_metatable(lua_State *L)
 
     lua_pushcfunction(L, variant_newindex, "Variant.__newindex");
     lua_setfield(L, -2, "__newindex");
+
+    lua_pushcfunction(L, variant_iter, "Variant.__iter");
+    lua_setfield(L, -2, "__iter");
 }
 
 Variant godot::to_variant(lua_State *L, int p_index)
