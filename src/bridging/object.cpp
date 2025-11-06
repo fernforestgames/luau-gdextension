@@ -198,5 +198,12 @@ void godot::push_light_object(lua_State *L, Object *p_obj, int p_tag)
 {
     ERR_FAIL_COND_MSG(!lua_checkstack(L, 1), "push_light_object(): Stack overflow. Cannot grow stack.");
 
-    lua_pushlightuserdata(L, static_cast<void *>(p_obj));
+    if (p_tag == -1)
+    {
+        lua_pushlightuserdata(L, static_cast<void *>(p_obj));
+    }
+    else
+    {
+        lua_pushlightuserdatatagged(L, static_cast<void *>(p_obj), p_tag);
+    }
 }
