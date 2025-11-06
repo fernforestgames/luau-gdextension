@@ -30,7 +30,8 @@
       "$comment": "Output dir set to prevent MSVC from adding Debug/Release subdirectories",
       "cacheVariables": {
         "CMAKE_LIBRARY_OUTPUT_DIRECTORY": "${sourceDir}/build/bin",
-        "LIBRARY_SUFFIX": "dll"
+        "LIBRARY_SUFFIX": "dll",
+        "WARNING_FLAGS": "/Wall;/WX;/permissive-;/wd4061;/wd4100;/wd4127;/wd4201;/wd4244;/wd4267;/wd4365;/wd4514;/wd4625;/wd4626;/wd4668;/wd4800;/wd4820;/wd4946;/wd5039;/wd5026;/wd5027;/wd5045;/wd5219;/wd5267"
       }
     },
     {
@@ -68,7 +69,8 @@
       "$comment": "Forcing PIC on when compiling static library dependencies",
       "cacheVariables": {
         "CMAKE_POSITION_INDEPENDENT_CODE": "TRUE",
-        "LIBRARY_SUFFIX": "so"
+        "LIBRARY_SUFFIX": "so",
+        "WARNING_FLAGS": "-Wall;-Wextra;-Werror;-Wpedantic;-Wshadow;-Wnon-virtual-dtor;-Wold-style-cast;-Wcast-align;-Wunused;-Woverloaded-virtual;-Wdouble-promotion;-Wformat=2;-Wimplicit-fallthrough;-Wno-unused-parameter;-Wno-switch-enum;-Wno-padded;-Wno-conversion;-Wno-sign-conversion"
       }
     },
     {
@@ -105,7 +107,8 @@
       "$comment": "Forcing PIC on when compiling static library dependencies",
       "cacheVariables": {
         "CMAKE_POSITION_INDEPENDENT_CODE": "TRUE",
-        "LIBRARY_SUFFIX": "dylib"
+        "LIBRARY_SUFFIX": "dylib",
+        "WARNING_FLAGS": "-Wall;-Wextra;-Werror;-Wpedantic;-Wshadow;-Wnon-virtual-dtor;-Wold-style-cast;-Wcast-align;-Wunused;-Woverloaded-virtual;-Wdouble-promotion;-Wformat=2;-Wimplicit-fallthrough;-Wno-unused-parameter;-Wno-switch-enum;-Wno-padded;-Wno-conversion;-Wno-sign-conversion"
       }
     },
     {

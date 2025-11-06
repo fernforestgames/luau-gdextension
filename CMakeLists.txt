@@ -60,6 +60,12 @@ target_link_libraries(${PROJECT_NAME}_core PRIVATE
     Luau.VM
 )
 
+# Apply custom warnings (only to our source files)
+set_source_files_properties(
+    ${SOURCES} src/register_types.cpp
+    PROPERTIES COMPILE_OPTIONS "${WARNING_FLAGS}"
+)
+
 # GDExtension library target (uses core object library + register_types.cpp)
 add_library(${PROJECT_NAME} MODULE
     $<TARGET_OBJECTS:${PROJECT_NAME}_core>
@@ -144,6 +150,11 @@ if(BUILD_TESTING)
         godot-cpp
         Luau.Compiler
         Luau.VM
+    )
+
+    # Apply same warning settings to test library source files
+    set_source_files_properties(${TEST_SOURCES}
+        PROPERTIES COMPILE_OPTIONS "${WARNING_FLAGS}"
     )
 
     set_target_properties(${PROJECT_NAME}_tests PROPERTIES
