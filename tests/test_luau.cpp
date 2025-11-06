@@ -9,7 +9,7 @@ using namespace godot;
 
 TEST_SUITE("Luau")
 {
-    TEST_CASE("compile - basic code compilation")
+    TEST_CASE_FIXTURE(RawLuaStateFixture, "compile - basic code compilation")
     {
         String code = "return 1 + 2";
         PackedByteArray bytecode = Luau::compile(code);
@@ -17,18 +17,17 @@ TEST_SUITE("Luau")
         CHECK(bytecode.size() > 0);
 
         // Verify bytecode is executable
-        RawLuaStateFixture f;
-        int result = luau_load(f.L, "test", (const char *)bytecode.ptr(), bytecode.size(), 0);
+        int result = luau_load(L, "test", (const char *)bytecode.ptr(), bytecode.size(), 0);
         CHECK(result == 0);
 
-        result = lua_resume(f.L, nullptr, 0);
+        result = lua_resume(L, nullptr, 0);
         CHECK(result == LUA_OK);
-        CHECK(lua_isnumber(f.L, -1));
-        CHECK(lua_tonumber(f.L, -1) == 3.0);
-        lua_pop(f.L, 1);
+        CHECK(lua_isnumber(L, -1));
+        CHECK(lua_tonumber(L, -1) == 3.0);
+        lua_pop(L, 1);
     }
 
-    TEST_CASE("compile - function definition")
+    TEST_CASE_FIXTURE(RawLuaStateFixture, "compile - function definition")
     {
         String code = "function add(a, b) return a + b end";
         PackedByteArray bytecode = Luau::compile(code);
@@ -36,16 +35,15 @@ TEST_SUITE("Luau")
         CHECK(bytecode.size() > 0);
 
         // Verify bytecode is executable
-        RawLuaStateFixture f;
-        int result = luau_load(f.L, "test", (const char *)bytecode.ptr(), bytecode.size(), 0);
+        int result = luau_load(L, "test", (const char *)bytecode.ptr(), bytecode.size(), 0);
         CHECK(result == 0);
 
-        result = lua_resume(f.L, nullptr, 0);
+        result = lua_resume(L, nullptr, 0);
         CHECK(result == LUA_OK);
-        lua_pop(f.L, lua_gettop(f.L)); // Clear stack
+        lua_pop(L, lua_gettop(L)); // Clear stack
     }
 
-    TEST_CASE("compile - syntax error")
+    TEST_CASE_FIXTURE(RawLuaStateFixture, "compile - syntax error")
     {
         String code = "return 1 +"; // Incomplete expression
         PackedByteArray bytecode = Luau::compile(code);
@@ -54,34 +52,32 @@ TEST_SUITE("Luau")
         // When loaded, it will error
         CHECK(bytecode.size() > 0);
 
-        RawLuaStateFixture f;
-        int result = luau_load(f.L, "test", (const char *)bytecode.ptr(), bytecode.size(), 0);
+        int result = luau_load(L, "test", (const char *)bytecode.ptr(), bytecode.size(), 0);
         // Load might succeed, but execution will fail
         if (result == 0)
         {
-            result = lua_resume(f.L, nullptr, 0);
+            result = lua_resume(L, nullptr, 0);
             CHECK(result != LUA_OK);
         }
-        lua_pop(f.L, lua_gettop(f.L));
+        lua_pop(L, lua_gettop(L));
     }
 
-    TEST_CASE("compile - empty string")
+    TEST_CASE_FIXTURE(RawLuaStateFixture, "compile - empty string")
     {
         String code = "";
         PackedByteArray bytecode = Luau::compile(code);
 
         CHECK(bytecode.size() > 0);
 
-        RawLuaStateFixture f;
-        int result = luau_load(f.L, "test", (const char *)bytecode.ptr(), bytecode.size(), 0);
+        int result = luau_load(L, "test", (const char *)bytecode.ptr(), bytecode.size(), 0);
         CHECK(result == 0);
 
-        result = lua_resume(f.L, nullptr, 0);
+        result = lua_resume(L, nullptr, 0);
         CHECK(result == LUA_OK);
-        lua_pop(f.L, lua_gettop(f.L));
+        lua_pop(L, lua_gettop(L));
     }
 
-    TEST_CASE("compile - complex multi-line code")
+    TEST_CASE_FIXTURE(RawLuaStateFixture, "compile - complex multi-line code")
     {
         String code = R"(
             local function factorial(n)
@@ -97,18 +93,17 @@ TEST_SUITE("Luau")
 
         CHECK(bytecode.size() > 0);
 
-        RawLuaStateFixture f;
-        int result = luau_load(f.L, "test", (const char *)bytecode.ptr(), bytecode.size(), 0);
+        int result = luau_load(L, "test", (const char *)bytecode.ptr(), bytecode.size(), 0);
         CHECK(result == 0);
 
-        result = lua_resume(f.L, nullptr, 0);
+        result = lua_resume(L, nullptr, 0);
         CHECK(result == LUA_OK);
-        CHECK(lua_isnumber(f.L, -1));
-        CHECK(lua_tonumber(f.L, -1) == 120.0);
-        lua_pop(f.L, 1);
+        CHECK(lua_isnumber(L, -1));
+        CHECK(lua_tonumber(L, -1) == 120.0);
+        lua_pop(L, 1);
     }
 
-    TEST_CASE("compile - with compile options")
+    TEST_CASE_FIXTURE(RawLuaStateFixture, "compile - with compile options")
     {
         LuaCompileOptions *options = memnew(LuaCompileOptions);
         options->set_optimization_level(2);
@@ -122,31 +117,29 @@ TEST_SUITE("Luau")
         memdelete(options);
 
         // Verify bytecode is executable
-        RawLuaStateFixture f;
-        int result = luau_load(f.L, "test", (const char *)bytecode.ptr(), bytecode.size(), 0);
+        int result = luau_load(L, "test", (const char *)bytecode.ptr(), bytecode.size(), 0);
         CHECK(result == 0);
 
-        result = lua_resume(f.L, nullptr, 0);
+        result = lua_resume(L, nullptr, 0);
         CHECK(result == LUA_OK);
-        CHECK(lua_tonumber(f.L, -1) == 42.0);
-        lua_pop(f.L, 1);
+        CHECK(lua_tonumber(L, -1) == 42.0);
+        lua_pop(L, 1);
     }
 
-    TEST_CASE("compile - null options uses defaults")
+    TEST_CASE_FIXTURE(RawLuaStateFixture, "compile - null options uses defaults")
     {
         String code = "return 99";
         PackedByteArray bytecode = Luau::compile(code, nullptr);
 
         CHECK(bytecode.size() > 0);
 
-        RawLuaStateFixture f;
-        int result = luau_load(f.L, "test", (const char *)bytecode.ptr(), bytecode.size(), 0);
+        int result = luau_load(L, "test", (const char *)bytecode.ptr(), bytecode.size(), 0);
         CHECK(result == 0);
 
-        result = lua_resume(f.L, nullptr, 0);
+        result = lua_resume(L, nullptr, 0);
         CHECK(result == LUA_OK);
-        CHECK(lua_tonumber(f.L, -1) == 99.0);
-        lua_pop(f.L, 1);
+        CHECK(lua_tonumber(L, -1) == 99.0);
+        lua_pop(L, 1);
     }
 
     TEST_CASE("upvalue_index - converts upvalue number to pseudo-index")

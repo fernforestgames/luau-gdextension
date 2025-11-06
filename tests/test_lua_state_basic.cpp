@@ -23,22 +23,20 @@ TEST_SUITE("LuaState - Basic Operations")
         state->close();
     }
 
-    TEST_CASE("open_libs - opens standard libraries")
+    TEST_CASE_FIXTURE(LuaStateFixture, "open_libs - opens standard libraries")
     {
-        LuaStateFixture f;
-
         // Verify standard library is available (already opened in fixture)
-        f.state->get_global("print");
-        CHECK(f.state->is_function(-1));
-        f.state->pop(1);
+        state->get_global("print");
+        CHECK(state->is_function(-1));
+        state->pop(1);
 
-        f.state->get_global("table");
-        CHECK(f.state->is_table(-1));
-        f.state->pop(1);
+        state->get_global("table");
+        CHECK(state->is_table(-1));
+        state->pop(1);
 
-        f.state->get_global("math");
-        CHECK(f.state->is_table(-1));
-        f.state->pop(1);
+        state->get_global("math");
+        CHECK(state->is_table(-1));
+        state->pop(1);
     }
 
     TEST_CASE("open_libs - selective libraries")
@@ -78,434 +76,385 @@ TEST_SUITE("LuaState - Basic Operations")
         state->close(); // Double close should be safe
     }
 
-    TEST_CASE("is_main_thread - identifies main thread")
+    TEST_CASE_FIXTURE(LuaStateFixture, "is_main_thread - identifies main thread")
     {
-        LuaStateFixture f;
-        CHECK(f.state->is_main_thread());
+        CHECK(state->is_main_thread());
 
-        Ref<LuaState> thread = f.state->new_thread();
+        Ref<LuaState> thread = state->new_thread();
         CHECK_FALSE(thread->is_main_thread());
-        CHECK(thread->get_main_thread() == f.state);
+        CHECK(thread->get_main_thread() == state);
 
-        f.state->pop(1); // Pop thread from stack
+        state->pop(1); // Pop thread from stack
     }
 }
 
 TEST_SUITE("LuaState - Stack Manipulation")
 {
-    TEST_CASE("get_top - returns stack size")
+    TEST_CASE_FIXTURE(LuaStateFixture, "get_top - returns stack size")
     {
-        LuaStateFixture f;
+        CHECK(state->get_top() == 0);
 
-        CHECK(f.state->get_top() == 0);
+        state->push_number(1.0);
+        CHECK(state->get_top() == 1);
 
-        f.state->push_number(1.0);
-        CHECK(f.state->get_top() == 1);
+        state->push_number(2.0);
+        CHECK(state->get_top() == 2);
 
-        f.state->push_number(2.0);
-        CHECK(f.state->get_top() == 2);
+        state->push_string("test");
+        CHECK(state->get_top() == 3);
 
-        f.state->push_string("test");
-        CHECK(f.state->get_top() == 3);
-
-        f.state->pop(3);
+        state->pop(3);
     }
 
-    TEST_CASE("set_top - sets stack size")
+    TEST_CASE_FIXTURE(LuaStateFixture, "set_top - sets stack size")
     {
-        LuaStateFixture f;
+        state->push_number(1.0);
+        state->push_number(2.0);
+        state->push_number(3.0);
+        CHECK(state->get_top() == 3);
 
-        f.state->push_number(1.0);
-        f.state->push_number(2.0);
-        f.state->push_number(3.0);
-        CHECK(f.state->get_top() == 3);
+        state->set_top(1);
+        CHECK(state->get_top() == 1);
+        CHECK(state->to_number(-1) == 1.0);
 
-        f.state->set_top(1);
-        CHECK(f.state->get_top() == 1);
-        CHECK(f.state->to_number(-1) == 1.0);
-
-        f.state->set_top(0);
-        CHECK(f.state->get_top() == 0);
+        state->set_top(0);
+        CHECK(state->get_top() == 0);
     }
 
-    TEST_CASE("pop - removes elements from stack")
+    TEST_CASE_FIXTURE(LuaStateFixture, "pop - removes elements from stack")
     {
-        LuaStateFixture f;
+        state->push_number(1.0);
+        state->push_number(2.0);
+        state->push_number(3.0);
+        CHECK(state->get_top() == 3);
 
-        f.state->push_number(1.0);
-        f.state->push_number(2.0);
-        f.state->push_number(3.0);
-        CHECK(f.state->get_top() == 3);
+        state->pop(1);
+        CHECK(state->get_top() == 2);
+        CHECK(state->to_number(-1) == 2.0);
 
-        f.state->pop(1);
-        CHECK(f.state->get_top() == 2);
-        CHECK(f.state->to_number(-1) == 2.0);
-
-        f.state->pop(2);
-        CHECK(f.state->get_top() == 0);
+        state->pop(2);
+        CHECK(state->get_top() == 0);
     }
 
-    TEST_CASE("push_value - duplicates stack value")
+    TEST_CASE_FIXTURE(LuaStateFixture, "push_value - duplicates stack value")
     {
-        LuaStateFixture f;
+        state->push_number(42.0);
+        CHECK(state->get_top() == 1);
 
-        f.state->push_number(42.0);
-        CHECK(f.state->get_top() == 1);
+        state->push_value(-1); // Duplicate top
+        CHECK(state->get_top() == 2);
+        CHECK(state->to_number(-1) == 42.0);
+        CHECK(state->to_number(-2) == 42.0);
 
-        f.state->push_value(-1); // Duplicate top
-        CHECK(f.state->get_top() == 2);
-        CHECK(f.state->to_number(-1) == 42.0);
-        CHECK(f.state->to_number(-2) == 42.0);
-
-        f.state->pop(2);
+        state->pop(2);
     }
 
-    TEST_CASE("remove - removes element from middle of stack")
+    TEST_CASE_FIXTURE(LuaStateFixture, "remove - removes element from middle of stack")
     {
-        LuaStateFixture f;
+        state->push_number(1.0);
+        state->push_number(2.0);
+        state->push_number(3.0);
 
-        f.state->push_number(1.0);
-        f.state->push_number(2.0);
-        f.state->push_number(3.0);
+        state->remove(2); // Remove middle element
+        CHECK(state->get_top() == 2);
+        CHECK(state->to_number(1) == 1.0);
+        CHECK(state->to_number(2) == 3.0);
 
-        f.state->remove(2); // Remove middle element
-        CHECK(f.state->get_top() == 2);
-        CHECK(f.state->to_number(1) == 1.0);
-        CHECK(f.state->to_number(2) == 3.0);
-
-        f.state->pop(2);
+        state->pop(2);
     }
 
-    TEST_CASE("insert - inserts element into stack")
+    TEST_CASE_FIXTURE(LuaStateFixture, "insert - inserts element into stack")
     {
-        LuaStateFixture f;
+        state->push_number(1.0);
+        state->push_number(2.0);
+        state->push_number(99.0); // Value to insert
 
-        f.state->push_number(1.0);
-        f.state->push_number(2.0);
-        f.state->push_number(99.0); // Value to insert
+        state->insert(2); // Insert before index 2
+        CHECK(state->get_top() == 3);
+        CHECK(state->to_number(1) == 1.0);
+        CHECK(state->to_number(2) == 99.0);
+        CHECK(state->to_number(3) == 2.0);
 
-        f.state->insert(2); // Insert before index 2
-        CHECK(f.state->get_top() == 3);
-        CHECK(f.state->to_number(1) == 1.0);
-        CHECK(f.state->to_number(2) == 99.0);
-        CHECK(f.state->to_number(3) == 2.0);
-
-        f.state->pop(3);
+        state->pop(3);
     }
 
-    TEST_CASE("replace - replaces element in stack")
+    TEST_CASE_FIXTURE(LuaStateFixture, "replace - replaces element in stack")
     {
-        LuaStateFixture f;
+        state->push_number(1.0);
+        state->push_number(2.0);
+        state->push_number(99.0); // Replacement value
 
-        f.state->push_number(1.0);
-        f.state->push_number(2.0);
-        f.state->push_number(99.0); // Replacement value
+        state->replace(1); // Replace index 1
+        CHECK(state->get_top() == 2);
+        CHECK(state->to_number(1) == 99.0);
+        CHECK(state->to_number(2) == 2.0);
 
-        f.state->replace(1); // Replace index 1
-        CHECK(f.state->get_top() == 2);
-        CHECK(f.state->to_number(1) == 99.0);
-        CHECK(f.state->to_number(2) == 2.0);
-
-        f.state->pop(2);
+        state->pop(2);
     }
 
-    TEST_CASE("abs_index - converts relative to absolute index")
+    TEST_CASE_FIXTURE(LuaStateFixture, "abs_index - converts relative to absolute index")
     {
-        LuaStateFixture f;
+        state->push_number(1.0);
+        state->push_number(2.0);
+        state->push_number(3.0);
 
-        f.state->push_number(1.0);
-        f.state->push_number(2.0);
-        f.state->push_number(3.0);
+        CHECK(state->abs_index(-1) == 3);
+        CHECK(state->abs_index(-2) == 2);
+        CHECK(state->abs_index(-3) == 1);
+        CHECK(state->abs_index(1) == 1);
+        CHECK(state->abs_index(2) == 2);
 
-        CHECK(f.state->abs_index(-1) == 3);
-        CHECK(f.state->abs_index(-2) == 2);
-        CHECK(f.state->abs_index(-3) == 1);
-        CHECK(f.state->abs_index(1) == 1);
-        CHECK(f.state->abs_index(2) == 2);
-
-        f.state->pop(3);
+        state->pop(3);
     }
 
-    TEST_CASE("check_stack - ensures stack space")
+    TEST_CASE_FIXTURE(LuaStateFixture, "check_stack - ensures stack space")
     {
-        LuaStateFixture f;
-
-        CHECK(f.state->check_stack(10));
-        CHECK(f.state->check_stack(100));
-        CHECK(f.state->check_stack(1000));
+        CHECK(state->check_stack(10));
+        CHECK(state->check_stack(100));
+        CHECK(state->check_stack(1000));
     }
 }
 
 TEST_SUITE("LuaState - Push Functions")
 {
-    TEST_CASE("push_nil")
+    TEST_CASE_FIXTURE(LuaStateFixture, "push_nil")
     {
-        LuaStateFixture f;
+        state->push_nil();
+        CHECK(state->is_nil(-1));
+        CHECK(state->type(-1) == LUA_TNIL);
 
-        f.state->push_nil();
-        CHECK(f.state->is_nil(-1));
-        CHECK(f.state->type(-1) == LUA_TNIL);
-
-        f.state->pop(1);
+        state->pop(1);
     }
 
-    TEST_CASE("push_number")
+    TEST_CASE_FIXTURE(LuaStateFixture, "push_number")
     {
-        LuaStateFixture f;
+        state->push_number(42.5);
+        CHECK(state->is_number(-1));
+        CHECK(state->to_number(-1) == 42.5);
 
-        f.state->push_number(42.5);
-        CHECK(f.state->is_number(-1));
-        CHECK(f.state->to_number(-1) == 42.5);
+        state->pop(1);
 
-        f.state->pop(1);
+        state->push_number(-123.456);
+        CHECK(state->to_number(-1) == -123.456);
 
-        f.state->push_number(-123.456);
-        CHECK(f.state->to_number(-1) == -123.456);
-
-        f.state->pop(1);
+        state->pop(1);
     }
 
-    TEST_CASE("push_integer")
+    TEST_CASE_FIXTURE(LuaStateFixture, "push_integer")
     {
-        LuaStateFixture f;
+        state->push_integer(42);
+        CHECK(state->is_number(-1));
+        CHECK(state->to_integer(-1) == 42);
+        CHECK(state->to_number(-1) == 42.0);
 
-        f.state->push_integer(42);
-        CHECK(f.state->is_number(-1));
-        CHECK(f.state->to_integer(-1) == 42);
-        CHECK(f.state->to_number(-1) == 42.0);
-
-        f.state->pop(1);
+        state->pop(1);
     }
 
-    TEST_CASE("push_vector3")
+    TEST_CASE_FIXTURE(LuaStateFixture, "push_vector3")
     {
-        LuaStateFixture f;
-
         Vector3 v(1.5, 2.5, 3.5);
-        f.state->push_vector3(v);
-        CHECK(f.state->is_vector(-1));
+        state->push_vector3(v);
+        CHECK(state->is_vector(-1));
 
-        Vector3 result = f.state->to_vector(-1);
+        Vector3 result = state->to_vector(-1);
         CHECK(result.x == 1.5);
         CHECK(result.y == 2.5);
         CHECK(result.z == 3.5);
 
-        f.state->pop(1);
+        state->pop(1);
     }
 
-    TEST_CASE("push_string")
+    TEST_CASE_FIXTURE(LuaStateFixture, "push_string")
     {
-        LuaStateFixture f;
+        state->push_string("Hello, World!");
+        CHECK(state->is_string(-1));
+        CHECK(state->to_string_inplace(-1) == "Hello, World!");
 
-        f.state->push_string("Hello, World!");
-        CHECK(f.state->is_string(-1));
-        CHECK(f.state->to_string_inplace(-1) == "Hello, World!");
-
-        f.state->pop(1);
+        state->pop(1);
 
         // Empty string
-        f.state->push_string("");
-        CHECK(f.state->is_string(-1));
-        CHECK(f.state->to_string_inplace(-1) == "");
+        state->push_string("");
+        CHECK(state->is_string(-1));
+        CHECK(state->to_string_inplace(-1) == "");
 
-        f.state->pop(1);
+        state->pop(1);
 
         // String with special characters
-        f.state->push_string("Line 1\nLine 2\tTab");
-        CHECK(f.state->to_string_inplace(-1) == "Line 1\nLine 2\tTab");
+        state->push_string("Line 1\nLine 2\tTab");
+        CHECK(state->to_string_inplace(-1) == "Line 1\nLine 2\tTab");
 
-        f.state->pop(1);
+        state->pop(1);
     }
 
-    TEST_CASE("push_string_name")
+    TEST_CASE_FIXTURE(LuaStateFixture, "push_string_name")
     {
-        LuaStateFixture f;
+        state->push_string_name(StringName("test_name"));
+        CHECK(state->is_string(-1));
+        CHECK(state->to_stringname(-1) == StringName("test_name"));
 
-        f.state->push_string_name(StringName("test_name"));
-        CHECK(f.state->is_string(-1));
-        CHECK(f.state->to_stringname(-1) == StringName("test_name"));
-
-        f.state->pop(1);
+        state->pop(1);
     }
 
-    TEST_CASE("push_boolean")
+    TEST_CASE_FIXTURE(LuaStateFixture, "push_boolean")
     {
-        LuaStateFixture f;
+        state->push_boolean(true);
+        CHECK(state->is_boolean(-1));
+        CHECK(state->to_boolean(-1) == true);
 
-        f.state->push_boolean(true);
-        CHECK(f.state->is_boolean(-1));
-        CHECK(f.state->to_boolean(-1) == true);
+        state->pop(1);
 
-        f.state->pop(1);
+        state->push_boolean(false);
+        CHECK(state->is_boolean(-1));
+        CHECK(state->to_boolean(-1) == false);
 
-        f.state->push_boolean(false);
-        CHECK(f.state->is_boolean(-1));
-        CHECK(f.state->to_boolean(-1) == false);
-
-        f.state->pop(1);
+        state->pop(1);
     }
 }
 
 TEST_SUITE("LuaState - Type Checking")
 {
-    TEST_CASE("type - returns lua_Type")
+    TEST_CASE_FIXTURE(LuaStateFixture, "type - returns lua_Type")
     {
-        LuaStateFixture f;
+        state->push_nil();
+        CHECK(state->type(-1) == LUA_TNIL);
+        state->pop(1);
 
-        f.state->push_nil();
-        CHECK(f.state->type(-1) == LUA_TNIL);
-        f.state->pop(1);
+        state->push_number(42.0);
+        CHECK(state->type(-1) == LUA_TNUMBER);
+        state->pop(1);
 
-        f.state->push_number(42.0);
-        CHECK(f.state->type(-1) == LUA_TNUMBER);
-        f.state->pop(1);
+        state->push_string("test");
+        CHECK(state->type(-1) == LUA_TSTRING);
+        state->pop(1);
 
-        f.state->push_string("test");
-        CHECK(f.state->type(-1) == LUA_TSTRING);
-        f.state->pop(1);
+        state->push_boolean(true);
+        CHECK(state->type(-1) == LUA_TBOOLEAN);
+        state->pop(1);
 
-        f.state->push_boolean(true);
-        CHECK(f.state->type(-1) == LUA_TBOOLEAN);
-        f.state->pop(1);
+        state->create_table();
+        CHECK(state->type(-1) == LUA_TTABLE);
+        state->pop(1);
 
-        f.state->create_table();
-        CHECK(f.state->type(-1) == LUA_TTABLE);
-        f.state->pop(1);
-
-        f.state->push_vector3(Vector3(1, 2, 3));
-        CHECK(f.state->type(-1) == LUA_TVECTOR);
-        f.state->pop(1);
+        state->push_vector3(Vector3(1, 2, 3));
+        CHECK(state->type(-1) == LUA_TVECTOR);
+        state->pop(1);
     }
 
-    TEST_CASE("is_* functions")
+    TEST_CASE_FIXTURE(LuaStateFixture, "is_* functions")
     {
-        LuaStateFixture f;
+        state->push_number(42.0);
+        CHECK(state->is_number(-1));
+        CHECK(state->is_string(-1)); // numbers are always convertible to strings in Lua
+        CHECK_FALSE(state->is_boolean(-1));
+        CHECK_FALSE(state->is_nil(-1));
+        state->pop(1);
 
-        f.state->push_number(42.0);
-        CHECK(f.state->is_number(-1));
-        CHECK(f.state->is_string(-1)); // numbers are always convertible to strings in Lua
-        CHECK_FALSE(f.state->is_boolean(-1));
-        CHECK_FALSE(f.state->is_nil(-1));
-        f.state->pop(1);
+        state->push_string("test");
+        CHECK(state->is_string(-1));
+        CHECK_FALSE(state->is_number(-1));
+        state->pop(1);
 
-        f.state->push_string("test");
-        CHECK(f.state->is_string(-1));
-        CHECK_FALSE(f.state->is_number(-1));
-        f.state->pop(1);
+        state->push_boolean(true);
+        CHECK(state->is_boolean(-1));
+        CHECK_FALSE(state->is_number(-1));
+        state->pop(1);
 
-        f.state->push_boolean(true);
-        CHECK(f.state->is_boolean(-1));
-        CHECK_FALSE(f.state->is_number(-1));
-        f.state->pop(1);
+        state->push_nil();
+        CHECK(state->is_nil(-1));
+        CHECK_FALSE(state->is_number(-1));
+        state->pop(1);
 
-        f.state->push_nil();
-        CHECK(f.state->is_nil(-1));
-        CHECK_FALSE(f.state->is_number(-1));
-        f.state->pop(1);
+        state->create_table();
+        CHECK(state->is_table(-1));
+        CHECK_FALSE(state->is_function(-1));
+        state->pop(1);
 
-        f.state->create_table();
-        CHECK(f.state->is_table(-1));
-        CHECK_FALSE(f.state->is_function(-1));
-        f.state->pop(1);
-
-        f.state->push_vector3(Vector3(1, 2, 3));
-        CHECK(f.state->is_vector(-1));
-        CHECK_FALSE(f.state->is_number(-1));
-        f.state->pop(1);
+        state->push_vector3(Vector3(1, 2, 3));
+        CHECK(state->is_vector(-1));
+        CHECK_FALSE(state->is_number(-1));
+        state->pop(1);
     }
 
-    TEST_CASE("is_none and is_none_or_nil")
+    TEST_CASE_FIXTURE(LuaStateFixture, "is_none and is_none_or_nil")
     {
-        LuaStateFixture f;
-
         // Valid index with nil
-        f.state->push_nil();
-        CHECK_FALSE(f.state->is_none(-1));
-        CHECK(f.state->is_none_or_nil(-1));
-        f.state->pop(1);
+        state->push_nil();
+        CHECK_FALSE(state->is_none(-1));
+        CHECK(state->is_none_or_nil(-1));
+        state->pop(1);
 
         // Invalid index (beyond stack)
-        CHECK(f.state->is_none(10));
-        CHECK(f.state->is_none_or_nil(10));
+        CHECK(state->is_none(10));
+        CHECK(state->is_none_or_nil(10));
     }
 
-    TEST_CASE("type_name - returns type name")
+    TEST_CASE_FIXTURE(LuaStateFixture, "type_name - returns type name")
     {
-        LuaStateFixture f;
-
         // type_name returns StringName, compare as String
-        CHECK(String(f.state->type_name(LUA_TNIL)) == "nil");
-        CHECK(String(f.state->type_name(LUA_TNUMBER)) == "number");
-        CHECK(String(f.state->type_name(LUA_TBOOLEAN)) == "boolean");
-        CHECK(String(f.state->type_name(LUA_TSTRING)) == "string");
-        CHECK(String(f.state->type_name(LUA_TTABLE)) == "table");
-        CHECK(String(f.state->type_name(LUA_TFUNCTION)) == "function");
-        CHECK(String(f.state->type_name(LUA_TVECTOR)) == "vector");
+        CHECK(String(state->type_name(LUA_TNIL)) == "nil");
+        CHECK(String(state->type_name(LUA_TNUMBER)) == "number");
+        CHECK(String(state->type_name(LUA_TBOOLEAN)) == "boolean");
+        CHECK(String(state->type_name(LUA_TSTRING)) == "string");
+        CHECK(String(state->type_name(LUA_TTABLE)) == "table");
+        CHECK(String(state->type_name(LUA_TFUNCTION)) == "function");
+        CHECK(String(state->type_name(LUA_TVECTOR)) == "vector");
     }
 
-    TEST_CASE("type_name_for_value - returns type name for stack value")
+    TEST_CASE_FIXTURE(LuaStateFixture, "type_name_for_value - returns type name for stack value")
     {
-        LuaStateFixture f;
+        state->push_nil();
+        CHECK(String(state->type_name_for_value(-1)) == "nil");
+        state->pop(1);
 
-        f.state->push_nil();
-        CHECK(String(f.state->type_name_for_value(-1)) == "nil");
-        f.state->pop(1);
+        state->push_number(42.0);
+        CHECK(String(state->type_name_for_value(-1)) == "number");
+        state->pop(1);
 
-        f.state->push_number(42.0);
-        CHECK(String(f.state->type_name_for_value(-1)) == "number");
-        f.state->pop(1);
-
-        f.state->push_string("test");
-        CHECK(String(f.state->type_name_for_value(-1)) == "string");
-        f.state->pop(1);
+        state->push_string("test");
+        CHECK(String(state->type_name_for_value(-1)) == "string");
+        state->pop(1);
     }
 }
 
 TEST_SUITE("LuaState - Comparison")
 {
-    TEST_CASE("equal - compares values with metamethods")
+    TEST_CASE_FIXTURE(LuaStateFixture, "equal - compares values with metamethods")
     {
-        LuaStateFixture f;
+        state->push_number(42.0);
+        state->push_number(42.0);
+        CHECK(state->equal(-1, -2));
+        state->pop(2);
 
-        f.state->push_number(42.0);
-        f.state->push_number(42.0);
-        CHECK(f.state->equal(-1, -2));
-        f.state->pop(2);
+        state->push_number(42.0);
+        state->push_number(43.0);
+        CHECK_FALSE(state->equal(-1, -2));
+        state->pop(2);
 
-        f.state->push_number(42.0);
-        f.state->push_number(43.0);
-        CHECK_FALSE(f.state->equal(-1, -2));
-        f.state->pop(2);
-
-        f.state->push_string("test");
-        f.state->push_string("test");
-        CHECK(f.state->equal(-1, -2));
-        f.state->pop(2);
+        state->push_string("test");
+        state->push_string("test");
+        CHECK(state->equal(-1, -2));
+        state->pop(2);
     }
 
-    TEST_CASE("raw_equal - compares without metamethods")
+    TEST_CASE_FIXTURE(LuaStateFixture, "raw_equal - compares without metamethods")
     {
-        LuaStateFixture f;
+        state->push_number(42.0);
+        state->push_number(42.0);
+        CHECK(state->raw_equal(-1, -2));
+        state->pop(2);
 
-        f.state->push_number(42.0);
-        f.state->push_number(42.0);
-        CHECK(f.state->raw_equal(-1, -2));
-        f.state->pop(2);
-
-        f.state->push_string("test");
-        f.state->push_string("test");
-        CHECK(f.state->raw_equal(-1, -2));
-        f.state->pop(2);
+        state->push_string("test");
+        state->push_string("test");
+        CHECK(state->raw_equal(-1, -2));
+        state->pop(2);
     }
 
-    TEST_CASE("less_than - compares values")
+    TEST_CASE_FIXTURE(LuaStateFixture, "less_than - compares values")
     {
-        LuaStateFixture f;
-
-        f.state->push_number(1.0);
-        f.state->push_number(2.0);
-        CHECK(f.state->less_than(-2, -1));       // 1 < 2
-        CHECK_FALSE(f.state->less_than(-1, -2)); // 2 < 1
-        f.state->pop(2);
+        state->push_number(1.0);
+        state->push_number(2.0);
+        CHECK(state->less_than(-2, -1));       // 1 < 2
+        CHECK_FALSE(state->less_than(-1, -2)); // 2 < 1
+        state->pop(2);
     }
 }

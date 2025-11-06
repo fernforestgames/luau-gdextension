@@ -51,7 +51,7 @@ end
         CHECK(script->get_source_code() == "");
     }
 
-    TEST_CASE("integration - compile and execute")
+    TEST_CASE_FIXTURE(LuaStateFixture, "integration - compile and execute")
     {
         Ref<LuauScript> script = memnew(LuauScript);
         script->set_source_code("return 1 + 2");
@@ -61,13 +61,12 @@ end
         CHECK(bytecode.size() > 0);
 
         // Execute it
-        LuaStateFixture f;
-        f.state->load_bytecode(bytecode, "test_script");
-        lua_Status status = f.state->resume();
+        state->load_bytecode(bytecode, "test_script");
+        lua_Status status = state->resume();
 
         CHECK(status == LUA_OK);
-        CHECK(f.state->to_number(-1) == 3.0);
+        CHECK(state->to_number(-1) == 3.0);
 
-        f.state->pop(1);
+        state->pop(1);
     }
 }

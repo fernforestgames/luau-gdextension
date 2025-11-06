@@ -9,65 +9,57 @@ using namespace godot;
 
 TEST_SUITE("LuaState - Threads")
 {
-    TEST_CASE("new_thread - creates thread")
+    TEST_CASE_FIXTURE(LuaStateFixture, "new_thread - creates thread")
     {
-        LuaStateFixture f;
-
-        Ref<LuaState> thread = f.state->new_thread();
+        Ref<LuaState> thread = state->new_thread();
 
         CHECK(thread.is_valid());
         CHECK(thread->is_valid());
         CHECK_FALSE(thread->is_main_thread());
-        CHECK(thread->get_main_thread() == f.state);
+        CHECK(thread->get_main_thread() == state);
 
         // Thread should be on stack
-        CHECK(f.state->is_thread(-1));
+        CHECK(state->is_thread(-1));
 
-        f.state->pop(1);
+        state->pop(1);
     }
 
-    TEST_CASE("new_thread - multiple threads")
+    TEST_CASE_FIXTURE(LuaStateFixture, "new_thread - multiple threads")
     {
-        LuaStateFixture f;
-
-        Ref<LuaState> thread1 = f.state->new_thread();
-        Ref<LuaState> thread2 = f.state->new_thread();
-        Ref<LuaState> thread3 = f.state->new_thread();
+        Ref<LuaState> thread1 = state->new_thread();
+        Ref<LuaState> thread2 = state->new_thread();
+        Ref<LuaState> thread3 = state->new_thread();
 
         CHECK(thread1 != thread2);
         CHECK(thread2 != thread3);
         CHECK(thread1 != thread3);
 
-        CHECK(thread1->get_main_thread() == f.state);
-        CHECK(thread2->get_main_thread() == f.state);
-        CHECK(thread3->get_main_thread() == f.state);
+        CHECK(thread1->get_main_thread() == state);
+        CHECK(thread2->get_main_thread() == state);
+        CHECK(thread3->get_main_thread() == state);
 
-        f.state->pop(3);
+        state->pop(3);
     }
 
-    TEST_CASE("to_thread - converts stack value to thread")
+    TEST_CASE_FIXTURE(LuaStateFixture, "to_thread - converts stack value to thread")
     {
-        LuaStateFixture f;
-
-        Ref<LuaState> thread1 = f.state->new_thread();
-        Ref<LuaState> thread2 = f.state->to_thread(-1);
+        Ref<LuaState> thread1 = state->new_thread();
+        Ref<LuaState> thread2 = state->to_thread(-1);
 
         // Both should wrap the same lua_State*
         CHECK(thread1->get_lua_state() == thread2->get_lua_state());
 
-        f.state->pop(1);
+        state->pop(1);
     }
 
-    TEST_CASE("thread - shared globals")
+    TEST_CASE_FIXTURE(LuaStateFixture, "thread - shared globals")
     {
-        LuaStateFixture f;
-
         // Set global in main thread
-        f.state->push_number(42.0);
-        f.state->set_global("shared_value");
+        state->push_number(42.0);
+        state->set_global("shared_value");
 
         // Create thread
-        Ref<LuaState> thread = f.state->new_thread();
+        Ref<LuaState> thread = state->new_thread();
 
         // Thread should see the global
         thread->get_global("shared_value");
@@ -79,38 +71,34 @@ TEST_SUITE("LuaState - Threads")
         thread->set_global("thread_set");
 
         // Main thread should see it
-        f.state->get_global("thread_set");
-        CHECK(f.state->to_number(-1) == 99.0);
-        f.state->pop(1);
+        state->get_global("thread_set");
+        CHECK(state->to_number(-1) == 99.0);
+        state->pop(1);
 
-        f.state->pop(1); // Pop thread from main stack
+        state->pop(1); // Pop thread from main stack
     }
 
-    TEST_CASE("thread - independent stacks")
+    TEST_CASE_FIXTURE(LuaStateFixture, "thread - independent stacks")
     {
-        LuaStateFixture f;
+        state->push_number(1.0);
+        state->push_number(2.0);
+        CHECK(state->get_top() == 2);
 
-        f.state->push_number(1.0);
-        f.state->push_number(2.0);
-        CHECK(f.state->get_top() == 2);
-
-        Ref<LuaState> thread = f.state->new_thread();
+        Ref<LuaState> thread = state->new_thread();
         CHECK(thread->get_top() == 0); // Thread has empty stack
 
         thread->push_number(99.0);
         CHECK(thread->get_top() == 1);
-        CHECK(f.state->get_top() == 3); // Main has 2 numbers + thread
+        CHECK(state->get_top() == 3); // Main has 2 numbers + thread
 
         thread->pop(1);
-        f.state->pop(3);
+        state->pop(3);
     }
 
-    TEST_CASE("thread - coroutine execution")
+    TEST_CASE_FIXTURE(LuaStateFixture, "thread - coroutine execution")
     {
-        LuaStateFixture f;
-
         // Create coroutine function
-        f.exec_lua_ok(R"(
+        exec_lua_ok(R"(
             function coro_func()
                 coroutine.yield(1)
                 coroutine.yield(2)
@@ -119,7 +107,7 @@ TEST_SUITE("LuaState - Threads")
         )");
 
         // Create thread
-        Ref<LuaState> thread = f.state->new_thread();
+        Ref<LuaState> thread = state->new_thread();
 
         // Load coroutine function into thread
         thread->get_global("coro_func");
@@ -142,20 +130,18 @@ TEST_SUITE("LuaState - Threads")
         CHECK(thread->to_number(-1) == 3.0);
         thread->pop(1);
 
-        f.state->pop(1); // Pop thread
+        state->pop(1); // Pop thread
     }
 
-    TEST_CASE("thread - passing arguments to resume")
+    TEST_CASE_FIXTURE(LuaStateFixture, "thread - passing arguments to resume")
     {
-        LuaStateFixture f;
-
-        f.exec_lua_ok(R"(
+        exec_lua_ok(R"(
             function add_values(a, b)
                 return a + b
             end
         )");
 
-        Ref<LuaState> thread = f.state->new_thread();
+        Ref<LuaState> thread = state->new_thread();
         thread->get_global("add_values");
         thread->push_number(10.0);
         thread->push_number(20.0);
@@ -165,16 +151,14 @@ TEST_SUITE("LuaState - Threads")
         CHECK(thread->to_number(-1) == 30.0);
         thread->pop(1);
 
-        f.state->pop(1); // Pop thread
+        state->pop(1); // Pop thread
     }
 
-    TEST_CASE("co_status - returns thread status")
+    TEST_CASE_FIXTURE(LuaStateFixture, "co_status - returns thread status")
     {
-        LuaStateFixture f;
+        Ref<LuaState> thread = state->new_thread();
 
-        Ref<LuaState> thread = f.state->new_thread();
-
-        lua_CoStatus co_status = f.state->co_status(thread.ptr());
+        lua_CoStatus co_status = state->co_status(thread.ptr());
         CHECK(co_status == LUA_COFIN);
 
         // Load a yielding function
@@ -185,18 +169,16 @@ TEST_SUITE("LuaState - Threads")
         CHECK(status == LUA_YIELD);
 
         // Now suspended
-        co_status = f.state->co_status(thread.ptr());
+        co_status = state->co_status(thread.ptr());
         CHECK(co_status == LUA_COSUS);
 
         thread->pop(1);  // Pop yield value
-        f.state->pop(1); // Pop thread
+        state->pop(1); // Pop thread
     }
 
-    TEST_CASE("reset_thread - resets thread state")
+    TEST_CASE_FIXTURE(LuaStateFixture, "reset_thread - resets thread state")
     {
-        LuaStateFixture f;
-
-        Ref<LuaState> thread = f.state->new_thread();
+        Ref<LuaState> thread = state->new_thread();
 
         thread->push_number(1.0);
         thread->push_number(2.0);
@@ -206,26 +188,24 @@ TEST_SUITE("LuaState - Threads")
         CHECK(thread->get_top() == 0);
         CHECK(thread->is_thread_reset());
 
-        f.state->pop(1); // Pop thread
+        state->pop(1); // Pop thread
     }
 
-    TEST_CASE("xmove - moves values between states")
+    TEST_CASE_FIXTURE(LuaStateFixture, "xmove - moves values between states")
     {
-        LuaStateFixture f;
-
-        Ref<LuaState> thread = f.state->new_thread();
+        Ref<LuaState> thread = state->new_thread();
 
         // Push values in main thread
-        f.state->push_number(1.0);
-        f.state->push_number(2.0);
-        f.state->push_string("test");
+        state->push_number(1.0);
+        state->push_number(2.0);
+        state->push_string("test");
 
         // Move 2 values to thread
-        f.state->xmove(thread.ptr(), 2);
+        state->xmove(thread.ptr(), 2);
 
         // Main thread should have 1 value + thread
-        CHECK(f.state->get_top() == 2);
-        CHECK(f.state->to_number(-1) == 1.0);
+        CHECK(state->get_top() == 2);
+        CHECK(state->to_number(-1) == 1.0);
 
         // Thread should have 2 values
         CHECK(thread->get_top() == 2);
@@ -233,39 +213,35 @@ TEST_SUITE("LuaState - Threads")
         CHECK(thread->to_string_inplace(-1) == "test");
 
         thread->pop(2);
-        f.state->pop(2);
+        state->pop(2);
     }
 
-    TEST_CASE("xpush - copies value to another state")
+    TEST_CASE_FIXTURE(LuaStateFixture, "xpush - copies value to another state")
     {
-        LuaStateFixture f;
+        Ref<LuaState> thread = state->new_thread();
 
-        Ref<LuaState> thread = f.state->new_thread();
-
-        f.state->push_number(42.0);
+        state->push_number(42.0);
 
         // Copy value to thread (doesn't remove from main)
-        f.state->xpush(thread.ptr(), -1);
+        state->xpush(thread.ptr(), -1);
 
         // Both should have the value
-        CHECK(f.state->to_number(-1) == 42.0);
+        CHECK(state->to_number(-1) == 42.0);
         CHECK(thread->to_number(-1) == 42.0);
 
         thread->pop(1);
-        f.state->pop(2); // Pop number and thread
+        state->pop(2); // Pop number and thread
     }
 
-    TEST_CASE("push_thread - pushes thread onto its own stack")
+    TEST_CASE_FIXTURE(LuaStateFixture, "push_thread - pushes thread onto its own stack")
     {
-        LuaStateFixture f;
-
-        Ref<LuaState> thread = f.state->new_thread();
+        Ref<LuaState> thread = state->new_thread();
 
         thread->push_thread();
         CHECK(thread->is_thread(-1));
 
         thread->pop(1);
-        f.state->pop(1); // Pop thread from main
+        state->pop(1); // Pop thread from main
     }
 
     TEST_CASE("thread - survives main thread close (reference counting)")
@@ -292,15 +268,13 @@ TEST_SUITE("LuaState - Threads")
         CHECK_FALSE(thread->is_valid());
     }
 
-    TEST_CASE("thread - multiple wrappers for same lua_State*")
+    TEST_CASE_FIXTURE(LuaStateFixture, "thread - multiple wrappers for same lua_State*")
     {
-        LuaStateFixture f;
-
-        Ref<LuaState> thread1 = f.state->new_thread();
+        Ref<LuaState> thread1 = state->new_thread();
         lua_State *L = thread1->get_lua_state();
 
         // Create another wrapper for the same lua_State*
-        Ref<LuaState> thread2 = f.state->to_thread(-1);
+        Ref<LuaState> thread2 = state->to_thread(-1);
 
         CHECK(thread1->get_lua_state() == thread2->get_lua_state());
 
@@ -310,21 +284,19 @@ TEST_SUITE("LuaState - Threads")
         CHECK(thread2->to_number(-1) == 99.0);
 
         thread1->pop(1);
-        f.state->pop(1);
+        state->pop(1);
     }
 
-    TEST_CASE("thread - error handling in coroutine")
+    TEST_CASE_FIXTURE(LuaStateFixture, "thread - error handling in coroutine")
     {
-        LuaStateFixture f;
-
-        f.exec_lua_ok(R"(
+        exec_lua_ok(R"(
             function error_coro()
                 coroutine.yield(1)
                 error("intentional error")
             end
         )");
 
-        Ref<LuaState> thread = f.state->new_thread();
+        Ref<LuaState> thread = state->new_thread();
         thread->get_global("error_coro");
 
         // First resume succeeds
@@ -338,14 +310,12 @@ TEST_SUITE("LuaState - Threads")
         CHECK(thread->is_string(-1)); // Error message
 
         thread->pop(1);
-        f.state->pop(1); // Pop thread
+        state->pop(1); // Pop thread
     }
 
-    TEST_CASE("thread - nested coroutines")
+    TEST_CASE_FIXTURE(LuaStateFixture, "thread - nested coroutines")
     {
-        LuaStateFixture f;
-
-        f.exec_lua_ok(R"(
+        exec_lua_ok(R"(
             function outer()
                 coroutine.yield(1)
                 local inner = coroutine.create(function()
@@ -359,8 +329,8 @@ TEST_SUITE("LuaState - Threads")
             end
         )");
 
-        Ref<LuaState> thread = f.state->new_thread();
-        f.state->pop(1); // Pop thread
+        Ref<LuaState> thread = state->new_thread();
+        state->pop(1); // Pop thread
         thread->get_global("outer");
 
         // First yield from outer
