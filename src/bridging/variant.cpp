@@ -336,8 +336,21 @@ void godot::push_variant(lua_State *L, const Variant &p_variant)
     }
 
     case Variant::OBJECT:
-        push_full_object(L, p_variant);
+    {
+        Object *obj = p_variant;
+        LuaState *state = Object::cast_to<LuaState>(obj);
+        if (state)
+        {
+            ERR_FAIL_COND_MSG(state->get_lua_state() != L, "push_variant(): Cannot push LuaState into a different Lua thread or VM.");
+            lua_pushthread(L);
+        }
+        else
+        {
+            push_full_object(L, p_variant);
+        }
+
         return;
+    }
 
     case Variant::CALLABLE:
         push_callable(L, p_variant);
