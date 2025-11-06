@@ -1,5 +1,6 @@
 #include "bridging/dictionary.h"
 #include "bridging/variant.h"
+#include "helpers.h"
 
 #include <godot_cpp/core/error_macros.hpp>
 #include <godot_cpp/variant/variant.hpp>
@@ -14,7 +15,7 @@ Dictionary godot::to_dictionary(lua_State *L, int p_index, bool *r_success)
         *r_success = false;
     }
 
-    ERR_FAIL_COND_V_MSG(p_index > lua_gettop(L), Dictionary(), vformat("to_dictionary(%d): Invalid stack index. Stack has %d elements.", p_index, lua_gettop(L)));
+    ERR_FAIL_COND_V_MSG(!is_valid_index(L, p_index), Dictionary(), vformat("to_dictionary(%d): Invalid stack index. Stack has %d elements.", p_index, lua_gettop(L)));
 
     if (!lua_istable(L, p_index))
     {

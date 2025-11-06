@@ -368,28 +368,8 @@ Ref<LuaState> LuaState::bind_thread(lua_State *p_thread_L)
 
 bool LuaState::is_valid_index(int p_index)
 {
-    if (p_index == 0)
-    {
-        return false; // Index 0 is never valid in Lua
-    }
-    else if (lua_ispseudo(p_index))
-    {
-        return true;
-    }
-
-    int top = get_top();
-
-    if (p_index > 0)
-    {
-        // Positive indices must be <= top
-        return p_index <= top;
-    }
-    else
-    {
-        // Negative indices: -1 is top, -2 is top-1, etc.
-        // Valid range is [-top, -1]
-        return p_index >= -top;
-    }
+    ERR_FAIL_COND_V_MSG(!is_valid(), false, "Lua state is invalid. Cannot check stack index.");
+    return godot::is_valid_index(L, p_index);
 }
 
 // State manipulation
@@ -552,102 +532,119 @@ void LuaState::xpush(LuaState *p_to_state, int p_index)
 bool LuaState::is_number(int p_index)
 {
     ERR_FAIL_COND_V_MSG(!is_valid(), false, "Lua state is invalid. Cannot check type.");
+    ERR_FAIL_COND_V_MSG(!is_valid_index(p_index), false, vformat("LuaState.is_number(%d): Invalid stack index. Stack has %d elements.", p_index, lua_gettop(L)));
     return lua_isnumber(L, p_index) != 0;
 }
 
 bool LuaState::is_string(int p_index)
 {
     ERR_FAIL_COND_V_MSG(!is_valid(), false, "Lua state is invalid. Cannot check type.");
+    ERR_FAIL_COND_V_MSG(!is_valid_index(p_index), false, vformat("LuaState.is_string(%d): Invalid stack index. Stack has %d elements.", p_index, lua_gettop(L)));
     return lua_isstring(L, p_index) != 0;
 }
 
 bool LuaState::is_c_function(int p_index)
 {
     ERR_FAIL_COND_V_MSG(!is_valid(), false, "Lua state is invalid. Cannot check type.");
+    ERR_FAIL_COND_V_MSG(!is_valid_index(p_index), false, vformat("LuaState.is_c_function(%d): Invalid stack index. Stack has %d elements.", p_index, lua_gettop(L)));
     return lua_iscfunction(L, p_index) != 0;
 }
 
 bool LuaState::is_lua_function(int p_index)
 {
     ERR_FAIL_COND_V_MSG(!is_valid(), false, "Lua state is invalid. Cannot check type.");
+    ERR_FAIL_COND_V_MSG(!is_valid_index(p_index), false, vformat("LuaState.is_lua_function(%d): Invalid stack index. Stack has %d elements.", p_index, lua_gettop(L)));
     return lua_isLfunction(L, p_index) != 0;
 }
 
 bool LuaState::is_userdata(int p_index)
 {
     ERR_FAIL_COND_V_MSG(!is_valid(), false, "Lua state is invalid. Cannot check type.");
+    ERR_FAIL_COND_V_MSG(!is_valid_index(p_index), false, vformat("LuaState.is_userdata(%d): Invalid stack index. Stack has %d elements.", p_index, lua_gettop(L)));
     return lua_isuserdata(L, p_index) != 0;
 }
 
 lua_Type LuaState::type(int p_index)
 {
     ERR_FAIL_COND_V_MSG(!is_valid(), static_cast<lua_Type>(LUA_TNONE), "Lua state is invalid. Cannot get type.");
+    ERR_FAIL_COND_V_MSG(!is_valid_index(p_index), static_cast<lua_Type>(LUA_TNONE), vformat("LuaState.type(%d): Invalid stack index. Stack has %d elements.", p_index, lua_gettop(L)));
     return static_cast<lua_Type>(lua_type(L, p_index));
 }
 
 bool LuaState::is_function(int p_index)
 {
     ERR_FAIL_COND_V_MSG(!is_valid(), false, "Lua state is invalid. Cannot check type.");
+    ERR_FAIL_COND_V_MSG(!is_valid_index(p_index), false, vformat("LuaState.is_function(%d): Invalid stack index. Stack has %d elements.", p_index, lua_gettop(L)));
     return lua_isfunction(L, p_index) != 0;
 }
 
 bool LuaState::is_table(int p_index)
 {
     ERR_FAIL_COND_V_MSG(!is_valid(), false, "Lua state is invalid. Cannot check type.");
+    ERR_FAIL_COND_V_MSG(!is_valid_index(p_index), false, vformat("LuaState.is_table(%d): Invalid stack index. Stack has %d elements.", p_index, lua_gettop(L)));
     return lua_istable(L, p_index) != 0;
 }
 
 bool LuaState::is_full_userdata(int p_index)
 {
     ERR_FAIL_COND_V_MSG(!is_valid(), false, "Lua state is invalid. Cannot check type.");
+    ERR_FAIL_COND_V_MSG(!is_valid_index(p_index), false, vformat("LuaState.is_full_userdata(%d): Invalid stack index. Stack has %d elements.", p_index, lua_gettop(L)));
     return lua_type(L, p_index) == LUA_TUSERDATA;
 }
 
 bool LuaState::is_light_userdata(int p_index)
 {
     ERR_FAIL_COND_V_MSG(!is_valid(), false, "Lua state is invalid. Cannot check type.");
+    ERR_FAIL_COND_V_MSG(!is_valid_index(p_index), false, vformat("LuaState.is_light_userdata(%d): Invalid stack index. Stack has %d elements.", p_index, lua_gettop(L)));
     return lua_islightuserdata(L, p_index) != 0;
 }
 
 bool LuaState::is_nil(int p_index)
 {
     ERR_FAIL_COND_V_MSG(!is_valid(), false, "Lua state is invalid. Cannot check type.");
+    ERR_FAIL_COND_V_MSG(!is_valid_index(p_index), false, vformat("LuaState.is_nil(%d): Invalid stack index. Stack has %d elements.", p_index, lua_gettop(L)));
     return lua_isnil(L, p_index) != 0;
 }
 
 bool LuaState::is_boolean(int p_index)
 {
     ERR_FAIL_COND_V_MSG(!is_valid(), false, "Lua state is invalid. Cannot check type.");
+    ERR_FAIL_COND_V_MSG(!is_valid_index(p_index), false, vformat("LuaState.is_boolean(%d): Invalid stack index. Stack has %d elements.", p_index, lua_gettop(L)));
     return lua_isboolean(L, p_index) != 0;
 }
 
 bool LuaState::is_vector(int p_index)
 {
     ERR_FAIL_COND_V_MSG(!is_valid(), false, "Lua state is invalid. Cannot check type.");
+    ERR_FAIL_COND_V_MSG(!is_valid_index(p_index), false, vformat("LuaState.is_vector(%d): Invalid stack index. Stack has %d elements.", p_index, lua_gettop(L)));
     return lua_isvector(L, p_index) != 0;
 }
 
 bool LuaState::is_thread(int p_index)
 {
     ERR_FAIL_COND_V_MSG(!is_valid(), false, "Lua state is invalid. Cannot check type.");
+    ERR_FAIL_COND_V_MSG(!is_valid_index(p_index), false, vformat("LuaState.is_thread(%d): Invalid stack index. Stack has %d elements.", p_index, lua_gettop(L)));
     return lua_isthread(L, p_index) != 0;
 }
 
 bool LuaState::is_buffer(int p_index)
 {
     ERR_FAIL_COND_V_MSG(!is_valid(), false, "Lua state is invalid. Cannot check type.");
+    ERR_FAIL_COND_V_MSG(!is_valid_index(p_index), false, vformat("LuaState.is_buffer(%d): Invalid stack index. Stack has %d elements.", p_index, lua_gettop(L)));
     return lua_isbuffer(L, p_index) != 0;
 }
 
 bool LuaState::is_none(int p_index)
 {
     ERR_FAIL_COND_V_MSG(!is_valid(), false, "Lua state is invalid. Cannot check type.");
+    ERR_FAIL_COND_V_MSG(!is_valid_index(p_index), false, vformat("LuaState.is_none(%d): Invalid stack index. Stack has %d elements.", p_index, lua_gettop(L)));
     return lua_isnone(L, p_index) != 0;
 }
 
 bool LuaState::is_none_or_nil(int p_index)
 {
     ERR_FAIL_COND_V_MSG(!is_valid(), false, "Lua state is invalid. Cannot check type.");
+    ERR_FAIL_COND_V_MSG(!is_valid_index(p_index), false, vformat("LuaState.is_none_or_nil(%d): Invalid stack index. Stack has %d elements.", p_index, lua_gettop(L)));
     return lua_isnoneornil(L, p_index) != 0;
 }
 

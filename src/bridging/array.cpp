@@ -1,5 +1,6 @@
 #include "bridging/array.h"
 #include "bridging/variant.h"
+#include "helpers.h"
 
 #include <godot_cpp/core/error_macros.hpp>
 #include <godot_cpp/variant/variant.hpp>
@@ -9,7 +10,7 @@ using namespace godot;
 
 bool godot::is_array(lua_State *L, int p_index)
 {
-    ERR_FAIL_COND_V_MSG(p_index > lua_gettop(L), false, vformat("is_array(%d): Invalid stack index. Stack has %d elements.", p_index, lua_gettop(L)));
+    ERR_FAIL_COND_V_MSG(!is_valid_index(L, p_index), false, vformat("is_array(%d): Invalid stack index. Stack has %d elements.", p_index, lua_gettop(L)));
 
     if (!lua_istable(L, p_index))
     {
@@ -49,7 +50,7 @@ Array godot::to_array(lua_State *L, int p_index, bool *r_is_array)
         *r_is_array = false;
     }
 
-    ERR_FAIL_COND_V_MSG(p_index > lua_gettop(L), Array(), vformat("to_array(%d): Invalid stack index. Stack has %d elements.", p_index, lua_gettop(L)));
+    ERR_FAIL_COND_V_MSG(!is_valid_index(L, p_index), Array(), vformat("to_array(%d): Invalid stack index. Stack has %d elements.", p_index, lua_gettop(L)));
 
     if (!lua_istable(L, p_index))
     {

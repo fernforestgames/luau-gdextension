@@ -113,7 +113,7 @@ static String lua_function_name(lua_State *L, int p_index)
 
 Callable godot::to_callable(lua_State *L, int p_index)
 {
-    ERR_FAIL_COND_V_MSG(p_index > lua_gettop(L), Callable(), vformat("to_callable(%d): Invalid stack index. Stack has %d elements.", p_index, lua_gettop(L)));
+    ERR_FAIL_COND_V_MSG(!is_valid_index(L, p_index), Callable(), vformat("to_callable(%d): Invalid stack index. Stack has %d elements.", p_index, lua_gettop(L)));
 
     if (!lua_isfunction(L, p_index))
     {

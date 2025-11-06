@@ -174,7 +174,7 @@ static void push_variant_metatable(lua_State *L)
 
 Variant godot::to_variant(lua_State *L, int p_index)
 {
-    ERR_FAIL_COND_V_MSG(p_index > lua_gettop(L), Variant(), vformat("to_variant(%d): Invalid stack index. Stack has %d elements.", p_index, lua_gettop(L)));
+    ERR_FAIL_COND_V_MSG(!is_valid_index(L, p_index), Variant(), vformat("to_variant(%d): Invalid stack index. Stack has %d elements.", p_index, lua_gettop(L)));
 
     lua_Type type = static_cast<lua_Type>(lua_type(L, p_index));
     switch (type)

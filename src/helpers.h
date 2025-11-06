@@ -36,4 +36,6 @@ namespace godot
 
     // Generic __concat metamethod that converts values to strings
     int generic_lua_concat(lua_State *p_L);
+
+    bool is_valid_index(lua_State *p_L, int p_index);
 } // namespace godot

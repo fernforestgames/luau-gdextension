@@ -120,7 +120,7 @@ static void push_object_metatable(lua_State *L)
 
 Object *godot::to_full_object(lua_State *L, int p_index, int p_tag)
 {
-    ERR_FAIL_COND_V_MSG(p_index > lua_gettop(L), nullptr, vformat("to_object(%d): Invalid stack index. Stack has %d elements.", p_index, lua_gettop(L)));
+    ERR_FAIL_COND_V_MSG(!is_valid_index(L, p_index), nullptr, vformat("to_object(%d): Invalid stack index. Stack has %d elements.", p_index, lua_gettop(L)));
 
     if (lua_type(L, p_index) == LUA_TUSERDATA && metatable_matches(L, p_index, OBJECT_METATABLE_NAME))
     {
@@ -134,7 +134,7 @@ Object *godot::to_full_object(lua_State *L, int p_index, int p_tag)
 
 Object *godot::to_light_object(lua_State *L, int p_index, int p_tag)
 {
-    ERR_FAIL_COND_V_MSG(p_index > lua_gettop(L), nullptr, vformat("to_light_object(%d): Invalid stack index. Stack has %d elements.", p_index, lua_gettop(L)));
+    ERR_FAIL_COND_V_MSG(!is_valid_index(L, p_index), nullptr, vformat("to_light_object(%d): Invalid stack index. Stack has %d elements.", p_index, lua_gettop(L)));
 
     if (lua_islightuserdata(L, p_index))
     {
@@ -149,7 +149,7 @@ Object *godot::to_light_object(lua_State *L, int p_index, int p_tag)
 
 Object *godot::to_object(lua_State *L, int p_index, int p_tag)
 {
-    ERR_FAIL_COND_V_MSG(p_index > lua_gettop(L), nullptr, vformat("to_object(%d): Invalid stack index. Stack has %d elements.", p_index, lua_gettop(L)));
+    ERR_FAIL_COND_V_MSG(!is_valid_index(L, p_index), nullptr, vformat("to_object(%d): Invalid stack index. Stack has %d elements.", p_index, lua_gettop(L)));
 
     switch (lua_type(L, p_index))
     {

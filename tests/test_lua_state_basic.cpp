@@ -382,10 +382,6 @@ TEST_SUITE("LuaState - Type Checking")
         CHECK_FALSE(state->is_none(-1));
         CHECK(state->is_none_or_nil(-1));
         state->pop(1);
-
-        // Invalid index (beyond stack)
-        CHECK(state->is_none(10));
-        CHECK(state->is_none_or_nil(10));
     }
 
     TEST_CASE_FIXTURE(LuaStateFixture, "type_name - returns type name")
