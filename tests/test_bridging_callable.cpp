@@ -21,9 +21,10 @@ TEST_SUITE("Bridging - Callable")
         )");
 
         f.state->get_global("test_func");
+        CHECK(f.state->type(-1) == LUA_TFUNCTION);
+
         Callable callable = f.state->to_callable(-1);
         f.state->pop(1);
-
         CHECK(callable.is_valid());
 
         // Push it back

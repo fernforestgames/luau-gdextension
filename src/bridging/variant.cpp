@@ -309,6 +309,10 @@ void godot::push_variant(lua_State *L, const Variant &p_variant)
     case Variant::NODE_PATH:
         [[fallthrough]];
 
+    case Variant::STRING_NAME:
+        // TODO: String atom optimization
+        [[fallthrough]];
+
     case Variant::STRING:
     {
         String str = p_variant;
@@ -321,14 +325,6 @@ void godot::push_variant(lua_State *L, const Variant &p_variant)
     {
         Vector3 vec = p_variant;
         lua_pushvector(L, vec.x, vec.y, vec.z);
-        return;
-    }
-
-    case Variant::STRING_NAME:
-    {
-        StringName name = p_variant;
-        PackedByteArray utf8 = name.to_utf8_buffer();
-        lua_pushlstring(L, reinterpret_cast<const char *>(utf8.ptr()), utf8.size());
         return;
     }
 

@@ -843,8 +843,10 @@ void LuaState::push_string_name(const StringName &p_string_name)
     ERR_FAIL_COND_MSG(!is_valid(), "Lua state is invalid. Cannot push string.");
     ERR_FAIL_COND_MSG(!lua_checkstack(L, 1), "LuaState.push_string(): Stack overflow. Cannot grow stack.");
 
-    PackedByteArray utf8 = p_string_name.to_utf8_buffer();
-    lua_pushlstring(L, reinterpret_cast<const char *>(utf8.ptr()), utf8.size());
+    // TODO: String atom optimization
+    String str = p_string_name;
+    CharString utf8 = str.utf8();
+    lua_pushlstring(L, utf8.get_data(), utf8.length());
 }
 
 void LuaState::push_boolean(bool b)
@@ -1710,6 +1712,7 @@ int LuaState::enforce_option(int p_index, const PackedStringArray &p_options, co
     }
 
     arg_error(p_index, vformat("invalid option '%s'", name));
+    return -1; // Unreachable, but silences compiler warning
 }
 
 String LuaState::push_as_string(int p_index)

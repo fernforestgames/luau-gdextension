@@ -83,14 +83,14 @@ TEST_SUITE("Bridging - Dictionary")
         LuaStateFixture f;
 
         Dictionary dict;
-        dict["string_key"] = 42;
+        dict["string_key"] = 42.5;
         dict[123] = "numeric_key";
         dict[true] = "bool_key";
 
         f.state->push_dictionary(dict);
 
         f.state->get_field(-1, "string_key");
-        CHECK(f.state->to_number(-1) == 42.0);
+        CHECK(f.state->to_number(-1) == 42.5);
         f.state->pop(1);
 
         f.state->raw_geti(-1, 123);
