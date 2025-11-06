@@ -197,6 +197,12 @@ Variant godot::to_variant(lua_State *L, int p_index)
             return Variant(num);
     }
 
+    case LUA_TVECTOR:
+    {
+        const float *vec = lua_tovector(L, p_index);
+        return Variant(Vector3(vec[0], vec[1], vec[2]));
+    }
+
     case LUA_TSTRING:
     {
         size_t len;
