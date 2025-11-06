@@ -362,7 +362,7 @@ bool LuaState::is_valid_index(int p_index)
 // State manipulation
 void LuaState::close()
 {
-    if (!L)
+    if (!is_valid())
     {
         return;
     }
