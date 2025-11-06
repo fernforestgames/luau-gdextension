@@ -45,13 +45,11 @@ TEST_SUITE("LuaState - Threads")
     {
         Ref<LuaState> thread1 = state->new_thread();
         Ref<LuaState> thread2 = state->to_thread(-1);
-        MESSAGE("Created thread2 from stack value");
 
         // Both should wrap the same lua_State*
         CHECK(thread1->get_lua_state() == thread2->get_lua_state());
 
         state->pop(1);
-        MESSAGE("Popped thread off of stack");
     }
 
     TEST_CASE_FIXTURE(LuaStateFixture, "thread - shared globals")
