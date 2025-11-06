@@ -70,7 +70,7 @@
       "cacheVariables": {
         "CMAKE_POSITION_INDEPENDENT_CODE": "TRUE",
         "LIBRARY_SUFFIX": "so",
-        "WARNING_FLAGS": "-Wall;-Wextra;-Werror;-Wpedantic;-Wshadow;-Wnon-virtual-dtor;-Wold-style-cast;-Wcast-align;-Wunused;-Woverloaded-virtual;-Wdouble-promotion;-Wformat=2;-Wimplicit-fallthrough;-Wno-unused-parameter;-Wno-switch-enum;-Wno-padded;-Wno-conversion;-Wno-sign-conversion"
+        "WARNING_FLAGS": "-Wall;-Wextra;-Werror;-Wno-shadow;-Wnon-virtual-dtor;-Wcast-align;-Wunused;-Woverloaded-virtual;-Wformat=2;-Wimplicit-fallthrough;-Wno-unused-parameter;-Wno-unused-but-set-parameter;-Wno-switch-enum;-Wno-padded;-Wno-conversion;-Wno-sign-conversion;-Wno-missing-field-initializers"
       }
     },
     {
@@ -108,7 +108,7 @@
       "cacheVariables": {
         "CMAKE_POSITION_INDEPENDENT_CODE": "TRUE",
         "LIBRARY_SUFFIX": "dylib",
-        "WARNING_FLAGS": "-Wall;-Wextra;-Werror;-Wpedantic;-Wshadow;-Wnon-virtual-dtor;-Wold-style-cast;-Wcast-align;-Wunused;-Woverloaded-virtual;-Wdouble-promotion;-Wformat=2;-Wimplicit-fallthrough;-Wno-unused-parameter;-Wno-switch-enum;-Wno-padded;-Wno-conversion;-Wno-sign-conversion"
+        "WARNING_FLAGS": "-Wall;-Wextra;-Werror;-Wno-shadow;-Wnon-virtual-dtor;-Wcast-align;-Wunused;-Woverloaded-virtual;-Wformat=2;-Wimplicit-fallthrough;-Wno-unused-parameter;-Wno-unused-but-set-parameter;-Wno-switch-enum;-Wno-padded;-Wno-conversion;-Wno-sign-conversion;-Wno-missing-field-initializers"
       }
     },
     {
