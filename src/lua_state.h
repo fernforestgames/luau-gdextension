@@ -241,7 +241,7 @@ namespace godot
         String debug_trace();
 
         // lualib functions
-        // TODO: void register_library(const String &p_lib_name, const Vector<Callable> &p_functions);
+        void register_library(const StringName &p_lib_name, const Dictionary &p_functions);
         bool get_meta_field(int p_index, const StringName &p_field);
         bool call_meta(int p_index, const StringName &p_field);
         void type_error(int p_index, const StringName &p_expected); // [[noreturn]] unless state is invalid
@@ -270,7 +270,7 @@ namespace godot
         String push_as_string(int p_index);
         StringName type_name_for_value(int p_index);
         int call_from_yieldable(int p_nargs, int p_nresults);
-        // TODO: luaL_Strbuf type and functions
+        // Unsupported: luaL_Strbuf type and functions
         void open_libs(BitField<LibraryFlags> p_libs = LIB_ALL);
         void sandbox();
         void sandbox_thread();

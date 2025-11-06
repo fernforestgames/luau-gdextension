@@ -275,7 +275,7 @@ void LuaState::_bind_methods()
     ClassDB::bind_method(D_METHOD("debug_trace"), &LuaState::debug_trace);
 
     // lualib functions
-    // ClassDB::bind_method(D_METHOD("register_library", "lib_name", "functions"), &LuaState::register_library);
+    ClassDB::bind_method(D_METHOD("register_library", "lib_name", "functions"), &LuaState::register_library);
     ClassDB::bind_method(D_METHOD("get_meta_field", "index", "field"), &LuaState::get_meta_field);
     ClassDB::bind_method(D_METHOD("call_meta", "index", "field"), &LuaState::call_meta);
     ClassDB::bind_method(D_METHOD("type_error", "index", "expected"), &LuaState::type_error);
@@ -1536,23 +1536,27 @@ String LuaState::debug_trace()
 }
 
 // lualib functions
+void LuaState::register_library(const StringName &p_lib_name, const Dictionary &p_functions)
+{
+    ERR_FAIL_COND_MSG(!is_valid(), "Lua state is invalid. Cannot register library.");
+    ERR_FAIL_COND_MSG(!lua_checkstack(L, 3), vformat("LuaState.register_library(%s): Stack overflow. Cannot grow stack.", p_lib_name));
 
-// TODO: Need proper Callable bridging
-// void LuaState::register_library(const String &p_lib_name, const Vector<Callable> &p_functions)
-// {
-//     LocalVector<luaL_Reg, uint32_t, true, true> l;
-//     l.reserve(p_functions.size());
+    // We need to partially reimplement luaL_register, since bridging Callables to lua_CFunctions without userdata is not really possible
 
-//     for (const Callable &func : p_functions)
-//     {
-//         luaL_Reg reg;
-//         reg.name = func.get_name().utf8().get_data();
-//         reg.func = func.get_ptr();
-//         l.push_back(reg);
-//     }
+    // First, reuse the annoying bits of logic around table creation and registration
+    luaL_Reg reg{0};
+    luaL_register(L, STRING_NAME_TO_UTF8(p_lib_name), &reg);
 
-//     luaL_register(L, p_lib_name.utf8().get_data(), l.data());
-// }
+    // Table is now at the top of the stack; populate it with the provided functions
+    for (const Variant &key : p_functions.keys())
+    {
+        const Variant &value = p_functions[key];
+
+        ::push_variant(L, key);
+        ::push_variant(L, value);
+        lua_settable(L, -3);
+    }
+}
 
 bool LuaState::get_meta_field(int p_index, const StringName &p_field)
 {
