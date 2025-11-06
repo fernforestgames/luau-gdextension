@@ -340,7 +340,7 @@ LuaState::LuaState(lua_State *p_thread_L, const Ref<LuaState> &p_main_thread)
     : L(p_thread_L), main_thread(p_main_thread)
 {
     ERR_FAIL_NULL_MSG(p_thread_L, "Thread lua_State* is null.");
-    ERR_FAIL_NULL_MSG(p_main_thread, "Main LuaState is null.");
+    ERR_FAIL_COND_MSG(!p_main_thread.is_valid(), "Main LuaState is not valid.");
 
     // For later lookups with find_lua_state
     lua_setthreaddata(L, this);
