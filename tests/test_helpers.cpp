@@ -46,8 +46,6 @@ TEST_SUITE("Helpers")
     TEST_CASE("STRING_NAME_TO_UTF8 macro")
     {
         StringName test_name("test_string");
-        const char *utf8 = STRING_NAME_TO_UTF8(test_name);
-
-        CHECK(strcmp(utf8, "test_string") == 0);
+        CHECK(strcmp(STRING_NAME_TO_UTF8(test_name), "test_string") == 0);
     }
 }
