@@ -198,7 +198,7 @@ namespace godot
 
         // Memory statistics
         void set_memory_category(int p_category);
-        size_t get_total_bytes(int p_category);
+        uint64_t get_total_bytes(int p_category);
 
         // Miscellaneous functions
         void error(); // [[noreturn]] unless state is invalid

@@ -1237,7 +1237,7 @@ void LuaState::set_memory_category(int p_category)
     lua_setmemcat(L, p_category);
 }
 
-size_t LuaState::get_total_bytes(int p_category)
+uint64_t LuaState::get_total_bytes(int p_category)
 {
     ERR_FAIL_COND_V_MSG(!is_valid(), 0, "Lua state is invalid. Cannot get total bytes.");
     return lua_totalbytes(L, p_category);
