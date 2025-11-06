@@ -363,7 +363,9 @@ void LuaState::setup_vm()
 
 Ref<LuaState> LuaState::bind_thread(lua_State *p_thread_L)
 {
-    return memnew(LuaState(p_thread_L, get_main_thread()));
+    Ref<LuaState> state;
+    state.reference_ptr(memnew(LuaState(p_thread_L, get_main_thread())));
+    return state;
 }
 
 bool LuaState::is_valid_index(int p_index)
