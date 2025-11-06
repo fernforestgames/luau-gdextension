@@ -100,8 +100,6 @@ static void push_object_metatable(lua_State *L)
         return;
     }
 
-    // TODO: __namecall optimization
-
     lua_pushcfunction(L, object_tostring, "Object.__tostring");
     lua_setfield(L, -2, "__tostring");
 

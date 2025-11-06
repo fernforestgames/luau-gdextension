@@ -84,8 +84,6 @@ static void push_callable_metatable(lua_State *L)
         return;
     }
 
-    // TODO: __namecall optimization
-
     lua_pushcfunction(L, callable_tostring, "Callable.__tostring");
     lua_setfield(L, -2, "__tostring");
 

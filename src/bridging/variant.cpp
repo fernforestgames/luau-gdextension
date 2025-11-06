@@ -187,8 +187,6 @@ static void push_variant_metatable(lua_State *L)
         return;
     }
 
-    // TODO: __namecall optimization
-
     lua_pushcfunction(L, variant_tostring, "Variant.__tostring");
     lua_setfield(L, -2, "__tostring");
 
