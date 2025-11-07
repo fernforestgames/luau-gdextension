@@ -35,28 +35,22 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - platform: windows-x86_64
-            configuration: debug
+          - preset: windows-x86_64-debug
             os: windows-latest
             name: 🏁 Windows Debug
-          - platform: windows-x86_64
-            configuration: release
+          - preset: windows-x86_64-release
             os: windows-latest
             name: 🏁 Windows Release
-          - platform: macos-arm64
-            configuration: debug
+          - preset: macos-arm64-debug
             os: macos-latest
             name: 🍎 macOS Debug
-          - platform: macos-arm64
-            configuration: release
+          - preset: macos-arm64-release
             os: macos-latest
             name: 🍎 macOS Release
-          - platform: linux-x86_64
-            configuration: debug
+          - preset: linux-x86_64-debug
             os: ubuntu-latest
             name: 🐧 Linux Debug
-          - platform: linux-x86_64
-            configuration: release
+          - preset: linux-x86_64-release
             os: ubuntu-latest
             name: 🐧 Linux Release
 
@@ -70,7 +64,7 @@ jobs:
       - name: Setup ccache
         uses: hendrikmuhs/ccache-action@v1.2
         with:
-          key: ${{ matrix.platform }}-${{ matrix.configuration }}
+          key: ${{ matrix.preset }}
 
       - name: Install Godot (Windows)
         if: runner.os == 'Windows'
@@ -97,24 +91,22 @@ jobs:
           echo "GODOT_EXECUTABLE=$RUNNER_TEMP/Godot.app/Contents/MacOS/Godot" >> $GITHUB_ENV
 
       - name: Configure build
-        run: cmake --preset ${{ matrix.platform }}-${{ matrix.configuration }}
+        run: cmake --preset ${{ matrix.preset }}
 
       - name: Build
-        run: cmake --build --preset ${{ matrix.platform }}-${{ matrix.configuration }} -j 1
+        run: cmake --build --preset ${{ matrix.preset }} -j 1
 
       - name: Checking libraries were copied
         run: ls -la */addons/*/bin/
 
       - name: Run tests
-        if: matrix.configuration == 'debug'
-        run: |
-          ctest --preset ${{ matrix.platform }}
+        run: ctest --preset ${{ matrix.preset }}
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         if: github.event_name != 'pull_request'
         with:
-          name: luau-gdextension-${{ matrix.platform }}-${{ matrix.configuration }}
+          name: luau-gdextension-${{ matrix.preset }}
           path: |
             dist/addons/luau_gdextension/**
 

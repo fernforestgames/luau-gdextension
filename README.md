@@ -136,9 +136,9 @@ This project has comprehensive automated tests for all Godot-Luau bridging
 functionality:
 
 ```bash
-ctest --preset windows-x86_64
-ctest --preset linux-x86_64
-ctest --preset macos-arm64
+ctest --preset windows-x86_64-debug
+ctest --preset linux-x86_64-debug
+ctest --preset macos-arm64-debug
 ```
 
 **📖 For detailed testing documentation, see

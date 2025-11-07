@@ -64,11 +64,9 @@ Tests are compiled into a separate library when `BUILD_TESTING=ON` (enabled in D
 
 **Build with tests:**
 ```bash
-# Debug build includes test library (BUILD_TESTING=ON)
-cmake --preset windows-x86_64-debug   # or linux-x86_64-debug, macos-arm64-debug
+cmake --preset windows-x86_64-debug
 cmake --build --preset windows-x86_64-debug -j
 
-# Release build excludes tests (BUILD_TESTING=OFF)
 cmake --preset windows-x86_64-release
 cmake --build --preset windows-x86_64-release -j
 ```

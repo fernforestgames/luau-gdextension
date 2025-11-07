@@ -157,7 +157,7 @@ cmake --build --preset windows-x86_64-release -j
 
 ```bash
 # Using CTest (recommended)
-ctest --preset windows-x86_64   # or linux-x86_64, macos-arm64
+ctest --preset windows-x86_64-debug   # or linux-x86_64-debug, macos-arm64-debug
 
 # Or directly via Godot
 godot --headless --path demo/ -- --run-tests
@@ -186,7 +186,7 @@ See `tests/README.md` for detailed testing documentation and best practices.
 1. Write C++ tests in `tests/test_*.cpp` (create new test file or add to
    existing)
 2. Write GDScript integration tests in `demo/test/`
-3. Run `ctest --preset <platform>` to verify all tests pass
+3. Run `ctest --preset <preset>` to verify all tests pass
 4. CI automatically runs tests on push/PR (via CTest)
 
 **Distribution:** When packaging for distribution, simply exclude

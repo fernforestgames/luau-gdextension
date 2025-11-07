@@ -12,7 +12,8 @@
       "binaryDir": "${sourceDir}/build",
       "cacheVariables": {
         "CMAKE_DEBUG_POSTFIX": ".debug",
-        "CMAKE_EXPORT_COMPILE_COMMANDS": "ON"
+        "CMAKE_EXPORT_COMPILE_COMMANDS": "ON",
+        "BUILD_TESTING": "ON"
       }
     },
     {
@@ -43,7 +44,6 @@
       "cacheVariables": {
         "CMAKE_LIBRARY_OUTPUT_DIRECTORY_DEBUG": "${sourceDir}/build/bin",
         "CMAKE_MSVC_RUNTIME_LIBRARY": "MultiThreadedDebugDLL",
-        "BUILD_TESTING": "ON",
         "COPY_PDB_FILE": "ON"
       }
     },
@@ -56,7 +56,6 @@
       "cacheVariables": {
         "CMAKE_LIBRARY_OUTPUT_DIRECTORY_RELEASE": "${sourceDir}/build/bin",
         "CMAKE_MSVC_RUNTIME_LIBRARY": "MultiThreadedDLL",
-        "BUILD_TESTING": "OFF",
         "COPY_PDB_FILE": "OFF"
       }
     },
@@ -79,8 +78,7 @@
         "linux-x86_64"
       ],
       "cacheVariables": {
-        "CMAKE_BUILD_TYPE": "Debug",
-        "BUILD_TESTING": "ON"
+        "CMAKE_BUILD_TYPE": "Debug"
       }
     },
     {
@@ -89,8 +87,7 @@
         "linux-x86_64"
       ],
       "cacheVariables": {
-        "CMAKE_BUILD_TYPE": "Release",
-        "BUILD_TESTING": "OFF"
+        "CMAKE_BUILD_TYPE": "Release"
       }
     },
     {
@@ -117,8 +114,7 @@
         "macos-arm64"
       ],
       "cacheVariables": {
-        "CMAKE_BUILD_TYPE": "Debug",
-        "BUILD_TESTING": "ON"
+        "CMAKE_BUILD_TYPE": "Debug"
       }
     },
     {
@@ -127,8 +123,7 @@
         "macos-arm64"
       ],
       "cacheVariables": {
-        "CMAKE_BUILD_TYPE": "Release",
-        "BUILD_TESTING": "OFF"
+        "CMAKE_BUILD_TYPE": "Release"
       }
     }
   ],
@@ -174,7 +169,7 @@
       }
     },
     {
-      "name": "windows-x86_64",
+      "name": "windows-x86_64-debug",
       "inherits": [
         "default"
       ],
@@ -182,7 +177,15 @@
       "configuration": "Debug"
     },
     {
-      "name": "linux-x86_64",
+      "name": "windows-x86_64-release",
+      "inherits": [
+        "default"
+      ],
+      "configurePreset": "windows-x86_64-release",
+      "configuration": "Release"
+    },
+    {
+      "name": "linux-x86_64-debug",
       "inherits": [
         "default"
       ],
@@ -190,12 +193,28 @@
       "configuration": "Debug"
     },
     {
-      "name": "macos-arm64",
+      "name": "linux-x86_64-release",
+      "inherits": [
+        "default"
+      ],
+      "configurePreset": "linux-x86_64-release",
+      "configuration": "Release"
+    },
+    {
+      "name": "macos-arm64-debug",
       "inherits": [
         "default"
       ],
       "configurePreset": "macos-arm64-debug",
       "configuration": "Debug"
+    },
+    {
+      "name": "macos-arm64-release",
+      "inherits": [
+        "default"
+      ],
+      "configurePreset": "macos-arm64-release",
+      "configuration": "Release"
     }
   ]
 }
