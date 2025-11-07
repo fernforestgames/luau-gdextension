@@ -86,7 +86,7 @@ TEST_SUITE("StringCache")
     {
         const char *test_str = "test_retrieval";
         int16_t atom = create_atom(test_str, strlen(test_str));
-        REQUIRE(atom >= 0);
+        CHECK(atom >= 0);
 
         StringName retrieved = string_name_for_atom(atom);
         CHECK_FALSE(retrieved.is_empty());
@@ -179,11 +179,11 @@ TEST_SUITE("StringCache")
 
         // Create atom
         int16_t atom = create_atom(original, strlen(original));
-        REQUIRE(atom >= 0);
+        CHECK(atom >= 0);
 
         // Retrieve StringName
         StringName retrieved = string_name_for_atom(atom);
-        REQUIRE_FALSE(retrieved.is_empty());
+        CHECK_FALSE(retrieved.is_empty());
 
         // Convert to CharString
         CharString char_str = char_string(retrieved);
@@ -201,9 +201,9 @@ TEST_SUITE("StringCache")
         int16_t atom3 = create_atom(str3, strlen(str3));
 
         // All should succeed (unless collision)
-        REQUIRE(atom1 >= -1);
-        REQUIRE(atom2 >= -1);
-        REQUIRE(atom3 >= -1);
+        CHECK(atom1 >= -1);
+        CHECK(atom2 >= -1);
+        CHECK(atom3 >= -1);
 
         // If successful, verify retrieval
         if (atom1 >= 0)
