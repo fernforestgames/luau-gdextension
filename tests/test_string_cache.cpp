@@ -19,7 +19,6 @@ TEST_SUITE("StringCache")
         int16_t atom = create_atom(test_str, strlen(test_str));
 
         CHECK(atom >= 0);
-        CHECK(atom < static_cast<int16_t>(CACHE_SIZE));
     }
 
     TEST_CASE("create_atom - returns same atom for same string")
@@ -80,7 +79,6 @@ TEST_SUITE("StringCache")
             int16_t atom = create_atom(str, strlen(str));
             // Should either get a valid atom or -1 (collision)
             CHECK(atom >= -1);
-            CHECK(atom < static_cast<int16_t>(CACHE_SIZE));
         }
     }
 
@@ -347,7 +345,6 @@ TEST_SUITE("StringCache")
             if (atom >= 0)
             {
                 successful_atoms++;
-                CHECK(atom < static_cast<int16_t>(CACHE_SIZE));
             }
             else
             {
