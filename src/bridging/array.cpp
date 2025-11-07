@@ -1,4 +1,5 @@
 #include "bridging/array.h"
+
 #include "bridging/variant.h"
 #include "helpers.h"
 
@@ -6,9 +7,10 @@
 #include <godot_cpp/variant/variant.hpp>
 #include <lua.h>
 
+using namespace gdluau;
 using namespace godot;
 
-bool godot::is_array(lua_State *L, int p_index)
+bool gdluau::is_array(lua_State *L, int p_index)
 {
     ERR_FAIL_COND_V_MSG(!is_valid_index(L, p_index), false, vformat("is_array(%d): Invalid stack index. Stack has %d elements.", p_index, lua_gettop(L)));
 
@@ -43,7 +45,7 @@ bool godot::is_array(lua_State *L, int p_index)
     return true;
 }
 
-Array godot::to_array(lua_State *L, int p_index, bool *r_is_array)
+Array gdluau::to_array(lua_State *L, int p_index, bool *r_is_array)
 {
     if (r_is_array)
     {
@@ -89,7 +91,7 @@ Array godot::to_array(lua_State *L, int p_index, bool *r_is_array)
     return arr;
 }
 
-void godot::push_array(lua_State *L, const Array &p_arr)
+void gdluau::push_array(lua_State *L, const Array &p_arr)
 {
     ERR_FAIL_COND_MSG(!lua_checkstack(L, 2), "LuaState.push_array(): Stack overflow. Cannot grow stack.");
 

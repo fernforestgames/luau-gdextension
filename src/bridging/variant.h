@@ -4,8 +4,10 @@
 
 struct lua_State;
 
-namespace godot
+namespace gdluau
 {
+    using namespace godot;
+
     Variant to_variant(lua_State *p_L, int p_index);
     void push_variant(lua_State *p_L, const Variant &p_variant);
-} // namespace godot
+} // namespace gdluau

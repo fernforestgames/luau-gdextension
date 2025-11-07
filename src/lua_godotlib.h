@@ -4,8 +4,10 @@
 
 struct lua_State;
 
-namespace godot
+namespace gdluau
 {
+    using namespace godot;
+
     // Userdata tags for each Godot type
     enum LuaGodotTag
     {
@@ -78,7 +80,7 @@ namespace godot
     Transform2D to_transform2d(lua_State *L, int index);
     Transform3D to_transform3d(lua_State *L, int index);
     Projection to_projection(lua_State *L, int index);
-} // namespace godot
+} // namespace gdluau
 
 #ifdef __cplusplus
 extern "C"

@@ -6,6 +6,7 @@
 
 #include "string_cache.h"
 
+using namespace gdluau;
 using namespace godot;
 
 TEST_SUITE("StringCache")

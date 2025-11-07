@@ -13,6 +13,7 @@
 #include <lua.h>
 #include <lualib.h>
 
+using namespace gdluau;
 using namespace godot;
 
 static const char *const VARIANT_METATABLE_NAME = "GDVariant";
@@ -53,7 +54,7 @@ static int variant_op(lua_State *L)
         lua_error(L);
     }
 
-    godot::push_variant(L, result);
+    push_variant(L, result);
     return 1;
 }
 
@@ -74,7 +75,7 @@ static int variant_negate(lua_State *L)
         lua_error(L);
     }
 
-    godot::push_variant(L, result);
+    push_variant(L, result);
     return 1;
 }
 
@@ -95,7 +96,7 @@ static int variant_index(lua_State *L)
         lua_error(L);
     }
 
-    godot::push_variant(L, result);
+    push_variant(L, result);
     return 1;
 }
 
@@ -235,7 +236,7 @@ static void push_variant_metatable(lua_State *L)
     lua_setfield(L, -2, "__iter");
 }
 
-Variant godot::to_variant(lua_State *L, int p_index)
+Variant gdluau::to_variant(lua_State *L, int p_index)
 {
     ERR_FAIL_COND_V_MSG(!is_valid_index(L, p_index), Variant(), vformat("to_variant(%d): Invalid stack index. Stack has %d elements.", p_index, lua_gettop(L)));
 
@@ -342,7 +343,7 @@ Variant godot::to_variant(lua_State *L, int p_index)
     }
 }
 
-void godot::push_variant(lua_State *L, const Variant &p_variant)
+void gdluau::push_variant(lua_State *L, const Variant &p_variant)
 {
     ERR_FAIL_COND_MSG(!lua_checkstack(L, 2), "push_variant(): Stack overflow. Cannot grow stack."); // Variant + possible metatable
 

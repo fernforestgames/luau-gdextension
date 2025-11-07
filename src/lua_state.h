@@ -4,8 +4,10 @@
 #include <godot_cpp/core/binder_common.hpp>
 #include <lua.h>
 
-namespace godot
+namespace gdluau
 {
+    using namespace godot;
+
     class LuaDebug;
 
     class LuaState : public RefCounted
@@ -309,6 +311,6 @@ namespace godot
         // Opens a library using lua_call
         void open_library(lua_CFunction p_func, const char *p_name);
     };
-} // namespace godot
+} // namespace gdluau
 
-VARIANT_BITFIELD_CAST(godot::LuaState::LibraryFlags);
+VARIANT_BITFIELD_CAST(gdluau::LuaState::LibraryFlags);

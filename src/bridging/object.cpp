@@ -1,13 +1,13 @@
 #include "bridging/object.h"
 #include "helpers.h"
 
-#include <godot_cpp/classes/object.hpp>
 #include <godot_cpp/classes/ref_counted.hpp>
 #include <godot_cpp/core/error_macros.hpp>
 #include <godot_cpp/variant/variant.hpp>
 #include <lua.h>
 #include <lualib.h>
 
+using namespace gdluau;
 using namespace godot;
 
 static const char *const OBJECT_METATABLE_NAME = "GDObject";
@@ -116,7 +116,7 @@ static void push_object_metatable(lua_State *L)
     lua_setfield(L, -2, "__le");
 }
 
-Object *godot::to_full_object(lua_State *L, int p_index, int p_tag)
+Object *gdluau::to_full_object(lua_State *L, int p_index, int p_tag)
 {
     ERR_FAIL_COND_V_MSG(!is_valid_index(L, p_index), nullptr, vformat("to_object(%d): Invalid stack index. Stack has %d elements.", p_index, lua_gettop(L)));
 
@@ -130,7 +130,7 @@ Object *godot::to_full_object(lua_State *L, int p_index, int p_tag)
     }
 }
 
-Object *godot::to_light_object(lua_State *L, int p_index, int p_tag)
+Object *gdluau::to_light_object(lua_State *L, int p_index, int p_tag)
 {
     ERR_FAIL_COND_V_MSG(!is_valid_index(L, p_index), nullptr, vformat("to_light_object(%d): Invalid stack index. Stack has %d elements.", p_index, lua_gettop(L)));
 
@@ -145,7 +145,7 @@ Object *godot::to_light_object(lua_State *L, int p_index, int p_tag)
     }
 }
 
-Object *godot::to_object(lua_State *L, int p_index, int p_tag)
+Object *gdluau::to_object(lua_State *L, int p_index, int p_tag)
 {
     ERR_FAIL_COND_V_MSG(!is_valid_index(L, p_index), nullptr, vformat("to_object(%d): Invalid stack index. Stack has %d elements.", p_index, lua_gettop(L)));
 
@@ -162,7 +162,7 @@ Object *godot::to_object(lua_State *L, int p_index, int p_tag)
     }
 }
 
-void godot::push_full_object(lua_State *L, Object *p_obj, int p_tag)
+void gdluau::push_full_object(lua_State *L, Object *p_obj, int p_tag)
 {
     ERR_FAIL_COND_MSG(!lua_checkstack(L, 2), "push_full_object(): Stack overflow. Cannot grow stack."); // Object + metatable
 
@@ -202,7 +202,7 @@ void godot::push_full_object(lua_State *L, Object *p_obj, int p_tag)
     lua_setmetatable(L, -2);
 }
 
-void godot::push_light_object(lua_State *L, Object *p_obj, int p_tag)
+void gdluau::push_light_object(lua_State *L, Object *p_obj, int p_tag)
 {
     ERR_FAIL_COND_MSG(!lua_checkstack(L, 1), "push_light_object(): Stack overflow. Cannot grow stack.");
 

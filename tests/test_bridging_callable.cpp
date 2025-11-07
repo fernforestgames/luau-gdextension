@@ -5,6 +5,7 @@
 #include "test_fixtures.h"
 #include "lua_state.h"
 
+using namespace gdluau;
 using namespace godot;
 
 TEST_SUITE("Bridging - Callable")

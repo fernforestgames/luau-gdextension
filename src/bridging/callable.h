@@ -6,10 +6,11 @@
 
 struct lua_State;
 
-namespace godot
+namespace gdluau
 {
+    using namespace godot;
+
     class LuaState;
-    class Variant;
 
     Callable to_callable(lua_State *p_L, int p_index);
     void push_callable(lua_State *p_L, const Callable &p_callable);
@@ -45,4 +46,4 @@ namespace godot
         LuaState *get_lua_state() const;
         int get_func_ref() const { return func_ref; }
     };
-} // namespace godot
+} // namespace gdluau

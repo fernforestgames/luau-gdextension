@@ -14,6 +14,7 @@
 #include <godot_cpp/classes/resource_saver.hpp>
 #include <Luau/Common.h>
 
+using namespace gdluau;
 using namespace godot;
 
 static int assertionHandler(const char *expr, const char *file, int line, const char *function)
@@ -42,7 +43,7 @@ void initialize_gdluau(ModuleInitializationLevel p_level)
     // be checked but never logged.
     ::Luau::assertHandler() = assertionHandler;
 
-    GDREGISTER_RUNTIME_CLASS(godot::Luau);
+    GDREGISTER_RUNTIME_CLASS(gdluau::Luau);
     GDREGISTER_RUNTIME_CLASS(LuaCompileOptions);
     GDREGISTER_RUNTIME_CLASS(LuaDebug);
     GDREGISTER_RUNTIME_CLASS(LuaState);

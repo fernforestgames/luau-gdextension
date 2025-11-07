@@ -4,8 +4,10 @@
 #include <godot_cpp/core/binder_common.hpp>
 #include <lua.h>
 
-namespace godot
+namespace gdluau
 {
+    using namespace godot;
+
     class LuaCompileOptions;
 
     class Luau : public Object
@@ -22,7 +24,7 @@ namespace godot
         static double clock();
     };
 
-} // namespace godot
+} // namespace gdluau
 
 VARIANT_ENUM_CAST(lua_Status);
 VARIANT_ENUM_CAST(lua_CoStatus);

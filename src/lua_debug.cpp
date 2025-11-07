@@ -1,5 +1,6 @@
 #include "lua_debug.h"
 
+using namespace gdluau;
 using namespace godot;
 
 void LuaDebug::_bind_methods()

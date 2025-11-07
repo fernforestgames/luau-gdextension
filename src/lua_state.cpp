@@ -17,6 +17,7 @@
 #include <godot_cpp/templates/local_vector.hpp>
 #include <lualib.h>
 
+using namespace gdluau;
 using namespace godot;
 
 struct StaticStrings
@@ -416,7 +417,7 @@ Ref<LuaState> LuaState::bind_thread(lua_State *p_thread_L)
 bool LuaState::is_valid_index(int p_index)
 {
     ERR_FAIL_COND_V_MSG(!is_valid(), false, "Lua state is invalid. Cannot check stack index.");
-    return godot::is_valid_index(L, p_index);
+    return gdluau::is_valid_index(L, p_index);
 }
 
 // State manipulation
@@ -834,7 +835,7 @@ Object *LuaState::to_userdata(int p_index, int p_tag)
 Object *LuaState::to_object(int p_index, int p_tag)
 {
     ERR_FAIL_COND_V_MSG(!is_valid(), nullptr, "Lua state is invalid. Cannot convert to object.");
-    return godot::to_object(L, p_index, p_tag);
+    return gdluau::to_object(L, p_index, p_tag);
 }
 
 int LuaState::light_userdata_tag(int p_index)
@@ -1934,55 +1935,55 @@ void LuaState::sandbox_thread()
 bool LuaState::is_array(int p_index)
 {
     ERR_FAIL_COND_V_MSG(!is_valid(), false, "Lua state is invalid. Cannot check if value is array.");
-    return godot::is_array(L, p_index);
+    return gdluau::is_array(L, p_index);
 }
 
 Array LuaState::to_array(int p_index)
 {
     ERR_FAIL_COND_V_MSG(!is_valid(), Array(), "Lua state is invalid. Cannot convert to Array.");
-    return godot::to_array(L, p_index);
+    return gdluau::to_array(L, p_index);
 }
 
 Callable LuaState::to_callable(int p_index)
 {
     ERR_FAIL_COND_V_MSG(!is_valid(), Callable(), "Lua state is invalid. Cannot convert to Callable.");
-    return godot::to_callable(L, p_index);
+    return gdluau::to_callable(L, p_index);
 }
 
 Dictionary LuaState::to_dictionary(int p_index)
 {
     ERR_FAIL_COND_V_MSG(!is_valid(), Dictionary(), "Lua state is invalid. Cannot convert to Dictionary.");
-    return godot::to_dictionary(L, p_index);
+    return gdluau::to_dictionary(L, p_index);
 }
 
 Variant LuaState::to_variant(int p_index)
 {
     ERR_FAIL_COND_V_MSG(!is_valid(), Variant(), "Lua state is invalid. Cannot convert to Variant.");
-    return godot::to_variant(L, p_index);
+    return gdluau::to_variant(L, p_index);
 }
 
 void LuaState::push_array(const Array &p_arr)
 {
     ERR_FAIL_COND_MSG(!is_valid(), "Lua state is invalid. Cannot push Array.");
-    godot::push_array(L, p_arr);
+    gdluau::push_array(L, p_arr);
 }
 
 void LuaState::push_callable(const Callable &p_callable)
 {
     ERR_FAIL_COND_MSG(!is_valid(), "Lua state is invalid. Cannot push Callable.");
-    godot::push_callable(L, p_callable);
+    gdluau::push_callable(L, p_callable);
 }
 
 void LuaState::push_dictionary(const Dictionary &p_dict)
 {
     ERR_FAIL_COND_MSG(!is_valid(), "Lua state is invalid. Cannot push Dictionary.");
-    godot::push_dictionary(L, p_dict);
+    gdluau::push_dictionary(L, p_dict);
 }
 
 void LuaState::push_variant(const Variant &p_value)
 {
     ERR_FAIL_COND_MSG(!is_valid(), "Lua state is invalid. Cannot push Variant.");
-    godot::push_variant(L, p_value);
+    gdluau::push_variant(L, p_value);
 }
 
 // Additional convenience functions

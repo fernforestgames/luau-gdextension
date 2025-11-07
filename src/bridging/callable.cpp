@@ -1,4 +1,5 @@
 #include "bridging/callable.h"
+
 #include "bridging/variant.h"
 #include "helpers.h"
 #include "lua_state.h"
@@ -9,6 +10,7 @@
 #include <godot_cpp/variant/variant.hpp>
 #include <lualib.h>
 
+using namespace gdluau;
 using namespace godot;
 
 static const char *const CALLABLE_METATABLE_NAME = "GDCallable";
@@ -109,7 +111,7 @@ static String lua_function_name(lua_State *L, int p_index)
     return funcname.is_empty() ? "<unknown>" : funcname;
 }
 
-Callable godot::to_callable(lua_State *L, int p_index)
+Callable gdluau::to_callable(lua_State *L, int p_index)
 {
     ERR_FAIL_COND_V_MSG(!is_valid_index(L, p_index), Callable(), vformat("to_callable(%d): Invalid stack index. Stack has %d elements.", p_index, lua_gettop(L)));
 
@@ -137,7 +139,7 @@ Callable godot::to_callable(lua_State *L, int p_index)
     return Callable(lc);
 }
 
-void godot::push_callable(lua_State *L, const Callable &p_callable)
+void gdluau::push_callable(lua_State *L, const Callable &p_callable)
 {
     ERR_FAIL_COND_MSG(!lua_checkstack(L, 2), "push_callable(): Stack overflow. Cannot grow stack."); // Callable + metatable
 

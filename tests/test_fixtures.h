@@ -13,6 +13,7 @@
 #include <luacode.h>
 #include <cstring>
 
+using namespace gdluau;
 using namespace godot;
 
 // Fixture for tests that need raw lua_State* (e.g., math type bridge tests)

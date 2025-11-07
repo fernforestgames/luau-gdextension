@@ -6,9 +6,10 @@
 #include <godot_cpp/variant/variant.hpp>
 #include <lua.h>
 
+using namespace gdluau;
 using namespace godot;
 
-Dictionary godot::to_dictionary(lua_State *L, int p_index, bool *r_success)
+Dictionary gdluau::to_dictionary(lua_State *L, int p_index, bool *r_success)
 {
     if (r_success)
     {
@@ -44,7 +45,7 @@ Dictionary godot::to_dictionary(lua_State *L, int p_index, bool *r_success)
     return dict;
 }
 
-void godot::push_dictionary(lua_State *L, const Dictionary &p_dict)
+void gdluau::push_dictionary(lua_State *L, const Dictionary &p_dict)
 {
     ERR_FAIL_COND_MSG(!lua_checkstack(L, 3), "push_dictionary(): Stack overflow. Cannot grow stack.");
 

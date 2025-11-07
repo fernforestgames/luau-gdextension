@@ -22,6 +22,7 @@
 #include <godot_cpp/variant/array.hpp>
 #include <cstdio>
 
+using namespace gdluau;
 using namespace godot;
 
 // =============================================================================
@@ -2043,111 +2044,111 @@ static void register_projection_metatable(lua_State *L)
 // Public API - Push functions
 // =============================================================================
 
-void godot::push_vector2(lua_State *L, const Vector2 &value)
+void gdluau::push_vector2(lua_State *L, const Vector2 &value)
 {
     ERR_FAIL_COND_MSG(!lua_checkstack(L, 1), "push_vector2(): Stack overflow. Cannot grow stack.");
     Vector2 *v = static_cast<Vector2 *>(lua_newuserdatataggedwithmetatable(L, sizeof(Vector2), LUA_TAG_VECTOR2));
     *v = value;
 }
 
-void godot::push_vector2i(lua_State *L, const Vector2i &value)
+void gdluau::push_vector2i(lua_State *L, const Vector2i &value)
 {
     ERR_FAIL_COND_MSG(!lua_checkstack(L, 1), "push_vector2i(): Stack overflow. Cannot grow stack.");
     Vector2i *v = static_cast<Vector2i *>(lua_newuserdatataggedwithmetatable(L, sizeof(Vector2i), LUA_TAG_VECTOR2I));
     *v = value;
 }
 
-void godot::push_vector3(lua_State *L, const Vector3 &value)
+void gdluau::push_vector3(lua_State *L, const Vector3 &value)
 {
     ERR_FAIL_COND_MSG(!lua_checkstack(L, 1), "push_vector3(): Stack overflow. Cannot grow stack.");
     lua_pushvector(L, static_cast<float>(value.x), static_cast<float>(value.y), static_cast<float>(value.z));
 }
 
-void godot::push_vector3i(lua_State *L, const Vector3i &value)
+void gdluau::push_vector3i(lua_State *L, const Vector3i &value)
 {
     ERR_FAIL_COND_MSG(!lua_checkstack(L, 1), "push_vector3i(): Stack overflow. Cannot grow stack.");
     Vector3i *v = static_cast<Vector3i *>(lua_newuserdatataggedwithmetatable(L, sizeof(Vector3i), LUA_TAG_VECTOR3I));
     *v = value;
 }
 
-void godot::push_color(lua_State *L, const Color &value)
+void gdluau::push_color(lua_State *L, const Color &value)
 {
     ERR_FAIL_COND_MSG(!lua_checkstack(L, 1), "push_color(): Stack overflow. Cannot grow stack.");
     Color *c = static_cast<Color *>(lua_newuserdatataggedwithmetatable(L, sizeof(Color), LUA_TAG_COLOR));
     *c = value;
 }
 
-void godot::push_vector4(lua_State *L, const Vector4 &value)
+void gdluau::push_vector4(lua_State *L, const Vector4 &value)
 {
     ERR_FAIL_COND_MSG(!lua_checkstack(L, 1), "push_vector4(): Stack overflow. Cannot grow stack.");
     Vector4 *v = static_cast<Vector4 *>(lua_newuserdatataggedwithmetatable(L, sizeof(Vector4), LUA_TAG_VECTOR4));
     *v = value;
 }
 
-void godot::push_vector4i(lua_State *L, const Vector4i &value)
+void gdluau::push_vector4i(lua_State *L, const Vector4i &value)
 {
     ERR_FAIL_COND_MSG(!lua_checkstack(L, 1), "push_vector4i(): Stack overflow. Cannot grow stack.");
     Vector4i *v = static_cast<Vector4i *>(lua_newuserdatataggedwithmetatable(L, sizeof(Vector4i), LUA_TAG_VECTOR4I));
     *v = value;
 }
 
-void godot::push_rect2(lua_State *L, const Rect2 &value)
+void gdluau::push_rect2(lua_State *L, const Rect2 &value)
 {
     ERR_FAIL_COND_MSG(!lua_checkstack(L, 1), "push_rect2(): Stack overflow. Cannot grow stack.");
     Rect2 *r = static_cast<Rect2 *>(lua_newuserdatataggedwithmetatable(L, sizeof(Rect2), LUA_TAG_RECT2));
     *r = value;
 }
 
-void godot::push_rect2i(lua_State *L, const Rect2i &value)
+void gdluau::push_rect2i(lua_State *L, const Rect2i &value)
 {
     ERR_FAIL_COND_MSG(!lua_checkstack(L, 1), "push_rect2i(): Stack overflow. Cannot grow stack.");
     Rect2i *r = static_cast<Rect2i *>(lua_newuserdatataggedwithmetatable(L, sizeof(Rect2i), LUA_TAG_RECT2I));
     *r = value;
 }
 
-void godot::push_aabb(lua_State *L, const AABB &value)
+void gdluau::push_aabb(lua_State *L, const AABB &value)
 {
     ERR_FAIL_COND_MSG(!lua_checkstack(L, 1), "push_aabb(): Stack overflow. Cannot grow stack.");
     AABB *aabb = static_cast<AABB *>(lua_newuserdatataggedwithmetatable(L, sizeof(AABB), LUA_TAG_AABB));
     *aabb = value;
 }
 
-void godot::push_plane(lua_State *L, const Plane &value)
+void gdluau::push_plane(lua_State *L, const Plane &value)
 {
     ERR_FAIL_COND_MSG(!lua_checkstack(L, 1), "push_plane(): Stack overflow. Cannot grow stack.");
     Plane *p = static_cast<Plane *>(lua_newuserdatataggedwithmetatable(L, sizeof(Plane), LUA_TAG_PLANE));
     *p = value;
 }
 
-void godot::push_quaternion(lua_State *L, const Quaternion &value)
+void gdluau::push_quaternion(lua_State *L, const Quaternion &value)
 {
     ERR_FAIL_COND_MSG(!lua_checkstack(L, 1), "push_quaternion(): Stack overflow. Cannot grow stack.");
     Quaternion *q = static_cast<Quaternion *>(lua_newuserdatataggedwithmetatable(L, sizeof(Quaternion), LUA_TAG_QUATERNION));
     *q = value;
 }
 
-void godot::push_basis(lua_State *L, const Basis &value)
+void gdluau::push_basis(lua_State *L, const Basis &value)
 {
     ERR_FAIL_COND_MSG(!lua_checkstack(L, 1), "push_basis(): Stack overflow. Cannot grow stack.");
     Basis *b = static_cast<Basis *>(lua_newuserdatataggedwithmetatable(L, sizeof(Basis), LUA_TAG_BASIS));
     *b = value;
 }
 
-void godot::push_transform2d(lua_State *L, const Transform2D &value)
+void gdluau::push_transform2d(lua_State *L, const Transform2D &value)
 {
     ERR_FAIL_COND_MSG(!lua_checkstack(L, 1), "push_transform2d(): Stack overflow. Cannot grow stack.");
     Transform2D *t = static_cast<Transform2D *>(lua_newuserdatataggedwithmetatable(L, sizeof(Transform2D), LUA_TAG_TRANSFORM2D));
     *t = value;
 }
 
-void godot::push_transform3d(lua_State *L, const Transform3D &value)
+void gdluau::push_transform3d(lua_State *L, const Transform3D &value)
 {
     ERR_FAIL_COND_MSG(!lua_checkstack(L, 1), "push_transform3d(): Stack overflow. Cannot grow stack.");
     Transform3D *t = static_cast<Transform3D *>(lua_newuserdatataggedwithmetatable(L, sizeof(Transform3D), LUA_TAG_TRANSFORM3D));
     *t = value;
 }
 
-void godot::push_projection(lua_State *L, const Projection &value)
+void gdluau::push_projection(lua_State *L, const Projection &value)
 {
     ERR_FAIL_COND_MSG(!lua_checkstack(L, 1), "push_projection(): Stack overflow. Cannot grow stack.");
     Projection *p = static_cast<Projection *>(lua_newuserdatataggedwithmetatable(L, sizeof(Projection), LUA_TAG_PROJECTION));
@@ -2158,82 +2159,82 @@ void godot::push_projection(lua_State *L, const Projection &value)
 // Public API - Type checking functions
 // =============================================================================
 
-bool godot::is_vector2(lua_State *L, int index)
+bool gdluau::is_vector2(lua_State *L, int index)
 {
     return lua_userdatatag(L, index) == LUA_TAG_VECTOR2;
 }
 
-bool godot::is_vector2i(lua_State *L, int index)
+bool gdluau::is_vector2i(lua_State *L, int index)
 {
     return lua_userdatatag(L, index) == LUA_TAG_VECTOR2I;
 }
 
-bool godot::is_vector3(lua_State *L, int index)
+bool gdluau::is_vector3(lua_State *L, int index)
 {
     return lua_isvector(L, index);
 }
 
-bool godot::is_vector3i(lua_State *L, int index)
+bool gdluau::is_vector3i(lua_State *L, int index)
 {
     return lua_userdatatag(L, index) == LUA_TAG_VECTOR3I;
 }
 
-bool godot::is_color(lua_State *L, int index)
+bool gdluau::is_color(lua_State *L, int index)
 {
     return lua_userdatatag(L, index) == LUA_TAG_COLOR;
 }
 
-bool godot::is_vector4(lua_State *L, int index)
+bool gdluau::is_vector4(lua_State *L, int index)
 {
     return lua_userdatatag(L, index) == LUA_TAG_VECTOR4;
 }
 
-bool godot::is_vector4i(lua_State *L, int index)
+bool gdluau::is_vector4i(lua_State *L, int index)
 {
     return lua_userdatatag(L, index) == LUA_TAG_VECTOR4I;
 }
 
-bool godot::is_rect2(lua_State *L, int index)
+bool gdluau::is_rect2(lua_State *L, int index)
 {
     return lua_userdatatag(L, index) == LUA_TAG_RECT2;
 }
 
-bool godot::is_rect2i(lua_State *L, int index)
+bool gdluau::is_rect2i(lua_State *L, int index)
 {
     return lua_userdatatag(L, index) == LUA_TAG_RECT2I;
 }
 
-bool godot::is_aabb(lua_State *L, int index)
+bool gdluau::is_aabb(lua_State *L, int index)
 {
     return lua_userdatatag(L, index) == LUA_TAG_AABB;
 }
 
-bool godot::is_plane(lua_State *L, int index)
+bool gdluau::is_plane(lua_State *L, int index)
 {
     return lua_userdatatag(L, index) == LUA_TAG_PLANE;
 }
 
-bool godot::is_quaternion(lua_State *L, int index)
+bool gdluau::is_quaternion(lua_State *L, int index)
 {
     return lua_userdatatag(L, index) == LUA_TAG_QUATERNION;
 }
 
-bool godot::is_basis(lua_State *L, int index)
+bool gdluau::is_basis(lua_State *L, int index)
 {
     return lua_userdatatag(L, index) == LUA_TAG_BASIS;
 }
 
-bool godot::is_transform2d(lua_State *L, int index)
+bool gdluau::is_transform2d(lua_State *L, int index)
 {
     return lua_userdatatag(L, index) == LUA_TAG_TRANSFORM2D;
 }
 
-bool godot::is_transform3d(lua_State *L, int index)
+bool gdluau::is_transform3d(lua_State *L, int index)
 {
     return lua_userdatatag(L, index) == LUA_TAG_TRANSFORM3D;
 }
 
-bool godot::is_projection(lua_State *L, int index)
+bool gdluau::is_projection(lua_State *L, int index)
 {
     return lua_userdatatag(L, index) == LUA_TAG_PROJECTION;
 }
@@ -2242,112 +2243,112 @@ bool godot::is_projection(lua_State *L, int index)
 // Public API - Extract functions
 // =============================================================================
 
-Vector2 godot::to_vector2(lua_State *L, int index)
+Vector2 gdluau::to_vector2(lua_State *L, int index)
 {
     Vector2 *v = static_cast<Vector2 *>(lua_touserdatatagged(L, index, LUA_TAG_VECTOR2));
     ERR_FAIL_NULL_V_MSG(v, Vector2(), "Invalid Vector2 userdata");
     return *v;
 }
 
-Vector2i godot::to_vector2i(lua_State *L, int index)
+Vector2i gdluau::to_vector2i(lua_State *L, int index)
 {
     Vector2i *v = static_cast<Vector2i *>(lua_touserdatatagged(L, index, LUA_TAG_VECTOR2I));
     ERR_FAIL_NULL_V_MSG(v, Vector2i(), "Invalid Vector2i userdata");
     return *v;
 }
 
-Vector3 godot::to_vector3(lua_State *L, int index)
+Vector3 gdluau::to_vector3(lua_State *L, int index)
 {
     const float *v = lua_tovector(L, index);
     ERR_FAIL_NULL_V_MSG(v, Vector3(), "Invalid Vector3 (expected native vector)");
     return Vector3(static_cast<real_t>(v[0]), static_cast<real_t>(v[1]), static_cast<real_t>(v[2]));
 }
 
-Vector3i godot::to_vector3i(lua_State *L, int index)
+Vector3i gdluau::to_vector3i(lua_State *L, int index)
 {
     Vector3i *v = static_cast<Vector3i *>(lua_touserdatatagged(L, index, LUA_TAG_VECTOR3I));
     ERR_FAIL_NULL_V_MSG(v, Vector3i(), "Invalid Vector3i userdata");
     return *v;
 }
 
-Color godot::to_color(lua_State *L, int index)
+Color gdluau::to_color(lua_State *L, int index)
 {
     Color *c = static_cast<Color *>(lua_touserdatatagged(L, index, LUA_TAG_COLOR));
     ERR_FAIL_NULL_V_MSG(c, Color(), "Invalid Color userdata");
     return *c;
 }
 
-Vector4 godot::to_vector4(lua_State *L, int index)
+Vector4 gdluau::to_vector4(lua_State *L, int index)
 {
     Vector4 *v = static_cast<Vector4 *>(lua_touserdatatagged(L, index, LUA_TAG_VECTOR4));
     ERR_FAIL_NULL_V_MSG(v, Vector4(), "Invalid Vector4 userdata");
     return *v;
 }
 
-Vector4i godot::to_vector4i(lua_State *L, int index)
+Vector4i gdluau::to_vector4i(lua_State *L, int index)
 {
     Vector4i *v = static_cast<Vector4i *>(lua_touserdatatagged(L, index, LUA_TAG_VECTOR4I));
     ERR_FAIL_NULL_V_MSG(v, Vector4i(), "Invalid Vector4i userdata");
     return *v;
 }
 
-Rect2 godot::to_rect2(lua_State *L, int index)
+Rect2 gdluau::to_rect2(lua_State *L, int index)
 {
     Rect2 *r = static_cast<Rect2 *>(lua_touserdatatagged(L, index, LUA_TAG_RECT2));
     ERR_FAIL_NULL_V_MSG(r, Rect2(), "Invalid Rect2 userdata");
     return *r;
 }
 
-Rect2i godot::to_rect2i(lua_State *L, int index)
+Rect2i gdluau::to_rect2i(lua_State *L, int index)
 {
     Rect2i *r = static_cast<Rect2i *>(lua_touserdatatagged(L, index, LUA_TAG_RECT2I));
     ERR_FAIL_NULL_V_MSG(r, Rect2i(), "Invalid Rect2i userdata");
     return *r;
 }
 
-AABB godot::to_aabb(lua_State *L, int index)
+AABB gdluau::to_aabb(lua_State *L, int index)
 {
     AABB *aabb = static_cast<AABB *>(lua_touserdatatagged(L, index, LUA_TAG_AABB));
     ERR_FAIL_NULL_V_MSG(aabb, AABB(), "Invalid AABB userdata");
     return *aabb;
 }
 
-Plane godot::to_plane(lua_State *L, int index)
+Plane gdluau::to_plane(lua_State *L, int index)
 {
     Plane *p = static_cast<Plane *>(lua_touserdatatagged(L, index, LUA_TAG_PLANE));
     ERR_FAIL_NULL_V_MSG(p, Plane(), "Invalid Plane userdata");
     return *p;
 }
 
-Quaternion godot::to_quaternion(lua_State *L, int index)
+Quaternion gdluau::to_quaternion(lua_State *L, int index)
 {
     Quaternion *q = static_cast<Quaternion *>(lua_touserdatatagged(L, index, LUA_TAG_QUATERNION));
     ERR_FAIL_NULL_V_MSG(q, Quaternion(), "Invalid Quaternion userdata");
     return *q;
 }
 
-Basis godot::to_basis(lua_State *L, int index)
+Basis gdluau::to_basis(lua_State *L, int index)
 {
     Basis *b = static_cast<Basis *>(lua_touserdatatagged(L, index, LUA_TAG_BASIS));
     ERR_FAIL_NULL_V_MSG(b, Basis(), "Invalid Basis userdata");
     return *b;
 }
 
-Transform2D godot::to_transform2d(lua_State *L, int index)
+Transform2D gdluau::to_transform2d(lua_State *L, int index)
 {
     Transform2D *t = static_cast<Transform2D *>(lua_touserdatatagged(L, index, LUA_TAG_TRANSFORM2D));
     ERR_FAIL_NULL_V_MSG(t, Transform2D(), "Invalid Transform2D userdata");
     return *t;
 }
 
-Transform3D godot::to_transform3d(lua_State *L, int index)
+Transform3D gdluau::to_transform3d(lua_State *L, int index)
 {
     Transform3D *t = static_cast<Transform3D *>(lua_touserdatatagged(L, index, LUA_TAG_TRANSFORM3D));
     ERR_FAIL_NULL_V_MSG(t, Transform3D(), "Invalid Transform3D userdata");
     return *t;
 }
 
-Projection godot::to_projection(lua_State *L, int index)
+Projection gdluau::to_projection(lua_State *L, int index)
 {
     Projection *p = static_cast<Projection *>(lua_touserdatatagged(L, index, LUA_TAG_PROJECTION));
     ERR_FAIL_NULL_V_MSG(p, Projection(), "Invalid Projection userdata");

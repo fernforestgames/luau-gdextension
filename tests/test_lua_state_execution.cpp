@@ -6,6 +6,7 @@
 #include "lua_state.h"
 #include "luau.h"
 
+using namespace gdluau;
 using namespace godot;
 
 TEST_SUITE("LuaState - Code Loading")

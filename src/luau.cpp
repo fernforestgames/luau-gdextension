@@ -3,6 +3,7 @@
 #include <godot_cpp/core/class_db.hpp>
 #include <luacode.h>
 
+using namespace gdluau;
 using namespace godot;
 
 void Luau::_bind_methods()

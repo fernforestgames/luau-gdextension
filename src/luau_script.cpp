@@ -3,6 +3,7 @@
 #include <godot_cpp/classes/file_access.hpp>
 #include <godot_cpp/variant/utility_functions.hpp>
 
+using namespace gdluau;
 using namespace godot;
 
 // ============================================================================

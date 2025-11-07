@@ -5,6 +5,7 @@
 #include "lua_compileoptions.h"
 #include "luau.h"
 
+using namespace gdluau;
 using namespace godot;
 
 TEST_SUITE("LuaCompileOptions")

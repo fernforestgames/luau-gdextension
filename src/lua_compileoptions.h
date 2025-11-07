@@ -4,8 +4,10 @@
 #include <godot_cpp/core/binder_common.hpp>
 #include <luacode.h>
 
-namespace godot
+namespace gdluau
 {
+    using namespace godot;
+
     class LuaCompileOptions : public RefCounted
     {
         GDCLASS(LuaCompileOptions, RefCounted)
@@ -43,4 +45,4 @@ namespace godot
 
         const lua_CompileOptions &get_options() const { return options; }
     };
-} // namespace godot
+} // namespace gdluau

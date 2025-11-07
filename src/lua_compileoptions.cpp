@@ -1,5 +1,6 @@
 #include "lua_compileoptions.h"
 
+using namespace gdluau;
 using namespace godot;
 
 LuaCompileOptions::LuaCompileOptions()

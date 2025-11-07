@@ -3,8 +3,10 @@
 #include <godot_cpp/classes/ref_counted.hpp>
 #include <lua.h>
 
-namespace godot
+namespace gdluau
 {
+    using namespace godot;
+
     class LuaDebug : public RefCounted
     {
         GDCLASS(LuaDebug, RefCounted);
@@ -31,4 +33,4 @@ namespace godot
 
         lua_Debug *ptrw() { return &debug_info; }
     };
-} // namespace godot
+} // namespace gdluau

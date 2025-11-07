@@ -4,6 +4,7 @@
 #include "test_fixtures.h"
 #include "luau_script.h"
 
+using namespace gdluau;
 using namespace godot;
 
 TEST_SUITE("LuauScript")

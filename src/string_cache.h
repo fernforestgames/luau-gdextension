@@ -3,8 +3,10 @@
 #include <godot_cpp/variant/char_string.hpp>
 #include <godot_cpp/variant/string_name.hpp>
 
-namespace godot
+namespace gdluau
 {
+    using namespace godot;
+
     void initialize_string_cache();
     void uninitialize_string_cache();
 
@@ -12,4 +14,4 @@ namespace godot
     StringName string_name_for_atom(int p_atom);
 
     CharString char_string(const StringName &p_str_name);
-} // namespace godot
+} // namespace gdluau

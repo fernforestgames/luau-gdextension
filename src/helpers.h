@@ -2,7 +2,7 @@
 
 struct lua_State;
 
-namespace godot
+namespace gdluau
 {
     // Destructor definitions for any Godot object userdata, for use with lua_setuserdatadtor() or lua_newuserdatadtor()
     template <typename T>
@@ -31,4 +31,4 @@ namespace godot
     int generic_lua_concat(lua_State *p_L);
 
     bool is_valid_index(lua_State *p_L, int p_index);
-} // namespace godot
+} // namespace gdluau

@@ -2,6 +2,7 @@
 
 #include <godot_cpp/templates/spin_lock.hpp>
 
+using namespace gdluau;
 using namespace godot;
 
 struct CacheSlot
@@ -23,13 +24,13 @@ static_assert(sizeof(CacheSlot) <= 16);
 static CacheSlot *cache = nullptr;
 static SpinLock *cache_lock = nullptr;
 
-void godot::initialize_string_cache()
+void gdluau::initialize_string_cache()
 {
     cache = memnew_arr(CacheSlot, CACHE_SIZE);
     cache_lock = memnew(SpinLock);
 }
 
-void godot::uninitialize_string_cache()
+void gdluau::uninitialize_string_cache()
 {
     if (cache_lock != nullptr)
     {
@@ -56,7 +57,7 @@ static unsigned slot_for_string_name(const StringName &p_str_name)
     return static_cast<unsigned>(p_str_name.hash()) & CACHE_MASK;
 }
 
-int16_t godot::create_atom(const char *p_str, size_t p_len)
+int16_t gdluau::create_atom(const char *p_str, size_t p_len)
 {
     ERR_FAIL_COND_V_MSG(p_len == 0, -1, "Cannot create atom for empty string.");
 
@@ -98,7 +99,7 @@ int16_t godot::create_atom(const char *p_str, size_t p_len)
     }
 }
 
-StringName godot::string_name_for_atom(int p_atom)
+StringName gdluau::string_name_for_atom(int p_atom)
 {
     ERR_FAIL_COND_V_MSG(p_atom >= static_cast<int>(CACHE_SIZE), StringName(), "Invalid atom index.");
 
@@ -115,7 +116,7 @@ StringName godot::string_name_for_atom(int p_atom)
     return str_name;
 }
 
-CharString godot::char_string(const StringName &p_str_name)
+CharString gdluau::char_string(const StringName &p_str_name)
 {
     ERR_FAIL_COND_V_MSG(p_str_name.is_empty(), CharString(), "Cannot cache CharString for empty StringName.");
 
