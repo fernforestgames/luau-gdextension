@@ -48,7 +48,7 @@ namespace gdluau
             LIB_MATH = 1 << 8,      // Math functions
             LIB_DEBUG = 1 << 9,     // Debug library
             LIB_VECTOR = 1 << 10,   // Luau vector type
-            LIB_GODOT = 1 << 11,    // Godot bridging (TODO)
+            LIB_GODOT = 1 << 11,    // Godot bridging
             LIB_ALL = LIB_BASE | LIB_COROUTINE | LIB_TABLE | LIB_OS | LIB_STRING |
                       LIB_BIT32 | LIB_BUFFER | LIB_UTF8 | LIB_MATH | LIB_DEBUG | LIB_VECTOR | LIB_GODOT
         };
