@@ -82,6 +82,17 @@ static int rect2i_constructor(lua_State *L)
     return 1;
 }
 
+static int vector3_constructor(lua_State *L)
+{
+    double x = luaL_checknumber(L, 1);
+    double y = luaL_checknumber(L, 2);
+    double z = luaL_checknumber(L, 3);
+    lua_pop(L, 3);
+
+    lua_pushvector(L, x, y, z);
+    return 1;
+}
+
 static int vector3i_constructor(lua_State *L)
 {
     int isnum = 0;
@@ -614,6 +625,7 @@ static void register_constructors(lua_State *L)
         {"Vector2i", vector2i_constructor},
         {"Rect2", rect2_constructor},
         {"Rect2i", rect2i_constructor},
+        {"Vector3", vector3_constructor},
         {"Vector3i", vector3i_constructor},
         {"Transform2D", transform2d_constructor},
         {"Vector4", vector4_constructor},

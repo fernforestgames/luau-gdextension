@@ -41,7 +41,7 @@ namespace gdluau
             options.typeInfoLevel = 0;
             options.coverageLevel = 0;
 
-            options.vectorLib = "";
+            options.vectorLib = nullptr;
             options.vectorCtor = "Vector3";
             options.vectorType = "Vector3";
 
