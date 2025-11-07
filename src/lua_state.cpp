@@ -773,25 +773,7 @@ String LuaState::to_string_inplace(int p_index)
 StringName LuaState::to_stringname(int p_index)
 {
     ERR_FAIL_COND_V_MSG(!is_valid(), StringName(), "Lua state is invalid. Cannot convert to StringName.");
-
-    if (!lua_isstring(L, p_index))
-    {
-        return StringName();
-    }
-
-    size_t len;
-    int atom = -1;
-    const char *str = lua_tolstringatom(L, p_index, &len, &atom);
-
-    const StringName &cached = string_name_for_atom(atom);
-    if (cached.is_empty())
-    {
-        return StringName(String::utf8(str, len));
-    }
-    else
-    {
-        return cached;
-    }
+    return gdluau::to_stringname(L, p_index);
 }
 
 StringName LuaState::get_namecall()
@@ -1583,8 +1565,10 @@ void LuaState::register_library(const StringName &p_lib_name, const Dictionary &
     // We need to partially reimplement luaL_register, since bridging Callables to lua_CFunctions without userdata is not really possible
 
     // First, reuse the annoying bits of logic around table creation and registration
-    luaL_Reg reg{0};
-    luaL_register(L, char_string(p_lib_name).get_data(), &reg);
+    luaL_Reg reg[] = {
+        {NULL, NULL} // sentinel
+    };
+    luaL_register(L, char_string(p_lib_name).get_data(), reg);
 
     // Table is now at the top of the stack; populate it with the provided functions
     for (const Variant &key : p_functions.keys())
