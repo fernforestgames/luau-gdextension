@@ -460,8 +460,7 @@ func test_modify_variant_in_lua() -> void:
 	assert_eq(result_arr[2], 3)
 	assert_eq(result_arr[3], 4)
 
-# DISABLED: lua_godotlib not yet refactored (Vector2, Color)
-func skip_test_create_complex_structure_in_lua() -> void:
+func test_create_complex_structure_in_lua() -> void:
 	var code: String = """
 	return {
 		position = Vector2(100, 200),

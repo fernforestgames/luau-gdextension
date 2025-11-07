@@ -1,10 +1,8 @@
 extends GutTest
 # Integration tests for Godot math type bridging with Luau
 # Tests Vector2, Vector2i, Vector3, Vector3i, Color from GDScript perspective
-#
-# DISABLED: lua_godotlib not yet refactored - all tests commented out
 
-# var L: LuaState
+var L: LuaState
 
 func before_each() -> void:
 	L = LuaState.new()
