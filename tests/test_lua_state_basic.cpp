@@ -79,17 +79,12 @@ TEST_SUITE("LuaState - Basic Operations")
 
     TEST_CASE_FIXTURE(LuaStateFixture, "is_main_thread - identifies main thread")
     {
-        MESSAGE("Checking is_main_thread on original state");
         CHECK(state->is_main_thread());
 
-        MESSAGE("Creating new thread");
         Ref<LuaState> thread = state->new_thread();
-        MESSAGE("Checking is_main_thread on new state");
         CHECK_FALSE(thread->is_main_thread());
-        MESSAGE("Verifying main thread reference on new state");
         CHECK(thread->get_main_thread() == state);
 
-        MESSAGE("Popping thread from stack");
         state->pop(1); // Pop thread from stack
     }
 }
