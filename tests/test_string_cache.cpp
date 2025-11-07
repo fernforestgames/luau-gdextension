@@ -1,5 +1,7 @@
 #include "doctest.h"
 
+#include <vector>
+
 #include <godot_cpp/variant/string.hpp>
 #include <godot_cpp/variant/string_name.hpp>
 #include <godot_cpp/variant/char_string.hpp>
@@ -17,7 +19,7 @@ TEST_SUITE("StringCache")
         int16_t atom = create_atom(test_str, strlen(test_str));
 
         CHECK(atom >= 0);
-        CHECK(atom < 4096); // CACHE_SIZE
+        CHECK(atom < static_cast<int16_t>(CACHE_SIZE));
     }
 
     TEST_CASE("create_atom - returns same atom for same string")
@@ -78,7 +80,7 @@ TEST_SUITE("StringCache")
             int16_t atom = create_atom(str, strlen(str));
             // Should either get a valid atom or -1 (collision)
             CHECK(atom >= -1);
-            CHECK(atom < 4096);
+            CHECK(atom < static_cast<int16_t>(CACHE_SIZE));
         }
     }
 
@@ -101,7 +103,7 @@ TEST_SUITE("StringCache")
 
     TEST_CASE("string_name_for_atom - returns empty for invalid atom index")
     {
-        StringName retrieved = string_name_for_atom(5000); // > CACHE_SIZE
+        StringName retrieved = string_name_for_atom(static_cast<int>(CACHE_SIZE) + 1000);
         CHECK(retrieved.is_empty());
     }
 
@@ -312,5 +314,78 @@ TEST_SUITE("StringCache")
                 CHECK_FALSE(retrieved.is_empty());
             }
         }
+    }
+
+    TEST_CASE("Cache overflow - handles max size + 1 gracefully")
+    {
+        // Create CACHE_SIZE + 1 unique strings and verify behavior
+        // Due to hash collisions, we may get -1 before filling all slots,
+        // but we should definitely see collisions when exceeding cache size
+
+        const size_t num_strings = CACHE_SIZE + 1;
+        int successful_atoms = 0;
+        int collision_atoms = 0;
+
+        // Use a vector to store the strings and their atoms
+        struct StringAtomPair
+        {
+            String str;
+            int16_t atom;
+        };
+        std::vector<StringAtomPair> pairs;
+        pairs.reserve(num_strings);
+
+        // Create unique strings with a prefix to ensure uniqueness
+        for (size_t i = 0; i < num_strings; i++)
+        {
+            String unique_str = String("cache_overflow_test_string_") + String::num_int64(i);
+            CharString utf8 = unique_str.utf8();
+            int16_t atom = create_atom(utf8.get_data(), utf8.length());
+
+            pairs.push_back({unique_str, atom});
+
+            if (atom >= 0)
+            {
+                successful_atoms++;
+                CHECK(atom < static_cast<int16_t>(CACHE_SIZE));
+            }
+            else
+            {
+                CHECK(atom == -1);
+                collision_atoms++;
+            }
+        }
+
+        // Verify we created the expected number of strings
+        CHECK(pairs.size() == num_strings);
+        CHECK(successful_atoms + collision_atoms == static_cast<int>(num_strings));
+
+        // With CACHE_SIZE + 1 strings and a hash-based cache,
+        // we must have at least one collision (pigeonhole principle)
+        // However, due to hash distribution, we likely have more
+        CHECK(collision_atoms > 0);
+
+        // Verify that successfully cached strings can be retrieved correctly
+        for (const auto &pair : pairs)
+        {
+            if (pair.atom >= 0)
+            {
+                StringName retrieved = string_name_for_atom(pair.atom);
+                CHECK_FALSE(retrieved.is_empty());
+                CHECK(String(retrieved) == pair.str);
+            }
+        }
+
+        // Verify that attempting to create atoms for the same strings again
+        // returns the same result (cached atoms remain, collisions remain)
+        for (const auto &pair : pairs)
+        {
+            CharString utf8 = pair.str.utf8();
+            int16_t atom_again = create_atom(utf8.get_data(), utf8.length());
+            CHECK(atom_again == pair.atom);
+        }
+
+        // Verify cache size limit is respected
+        CHECK(successful_atoms <= static_cast<int>(CACHE_SIZE));
     }
 }

@@ -11,7 +11,6 @@ struct CacheSlot
     CharString char_str;
 };
 
-constexpr size_t CACHE_SIZE = 1 << 12; // 4096 entries
 constexpr size_t CACHE_MASK = CACHE_SIZE - 1;
 static_assert(CACHE_MASK <= INT16_MAX);
 

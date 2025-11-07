@@ -7,6 +7,9 @@ namespace gdluau
 {
     using namespace godot;
 
+    // String cache configuration
+    constexpr size_t CACHE_SIZE = 1 << 12; // 4096 entries
+
     void initialize_string_cache();
     void uninitialize_string_cache();
 
