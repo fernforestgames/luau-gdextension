@@ -103,21 +103,25 @@ static int variant_index(lua_State *L)
 // Variant.__newindex metamethod
 static int variant_newindex(lua_State *L)
 {
-    Variant var = *static_cast<Variant *>(lua_touserdata(L, 1));
+    Variant *var = static_cast<Variant *>(lua_touserdata(L, 1));
     Variant key = to_variant(L, 2);
     Variant value = to_variant(L, 3);
-    lua_pop(L, 3);
+
+    // Leave the userdata on the stack, so we can modify the Variant in-place
+    lua_pop(L, 2);
 
     bool is_valid = false;
-    var.set(key, value, &is_valid);
+    var->set(key, value, &is_valid);
 
     if (!is_valid)
     {
-        String error_msg = vformat("Cannot index Variant type %s with key of type %s", Variant::get_type_name(var.get_type()), Variant::get_type_name(key.get_type()));
+        String error_msg = vformat("Cannot index Variant type %s with key of type %s", Variant::get_type_name(var->get_type()), Variant::get_type_name(key.get_type()));
         lua_pushstring(L, error_msg.utf8().get_data());
         lua_error(L);
     }
 
+    // Pop Variant userdata
+    lua_pop(L, 1);
     return 0;
 }
 
