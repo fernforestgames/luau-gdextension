@@ -51,7 +51,7 @@ static int callable_call(lua_State *L)
     Callable callable = *static_cast<Callable *>(lua_touserdata(L, 1));
     if (!callable.is_valid())
     {
-        luaL_error(L, "Callable is not valid");
+        luaL_argerror(L, 1, "Callable is not valid");
     }
 
     int arg_count = lua_gettop(L) - 1; // Subtract 1 for self
