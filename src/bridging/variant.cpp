@@ -422,6 +422,14 @@ void gdluau::push_variant(lua_State *L, const Variant &p_variant)
         push_array(L, p_variant);
         return;
 
+    case Variant::PACKED_BYTE_ARRAY:
+    {
+        PackedByteArray arr = p_variant;
+        void *buf = lua_newbuffer(L, arr.size());
+        memcpy(buf, arr.ptr(), arr.size());
+        return;
+    }
+
     default:
     {
         // For all other types (geometry, etc.), push as userdata
