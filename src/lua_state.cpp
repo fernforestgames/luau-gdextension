@@ -19,6 +19,30 @@
 
 using namespace godot;
 
+struct StaticStrings
+{
+    StringName interrupt;
+    StringName debugstep;
+};
+
+static StaticStrings *static_strings = nullptr;
+
+void LuaState::initialize_static_strings()
+{
+    static_strings = memnew(StaticStrings);
+    static_strings->interrupt = StringName("interrupt");
+    static_strings->debugstep = StringName("debugstep");
+}
+
+void LuaState::uninitialize_static_strings()
+{
+    if (static_strings)
+    {
+        memdelete(static_strings);
+        static_strings = nullptr;
+    }
+}
+
 static void callback_interrupt(lua_State *L, int gc)
 {
     LuaState *state = LuaState::find_lua_state(L);
@@ -27,8 +51,7 @@ static void callback_interrupt(lua_State *L, int gc)
         return;
     }
 
-    static StringName interrupt_name("interrupt", true);
-    state->emit_signal(interrupt_name, state, gc);
+    state->emit_signal(static_strings->interrupt, state, gc);
 }
 
 // This handler is called when Lua encounters an unprotected error.
@@ -75,8 +98,7 @@ static void callback_debugstep(lua_State *L, lua_Debug *ar)
     }
 
     // Purposely not passing in a LuaDebug here, as that would mean creating a new refcounted object every debug step.
-    static StringName debugstep_name("debugstep", true);
-    state->emit_signal(debugstep_name, state);
+    state->emit_signal(static_strings->debugstep, state);
 }
 
 static int cpcall_wrapper(lua_State *L)

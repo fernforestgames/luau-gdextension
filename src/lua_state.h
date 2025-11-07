@@ -303,6 +303,9 @@ namespace godot
 
         static Ref<LuaState> find_or_create_lua_state(lua_State *p_L);
 
+        static void initialize_static_strings();
+        static void uninitialize_static_strings();
+
         // Opens a library using lua_call
         void open_library(lua_CFunction p_func, const char *p_name);
     };

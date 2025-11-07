@@ -32,8 +32,9 @@ void initialize_gdluau(ModuleInitializationLevel p_level)
         return;
     }
 
-    // Initialize string cache (must be done after Godot is initialized, not during DLL static init)
+    // Initialize statics (must be done after Godot is initialized, not during DLL static init)
     initialize_string_cache();
+    LuaState::initialize_static_strings();
 
     // We generally try to avoid using the Luau C++ API (in favor of the C API),
     // for maximum compatibility with base Lua, but this appears to be the only
@@ -71,7 +72,8 @@ void uninitialize_gdluau(ModuleInitializationLevel p_level)
     ResourceSaver::get_singleton()->remove_resource_format_saver(resource_saver_luau);
     resource_saver_luau.unref();
 
-    // Cleanup string cache
+    // Cleanup statics
+    LuaState::uninitialize_static_strings();
     uninitialize_string_cache();
 }
 
