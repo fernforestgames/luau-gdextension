@@ -26,7 +26,11 @@ struct RawLuaStateFixture
     {
         L = luaL_newstate();
         luaL_openlibs(L);
-        luaopen_godot(L); // Open Godot math types library
+
+        // Open Godot bridging library
+        lua_pushcfunction(L, luaopen_godot, LUA_GODOTLIBNAME);
+        lua_pushstring(L, LUA_GODOTLIBNAME);
+        lua_call(L, 1, 0);
     }
 
     ~RawLuaStateFixture()

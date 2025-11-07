@@ -2016,7 +2016,7 @@ Ref<LuaState> LuaState::find_or_create_lua_state(lua_State *p_L)
 // C++ only helpers
 void LuaState::open_library(lua_CFunction func, const char *name)
 {
-    lua_pushcfunction(L, func, NULL);
+    lua_pushcfunction(L, func, name);
     lua_pushstring(L, name);
     lua_call(L, 1, 0);
 }

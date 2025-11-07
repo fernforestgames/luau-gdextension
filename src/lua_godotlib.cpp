@@ -1,2390 +1,662 @@
 #include "lua_godotlib.h"
-#include "lua_state.h"
+
+#include "bridging/array.h"
+#include "bridging/object.h"
+#include "bridging/variant.h"
+#include "helpers.h"
+
 #include <godot_cpp/core/error_macros.hpp>
+#include <godot_cpp/variant/variant.hpp>
 #include <lualib.h>
-#include <godot_cpp/variant/vector2.hpp>
-#include <godot_cpp/variant/vector2i.hpp>
-#include <godot_cpp/variant/vector3.hpp>
-#include <godot_cpp/variant/vector3i.hpp>
-#include <godot_cpp/variant/vector4.hpp>
-#include <godot_cpp/variant/vector4i.hpp>
-#include <godot_cpp/variant/rect2.hpp>
-#include <godot_cpp/variant/rect2i.hpp>
-#include <godot_cpp/variant/aabb.hpp>
-#include <godot_cpp/variant/color.hpp>
-#include <godot_cpp/variant/plane.hpp>
-#include <godot_cpp/variant/quaternion.hpp>
-#include <godot_cpp/variant/basis.hpp>
-#include <godot_cpp/variant/transform2d.hpp>
-#include <godot_cpp/variant/transform3d.hpp>
-#include <godot_cpp/variant/projection.hpp>
-#include <godot_cpp/variant/callable.hpp>
-#include <godot_cpp/variant/array.hpp>
-#include <cstdio>
 
 using namespace gdluau;
 using namespace godot;
 
-// =============================================================================
-// Vector2
-// =============================================================================
-
 static int vector2_constructor(lua_State *L)
 {
-    double x = luaL_optnumber(L, 1, 0.0);
-    double y = luaL_optnumber(L, 2, 0.0);
-    push_vector2(L, Vector2(x, y));
+    double x = luaL_checknumber(L, 1);
+    double y = luaL_checknumber(L, 2);
+    lua_pop(L, 2);
+
+    push_variant(L, Vector2(x, y));
     return 1;
 }
-
-static int vector2_index(lua_State *L)
-{
-    Vector2 *v = static_cast<Vector2 *>(lua_touserdata(L, 1));
-    const char *key = luaL_checkstring(L, 2);
-
-    if (strcmp(key, "x") == 0)
-    {
-        lua_pushnumber(L, v->x);
-        return 1;
-    }
-    else if (strcmp(key, "y") == 0)
-    {
-        lua_pushnumber(L, v->y);
-        return 1;
-    }
-
-    return 0;
-}
-
-static int vector2_newindex(lua_State *L)
-{
-    Vector2 *v = static_cast<Vector2 *>(lua_touserdata(L, 1));
-    const char *key = luaL_checkstring(L, 2);
-    double value = luaL_checknumber(L, 3);
-
-    if (strcmp(key, "x") == 0)
-    {
-        v->x = value;
-    }
-    else if (strcmp(key, "y") == 0)
-    {
-        v->y = value;
-    }
-
-    return 0;
-}
-
-static int vector2_add(lua_State *L)
-{
-    Vector2 *a = static_cast<Vector2 *>(lua_touserdata(L, 1));
-    Vector2 *b = static_cast<Vector2 *>(lua_touserdata(L, 2));
-    push_vector2(L, *a + *b);
-    return 1;
-}
-
-static int vector2_sub(lua_State *L)
-{
-    Vector2 *a = static_cast<Vector2 *>(lua_touserdata(L, 1));
-    Vector2 *b = static_cast<Vector2 *>(lua_touserdata(L, 2));
-    push_vector2(L, *a - *b);
-    return 1;
-}
-
-static int vector2_mul(lua_State *L)
-{
-    Vector2 *a = static_cast<Vector2 *>(lua_touserdata(L, 1));
-
-    if (lua_isnumber(L, 2))
-    {
-        double scalar = lua_tonumber(L, 2);
-        push_vector2(L, *a * scalar);
-    }
-    else
-    {
-        Vector2 *b = static_cast<Vector2 *>(lua_touserdata(L, 2));
-        push_vector2(L, *a * *b);
-    }
-
-    return 1;
-}
-
-static int vector2_div(lua_State *L)
-{
-    Vector2 *a = static_cast<Vector2 *>(lua_touserdata(L, 1));
-
-    if (lua_isnumber(L, 2))
-    {
-        double scalar = lua_tonumber(L, 2);
-        push_vector2(L, *a / scalar);
-    }
-    else
-    {
-        Vector2 *b = static_cast<Vector2 *>(lua_touserdata(L, 2));
-        push_vector2(L, *a / *b);
-    }
-
-    return 1;
-}
-
-static int vector2_unm(lua_State *L)
-{
-    Vector2 *v = static_cast<Vector2 *>(lua_touserdata(L, 1));
-    push_vector2(L, -*v);
-    return 1;
-}
-
-static int vector2_eq(lua_State *L)
-{
-    Vector2 *a = static_cast<Vector2 *>(lua_touserdata(L, 1));
-    Vector2 *b = static_cast<Vector2 *>(lua_touserdata(L, 2));
-    lua_pushboolean(L, *a == *b);
-    return 1;
-}
-
-static int vector2_tostring(lua_State *L)
-{
-    Vector2 *v = static_cast<Vector2 *>(lua_touserdata(L, 1));
-    char buffer[128];
-    snprintf(buffer, sizeof(buffer), "Vector2(%g, %g)", v->x, v->y);
-    lua_pushstring(L, buffer);
-    return 1;
-}
-
-static void register_vector2_metatable(lua_State *L)
-{
-    // Reserve enough stack space for metatable operations (3 slots: metatable + function + setfield)
-    ERR_FAIL_COND_MSG(!lua_checkstack(L, 3), "register_vector2_metatable(): Stack overflow. Cannot grow stack.");
-
-    luaL_newmetatable(L, "Vector2");
-
-    lua_pushcfunction(L, vector2_index, "__index");
-    lua_setfield(L, -2, "__index");
-
-    lua_pushcfunction(L, vector2_newindex, "__newindex");
-    lua_setfield(L, -2, "__newindex");
-
-    lua_pushcfunction(L, vector2_add, "__add");
-    lua_setfield(L, -2, "__add");
-
-    lua_pushcfunction(L, vector2_sub, "__sub");
-    lua_setfield(L, -2, "__sub");
-
-    lua_pushcfunction(L, vector2_mul, "__mul");
-    lua_setfield(L, -2, "__mul");
-
-    lua_pushcfunction(L, vector2_div, "__div");
-    lua_setfield(L, -2, "__div");
-
-    lua_pushcfunction(L, vector2_unm, "__unm");
-    lua_setfield(L, -2, "__unm");
-
-    lua_pushcfunction(L, vector2_eq, "__eq");
-    lua_setfield(L, -2, "__eq");
-
-    lua_pushcfunction(L, vector2_tostring, "__tostring");
-    lua_setfield(L, -2, "__tostring");
-
-    lua_setuserdatametatable(L, LUA_TAG_VECTOR2);
-
-    // Register constructor
-    lua_pushcfunction(L, vector2_constructor, "Vector2");
-    lua_setglobal(L, "Vector2");
-}
-
-// =============================================================================
-// Vector2i
-// =============================================================================
 
 static int vector2i_constructor(lua_State *L)
 {
-    int x = luaL_optinteger(L, 1, 0);
-    int y = luaL_optinteger(L, 2, 0);
-    push_vector2i(L, Vector2i(x, y));
+    int x = luaL_checkinteger(L, 1);
+    int y = luaL_checkinteger(L, 2);
+    lua_pop(L, 2);
+
+    push_variant(L, Vector2i(x, y));
     return 1;
 }
-
-static int vector2i_index(lua_State *L)
-{
-    Vector2i *v = static_cast<Vector2i *>(lua_touserdata(L, 1));
-    const char *key = luaL_checkstring(L, 2);
-
-    if (strcmp(key, "x") == 0)
-    {
-        lua_pushinteger(L, v->x);
-        return 1;
-    }
-    else if (strcmp(key, "y") == 0)
-    {
-        lua_pushinteger(L, v->y);
-        return 1;
-    }
-
-    return 0;
-}
-
-static int vector2i_newindex(lua_State *L)
-{
-    Vector2i *v = static_cast<Vector2i *>(lua_touserdata(L, 1));
-    const char *key = luaL_checkstring(L, 2);
-    int value = luaL_checkinteger(L, 3);
-
-    if (strcmp(key, "x") == 0)
-    {
-        v->x = value;
-    }
-    else if (strcmp(key, "y") == 0)
-    {
-        v->y = value;
-    }
-
-    return 0;
-}
-
-static int vector2i_add(lua_State *L)
-{
-    Vector2i *a = static_cast<Vector2i *>(lua_touserdata(L, 1));
-    Vector2i *b = static_cast<Vector2i *>(lua_touserdata(L, 2));
-    push_vector2i(L, *a + *b);
-    return 1;
-}
-
-static int vector2i_sub(lua_State *L)
-{
-    Vector2i *a = static_cast<Vector2i *>(lua_touserdata(L, 1));
-    Vector2i *b = static_cast<Vector2i *>(lua_touserdata(L, 2));
-    push_vector2i(L, *a - *b);
-    return 1;
-}
-
-static int vector2i_mul(lua_State *L)
-{
-    Vector2i *a = static_cast<Vector2i *>(lua_touserdata(L, 1));
-
-    if (lua_isnumber(L, 2))
-    {
-        int scalar = lua_tointeger(L, 2);
-        push_vector2i(L, *a * scalar);
-    }
-    else
-    {
-        Vector2i *b = static_cast<Vector2i *>(lua_touserdata(L, 2));
-        push_vector2i(L, *a * *b);
-    }
-
-    return 1;
-}
-
-static int vector2i_div(lua_State *L)
-{
-    Vector2i *a = static_cast<Vector2i *>(lua_touserdata(L, 1));
-
-    if (lua_isnumber(L, 2))
-    {
-        int scalar = lua_tointeger(L, 2);
-        push_vector2i(L, *a / scalar);
-    }
-    else
-    {
-        Vector2i *b = static_cast<Vector2i *>(lua_touserdata(L, 2));
-        push_vector2i(L, *a / *b);
-    }
-
-    return 1;
-}
-
-static int vector2i_unm(lua_State *L)
-{
-    Vector2i *v = static_cast<Vector2i *>(lua_touserdata(L, 1));
-    push_vector2i(L, -*v);
-    return 1;
-}
-
-static int vector2i_eq(lua_State *L)
-{
-    Vector2i *a = static_cast<Vector2i *>(lua_touserdata(L, 1));
-    Vector2i *b = static_cast<Vector2i *>(lua_touserdata(L, 2));
-    lua_pushboolean(L, *a == *b);
-    return 1;
-}
-
-static int vector2i_tostring(lua_State *L)
-{
-    Vector2i *v = static_cast<Vector2i *>(lua_touserdata(L, 1));
-    char buffer[128];
-    snprintf(buffer, sizeof(buffer), "Vector2i(%d, %d)", v->x, v->y);
-    lua_pushstring(L, buffer);
-    return 1;
-}
-
-static void register_vector2i_metatable(lua_State *L)
-{
-    ERR_FAIL_COND_MSG(!lua_checkstack(L, 3), "register_vector2i_metatable(): Stack overflow. Cannot grow stack.");
-
-    luaL_newmetatable(L, "Vector2i");
-
-    lua_pushcfunction(L, vector2i_index, "__index");
-    lua_setfield(L, -2, "__index");
-
-    lua_pushcfunction(L, vector2i_newindex, "__newindex");
-    lua_setfield(L, -2, "__newindex");
-
-    lua_pushcfunction(L, vector2i_add, "__add");
-    lua_setfield(L, -2, "__add");
-
-    lua_pushcfunction(L, vector2i_sub, "__sub");
-    lua_setfield(L, -2, "__sub");
-
-    lua_pushcfunction(L, vector2i_mul, "__mul");
-    lua_setfield(L, -2, "__mul");
-
-    lua_pushcfunction(L, vector2i_div, "__div");
-    lua_setfield(L, -2, "__div");
-
-    lua_pushcfunction(L, vector2i_unm, "__unm");
-    lua_setfield(L, -2, "__unm");
-
-    lua_pushcfunction(L, vector2i_eq, "__eq");
-    lua_setfield(L, -2, "__eq");
-
-    lua_pushcfunction(L, vector2i_tostring, "__tostring");
-    lua_setfield(L, -2, "__tostring");
-
-    lua_setuserdatametatable(L, LUA_TAG_VECTOR2I);
-
-    // Register constructor
-    lua_pushcfunction(L, vector2i_constructor, "Vector2i");
-    lua_setglobal(L, "Vector2i");
-}
-
-// =============================================================================
-// Vector3
-// =============================================================================
-
-static int vector3_constructor(lua_State *L)
-{
-    double x = luaL_optnumber(L, 1, 0.0);
-    double y = luaL_optnumber(L, 2, 0.0);
-    double z = luaL_optnumber(L, 3, 0.0);
-    lua_pushvector(L, static_cast<float>(x), static_cast<float>(y), static_cast<float>(z));
-    return 1;
-}
-
-// Vector3 uses Luau's native vector type - no metatable needed
-// Operators (+, -, *, /, unary -, ==) are handled natively by the VM
-// Property access (x, y, z) is handled by Luau's built-in vector.__index
-
-// =============================================================================
-// Vector3i
-// =============================================================================
-
-static int vector3i_constructor(lua_State *L)
-{
-    int x = luaL_optinteger(L, 1, 0);
-    int y = luaL_optinteger(L, 2, 0);
-    int z = luaL_optinteger(L, 3, 0);
-    push_vector3i(L, Vector3i(x, y, z));
-    return 1;
-}
-
-static int vector3i_index(lua_State *L)
-{
-    Vector3i *v = static_cast<Vector3i *>(lua_touserdata(L, 1));
-    const char *key = luaL_checkstring(L, 2);
-
-    if (strcmp(key, "x") == 0)
-    {
-        lua_pushinteger(L, v->x);
-        return 1;
-    }
-    else if (strcmp(key, "y") == 0)
-    {
-        lua_pushinteger(L, v->y);
-        return 1;
-    }
-    else if (strcmp(key, "z") == 0)
-    {
-        lua_pushinteger(L, v->z);
-        return 1;
-    }
-
-    return 0;
-}
-
-static int vector3i_newindex(lua_State *L)
-{
-    Vector3i *v = static_cast<Vector3i *>(lua_touserdata(L, 1));
-    const char *key = luaL_checkstring(L, 2);
-    int value = luaL_checkinteger(L, 3);
-
-    if (strcmp(key, "x") == 0)
-    {
-        v->x = value;
-    }
-    else if (strcmp(key, "y") == 0)
-    {
-        v->y = value;
-    }
-    else if (strcmp(key, "z") == 0)
-    {
-        v->z = value;
-    }
-
-    return 0;
-}
-
-static int vector3i_add(lua_State *L)
-{
-    Vector3i *a = static_cast<Vector3i *>(lua_touserdata(L, 1));
-    Vector3i *b = static_cast<Vector3i *>(lua_touserdata(L, 2));
-    push_vector3i(L, *a + *b);
-    return 1;
-}
-
-static int vector3i_sub(lua_State *L)
-{
-    Vector3i *a = static_cast<Vector3i *>(lua_touserdata(L, 1));
-    Vector3i *b = static_cast<Vector3i *>(lua_touserdata(L, 2));
-    push_vector3i(L, *a - *b);
-    return 1;
-}
-
-static int vector3i_mul(lua_State *L)
-{
-    Vector3i *a = static_cast<Vector3i *>(lua_touserdata(L, 1));
-
-    if (lua_isnumber(L, 2))
-    {
-        int scalar = lua_tointeger(L, 2);
-        push_vector3i(L, *a * scalar);
-    }
-    else
-    {
-        Vector3i *b = static_cast<Vector3i *>(lua_touserdata(L, 2));
-        push_vector3i(L, *a * *b);
-    }
-
-    return 1;
-}
-
-static int vector3i_div(lua_State *L)
-{
-    Vector3i *a = static_cast<Vector3i *>(lua_touserdata(L, 1));
-
-    if (lua_isnumber(L, 2))
-    {
-        int scalar = lua_tointeger(L, 2);
-        push_vector3i(L, *a / scalar);
-    }
-    else
-    {
-        Vector3i *b = static_cast<Vector3i *>(lua_touserdata(L, 2));
-        push_vector3i(L, *a / *b);
-    }
-
-    return 1;
-}
-
-static int vector3i_unm(lua_State *L)
-{
-    Vector3i *v = static_cast<Vector3i *>(lua_touserdata(L, 1));
-    push_vector3i(L, -*v);
-    return 1;
-}
-
-static int vector3i_eq(lua_State *L)
-{
-    Vector3i *a = static_cast<Vector3i *>(lua_touserdata(L, 1));
-    Vector3i *b = static_cast<Vector3i *>(lua_touserdata(L, 2));
-    lua_pushboolean(L, *a == *b);
-    return 1;
-}
-
-static int vector3i_tostring(lua_State *L)
-{
-    Vector3i *v = static_cast<Vector3i *>(lua_touserdata(L, 1));
-    char buffer[128];
-    snprintf(buffer, sizeof(buffer), "Vector3i(%d, %d, %d)", v->x, v->y, v->z);
-    lua_pushstring(L, buffer);
-    return 1;
-}
-
-static void register_vector3i_metatable(lua_State *L)
-{
-    ERR_FAIL_COND_MSG(!lua_checkstack(L, 3), "register_vector3i_metatable(): Stack overflow. Cannot grow stack.");
-
-    luaL_newmetatable(L, "Vector3i");
-
-    lua_pushcfunction(L, vector3i_index, "__index");
-    lua_setfield(L, -2, "__index");
-
-    lua_pushcfunction(L, vector3i_newindex, "__newindex");
-    lua_setfield(L, -2, "__newindex");
-
-    lua_pushcfunction(L, vector3i_add, "__add");
-    lua_setfield(L, -2, "__add");
-
-    lua_pushcfunction(L, vector3i_sub, "__sub");
-    lua_setfield(L, -2, "__sub");
-
-    lua_pushcfunction(L, vector3i_mul, "__mul");
-    lua_setfield(L, -2, "__mul");
-
-    lua_pushcfunction(L, vector3i_div, "__div");
-    lua_setfield(L, -2, "__div");
-
-    lua_pushcfunction(L, vector3i_unm, "__unm");
-    lua_setfield(L, -2, "__unm");
-
-    lua_pushcfunction(L, vector3i_eq, "__eq");
-    lua_setfield(L, -2, "__eq");
-
-    lua_pushcfunction(L, vector3i_tostring, "__tostring");
-    lua_setfield(L, -2, "__tostring");
-
-    lua_setuserdatametatable(L, LUA_TAG_VECTOR3I);
-
-    // Register constructor
-    lua_pushcfunction(L, vector3i_constructor, "Vector3i");
-    lua_setglobal(L, "Vector3i");
-}
-
-// =============================================================================
-// Vector4
-// =============================================================================
-
-static int vector4_constructor(lua_State *L)
-{
-    double x = luaL_optnumber(L, 1, 0.0);
-    double y = luaL_optnumber(L, 2, 0.0);
-    double z = luaL_optnumber(L, 3, 0.0);
-    double w = luaL_optnumber(L, 4, 0.0);
-    push_vector4(L, Vector4(x, y, z, w));
-    return 1;
-}
-
-static int vector4_index(lua_State *L)
-{
-    Vector4 *v = static_cast<Vector4 *>(lua_touserdata(L, 1));
-    const char *key = luaL_checkstring(L, 2);
-
-    if (strcmp(key, "x") == 0)
-    {
-        lua_pushnumber(L, v->x);
-        return 1;
-    }
-    else if (strcmp(key, "y") == 0)
-    {
-        lua_pushnumber(L, v->y);
-        return 1;
-    }
-    else if (strcmp(key, "z") == 0)
-    {
-        lua_pushnumber(L, v->z);
-        return 1;
-    }
-    else if (strcmp(key, "w") == 0)
-    {
-        lua_pushnumber(L, v->w);
-        return 1;
-    }
-
-    return 0;
-}
-
-static int vector4_newindex(lua_State *L)
-{
-    Vector4 *v = static_cast<Vector4 *>(lua_touserdata(L, 1));
-    const char *key = luaL_checkstring(L, 2);
-    double value = luaL_checknumber(L, 3);
-
-    if (strcmp(key, "x") == 0)
-    {
-        v->x = value;
-    }
-    else if (strcmp(key, "y") == 0)
-    {
-        v->y = value;
-    }
-    else if (strcmp(key, "z") == 0)
-    {
-        v->z = value;
-    }
-    else if (strcmp(key, "w") == 0)
-    {
-        v->w = value;
-    }
-
-    return 0;
-}
-
-static int vector4_add(lua_State *L)
-{
-    Vector4 *a = static_cast<Vector4 *>(lua_touserdata(L, 1));
-    Vector4 *b = static_cast<Vector4 *>(lua_touserdata(L, 2));
-    push_vector4(L, *a + *b);
-    return 1;
-}
-
-static int vector4_sub(lua_State *L)
-{
-    Vector4 *a = static_cast<Vector4 *>(lua_touserdata(L, 1));
-    Vector4 *b = static_cast<Vector4 *>(lua_touserdata(L, 2));
-    push_vector4(L, *a - *b);
-    return 1;
-}
-
-static int vector4_mul(lua_State *L)
-{
-    Vector4 *a = static_cast<Vector4 *>(lua_touserdata(L, 1));
-
-    if (lua_isnumber(L, 2))
-    {
-        double scalar = lua_tonumber(L, 2);
-        push_vector4(L, *a * scalar);
-    }
-    else
-    {
-        Vector4 *b = static_cast<Vector4 *>(lua_touserdata(L, 2));
-        push_vector4(L, *a * *b);
-    }
-
-    return 1;
-}
-
-static int vector4_div(lua_State *L)
-{
-    Vector4 *a = static_cast<Vector4 *>(lua_touserdata(L, 1));
-
-    if (lua_isnumber(L, 2))
-    {
-        double scalar = lua_tonumber(L, 2);
-        push_vector4(L, *a / scalar);
-    }
-    else
-    {
-        Vector4 *b = static_cast<Vector4 *>(lua_touserdata(L, 2));
-        push_vector4(L, *a / *b);
-    }
-
-    return 1;
-}
-
-static int vector4_unm(lua_State *L)
-{
-    Vector4 *v = static_cast<Vector4 *>(lua_touserdata(L, 1));
-    push_vector4(L, -*v);
-    return 1;
-}
-
-static int vector4_eq(lua_State *L)
-{
-    Vector4 *a = static_cast<Vector4 *>(lua_touserdata(L, 1));
-    Vector4 *b = static_cast<Vector4 *>(lua_touserdata(L, 2));
-    lua_pushboolean(L, *a == *b);
-    return 1;
-}
-
-static int vector4_tostring(lua_State *L)
-{
-    Vector4 *v = static_cast<Vector4 *>(lua_touserdata(L, 1));
-    char buffer[128];
-    snprintf(buffer, sizeof(buffer), "Vector4(%g, %g, %g, %g)", v->x, v->y, v->z, v->w);
-    lua_pushstring(L, buffer);
-    return 1;
-}
-
-static void register_vector4_metatable(lua_State *L)
-{
-    ERR_FAIL_COND_MSG(!lua_checkstack(L, 3), "register_vector4_metatable(): Stack overflow. Cannot grow stack.");
-
-    luaL_newmetatable(L, "Vector4");
-
-    lua_pushcfunction(L, vector4_index, "__index");
-    lua_setfield(L, -2, "__index");
-
-    lua_pushcfunction(L, vector4_newindex, "__newindex");
-    lua_setfield(L, -2, "__newindex");
-
-    lua_pushcfunction(L, vector4_add, "__add");
-    lua_setfield(L, -2, "__add");
-
-    lua_pushcfunction(L, vector4_sub, "__sub");
-    lua_setfield(L, -2, "__sub");
-
-    lua_pushcfunction(L, vector4_mul, "__mul");
-    lua_setfield(L, -2, "__mul");
-
-    lua_pushcfunction(L, vector4_div, "__div");
-    lua_setfield(L, -2, "__div");
-
-    lua_pushcfunction(L, vector4_unm, "__unm");
-    lua_setfield(L, -2, "__unm");
-
-    lua_pushcfunction(L, vector4_eq, "__eq");
-    lua_setfield(L, -2, "__eq");
-
-    lua_pushcfunction(L, vector4_tostring, "__tostring");
-    lua_setfield(L, -2, "__tostring");
-
-    lua_setuserdatametatable(L, LUA_TAG_VECTOR4);
-
-    // Register constructor
-    lua_pushcfunction(L, vector4_constructor, "Vector4");
-    lua_setglobal(L, "Vector4");
-}
-
-// =============================================================================
-// Vector4i
-// =============================================================================
-
-static int vector4i_constructor(lua_State *L)
-{
-    int x = luaL_optinteger(L, 1, 0);
-    int y = luaL_optinteger(L, 2, 0);
-    int z = luaL_optinteger(L, 3, 0);
-    int w = luaL_optinteger(L, 4, 0);
-    push_vector4i(L, Vector4i(x, y, z, w));
-    return 1;
-}
-
-static int vector4i_index(lua_State *L)
-{
-    Vector4i *v = static_cast<Vector4i *>(lua_touserdata(L, 1));
-    const char *key = luaL_checkstring(L, 2);
-
-    if (strcmp(key, "x") == 0)
-    {
-        lua_pushinteger(L, v->x);
-        return 1;
-    }
-    else if (strcmp(key, "y") == 0)
-    {
-        lua_pushinteger(L, v->y);
-        return 1;
-    }
-    else if (strcmp(key, "z") == 0)
-    {
-        lua_pushinteger(L, v->z);
-        return 1;
-    }
-    else if (strcmp(key, "w") == 0)
-    {
-        lua_pushinteger(L, v->w);
-        return 1;
-    }
-
-    return 0;
-}
-
-static int vector4i_newindex(lua_State *L)
-{
-    Vector4i *v = static_cast<Vector4i *>(lua_touserdata(L, 1));
-    const char *key = luaL_checkstring(L, 2);
-    int value = luaL_checkinteger(L, 3);
-
-    if (strcmp(key, "x") == 0)
-    {
-        v->x = value;
-    }
-    else if (strcmp(key, "y") == 0)
-    {
-        v->y = value;
-    }
-    else if (strcmp(key, "z") == 0)
-    {
-        v->z = value;
-    }
-    else if (strcmp(key, "w") == 0)
-    {
-        v->w = value;
-    }
-
-    return 0;
-}
-
-static int vector4i_add(lua_State *L)
-{
-    Vector4i *a = static_cast<Vector4i *>(lua_touserdata(L, 1));
-    Vector4i *b = static_cast<Vector4i *>(lua_touserdata(L, 2));
-    push_vector4i(L, *a + *b);
-    return 1;
-}
-
-static int vector4i_sub(lua_State *L)
-{
-    Vector4i *a = static_cast<Vector4i *>(lua_touserdata(L, 1));
-    Vector4i *b = static_cast<Vector4i *>(lua_touserdata(L, 2));
-    push_vector4i(L, *a - *b);
-    return 1;
-}
-
-static int vector4i_mul(lua_State *L)
-{
-    Vector4i *a = static_cast<Vector4i *>(lua_touserdata(L, 1));
-
-    if (lua_isnumber(L, 2))
-    {
-        int scalar = lua_tointeger(L, 2);
-        push_vector4i(L, *a * scalar);
-    }
-    else
-    {
-        Vector4i *b = static_cast<Vector4i *>(lua_touserdata(L, 2));
-        push_vector4i(L, *a * *b);
-    }
-
-    return 1;
-}
-
-static int vector4i_div(lua_State *L)
-{
-    Vector4i *a = static_cast<Vector4i *>(lua_touserdata(L, 1));
-
-    if (lua_isnumber(L, 2))
-    {
-        int scalar = lua_tointeger(L, 2);
-        push_vector4i(L, *a / scalar);
-    }
-    else
-    {
-        Vector4i *b = static_cast<Vector4i *>(lua_touserdata(L, 2));
-        push_vector4i(L, *a / *b);
-    }
-
-    return 1;
-}
-
-static int vector4i_unm(lua_State *L)
-{
-    Vector4i *v = static_cast<Vector4i *>(lua_touserdata(L, 1));
-    push_vector4i(L, -*v);
-    return 1;
-}
-
-static int vector4i_eq(lua_State *L)
-{
-    Vector4i *a = static_cast<Vector4i *>(lua_touserdata(L, 1));
-    Vector4i *b = static_cast<Vector4i *>(lua_touserdata(L, 2));
-    lua_pushboolean(L, *a == *b);
-    return 1;
-}
-
-static int vector4i_tostring(lua_State *L)
-{
-    Vector4i *v = static_cast<Vector4i *>(lua_touserdata(L, 1));
-    char buffer[128];
-    snprintf(buffer, sizeof(buffer), "Vector4i(%d, %d, %d, %d)", v->x, v->y, v->z, v->w);
-    lua_pushstring(L, buffer);
-    return 1;
-}
-
-static void register_vector4i_metatable(lua_State *L)
-{
-    ERR_FAIL_COND_MSG(!lua_checkstack(L, 3), "register_vector4i_metatable(): Stack overflow. Cannot grow stack.");
-
-    luaL_newmetatable(L, "Vector4i");
-
-    lua_pushcfunction(L, vector4i_index, "__index");
-    lua_setfield(L, -2, "__index");
-
-    lua_pushcfunction(L, vector4i_newindex, "__newindex");
-    lua_setfield(L, -2, "__newindex");
-
-    lua_pushcfunction(L, vector4i_add, "__add");
-    lua_setfield(L, -2, "__add");
-
-    lua_pushcfunction(L, vector4i_sub, "__sub");
-    lua_setfield(L, -2, "__sub");
-
-    lua_pushcfunction(L, vector4i_mul, "__mul");
-    lua_setfield(L, -2, "__mul");
-
-    lua_pushcfunction(L, vector4i_div, "__div");
-    lua_setfield(L, -2, "__div");
-
-    lua_pushcfunction(L, vector4i_unm, "__unm");
-    lua_setfield(L, -2, "__unm");
-
-    lua_pushcfunction(L, vector4i_eq, "__eq");
-    lua_setfield(L, -2, "__eq");
-
-    lua_pushcfunction(L, vector4i_tostring, "__tostring");
-    lua_setfield(L, -2, "__tostring");
-
-    lua_setuserdatametatable(L, LUA_TAG_VECTOR4I);
-
-    // Register constructor
-    lua_pushcfunction(L, vector4i_constructor, "Vector4i");
-    lua_setglobal(L, "Vector4i");
-}
-
-// =============================================================================
-// Color
-// =============================================================================
-
-static int color_constructor(lua_State *L)
-{
-    double r = luaL_optnumber(L, 1, 0.0);
-    double g = luaL_optnumber(L, 2, 0.0);
-    double b = luaL_optnumber(L, 3, 0.0);
-    double a = luaL_optnumber(L, 4, 1.0);
-    push_color(L, Color(r, g, b, a));
-    return 1;
-}
-
-static int color_index(lua_State *L)
-{
-    Color *c = static_cast<Color *>(lua_touserdata(L, 1));
-    const char *key = luaL_checkstring(L, 2);
-
-    if (strcmp(key, "r") == 0)
-    {
-        lua_pushnumber(L, c->r);
-        return 1;
-    }
-    else if (strcmp(key, "g") == 0)
-    {
-        lua_pushnumber(L, c->g);
-        return 1;
-    }
-    else if (strcmp(key, "b") == 0)
-    {
-        lua_pushnumber(L, c->b);
-        return 1;
-    }
-    else if (strcmp(key, "a") == 0)
-    {
-        lua_pushnumber(L, c->a);
-        return 1;
-    }
-
-    return 0;
-}
-
-static int color_newindex(lua_State *L)
-{
-    Color *c = static_cast<Color *>(lua_touserdata(L, 1));
-    const char *key = luaL_checkstring(L, 2);
-    double value = luaL_checknumber(L, 3);
-
-    if (strcmp(key, "r") == 0)
-    {
-        c->r = value;
-    }
-    else if (strcmp(key, "g") == 0)
-    {
-        c->g = value;
-    }
-    else if (strcmp(key, "b") == 0)
-    {
-        c->b = value;
-    }
-    else if (strcmp(key, "a") == 0)
-    {
-        c->a = value;
-    }
-
-    return 0;
-}
-
-static int color_add(lua_State *L)
-{
-    Color *a = static_cast<Color *>(lua_touserdata(L, 1));
-    Color *b = static_cast<Color *>(lua_touserdata(L, 2));
-    push_color(L, *a + *b);
-    return 1;
-}
-
-static int color_sub(lua_State *L)
-{
-    Color *a = static_cast<Color *>(lua_touserdata(L, 1));
-    Color *b = static_cast<Color *>(lua_touserdata(L, 2));
-    push_color(L, *a - *b);
-    return 1;
-}
-
-static int color_mul(lua_State *L)
-{
-    Color *a = static_cast<Color *>(lua_touserdata(L, 1));
-
-    if (lua_isnumber(L, 2))
-    {
-        double scalar = lua_tonumber(L, 2);
-        push_color(L, *a * scalar);
-    }
-    else
-    {
-        Color *b = static_cast<Color *>(lua_touserdata(L, 2));
-        push_color(L, *a * *b);
-    }
-
-    return 1;
-}
-
-static int color_div(lua_State *L)
-{
-    Color *a = static_cast<Color *>(lua_touserdata(L, 1));
-
-    if (lua_isnumber(L, 2))
-    {
-        double scalar = lua_tonumber(L, 2);
-        push_color(L, *a / scalar);
-    }
-    else
-    {
-        Color *b = static_cast<Color *>(lua_touserdata(L, 2));
-        push_color(L, *a / *b);
-    }
-
-    return 1;
-}
-
-static int color_unm(lua_State *L)
-{
-    Color *c = static_cast<Color *>(lua_touserdata(L, 1));
-    push_color(L, -*c);
-    return 1;
-}
-
-static int color_eq(lua_State *L)
-{
-    Color *a = static_cast<Color *>(lua_touserdata(L, 1));
-    Color *b = static_cast<Color *>(lua_touserdata(L, 2));
-    lua_pushboolean(L, *a == *b);
-    return 1;
-}
-
-static int color_tostring(lua_State *L)
-{
-    Color *c = static_cast<Color *>(lua_touserdata(L, 1));
-    char buffer[128];
-    snprintf(buffer, sizeof(buffer), "Color(%g, %g, %g, %g)", c->r, c->g, c->b, c->a);
-    lua_pushstring(L, buffer);
-    return 1;
-}
-
-static void register_color_metatable(lua_State *L)
-{
-    ERR_FAIL_COND_MSG(!lua_checkstack(L, 3), "register_color_metatable(): Stack overflow. Cannot grow stack.");
-
-    luaL_newmetatable(L, "Color");
-
-    lua_pushcfunction(L, color_index, "__index");
-    lua_setfield(L, -2, "__index");
-
-    lua_pushcfunction(L, color_newindex, "__newindex");
-    lua_setfield(L, -2, "__newindex");
-
-    lua_pushcfunction(L, color_add, "__add");
-    lua_setfield(L, -2, "__add");
-
-    lua_pushcfunction(L, color_sub, "__sub");
-    lua_setfield(L, -2, "__sub");
-
-    lua_pushcfunction(L, color_mul, "__mul");
-    lua_setfield(L, -2, "__mul");
-
-    lua_pushcfunction(L, color_div, "__div");
-    lua_setfield(L, -2, "__div");
-
-    lua_pushcfunction(L, color_unm, "__unm");
-    lua_setfield(L, -2, "__unm");
-
-    lua_pushcfunction(L, color_eq, "__eq");
-    lua_setfield(L, -2, "__eq");
-
-    lua_pushcfunction(L, color_tostring, "__tostring");
-    lua_setfield(L, -2, "__tostring");
-
-    lua_setuserdatametatable(L, LUA_TAG_COLOR);
-
-    // Register constructor
-    lua_pushcfunction(L, color_constructor, "Color");
-    lua_setglobal(L, "Color");
-}
-
-// =============================================================================
-// Rect2
-// =============================================================================
 
 static int rect2_constructor(lua_State *L)
 {
-    double x = luaL_optnumber(L, 1, 0.0);
-    double y = luaL_optnumber(L, 2, 0.0);
-    double width = luaL_optnumber(L, 3, 0.0);
-    double height = luaL_optnumber(L, 4, 0.0);
-    push_rect2(L, Rect2(x, y, width, height));
+    int isnum = 0;
+    double x = lua_tonumberx(L, 1, &isnum);
+    if (isnum)
+    {
+        double y = luaL_checknumber(L, 2);
+        double width = luaL_checknumber(L, 3);
+        double height = luaL_checknumber(L, 4);
+        lua_pop(L, 4);
+
+        push_variant(L, Rect2(x, y, width, height));
+    }
+    else
+    {
+        Vector2 position = to_variant(L, 1);
+        Vector2 size = to_variant(L, 2);
+        lua_pop(L, 2);
+
+        push_variant(L, Rect2(position, size));
+    }
+
     return 1;
 }
-
-static int rect2_index(lua_State *L)
-{
-    Rect2 *r = static_cast<Rect2 *>(lua_touserdata(L, 1));
-    const char *key = luaL_checkstring(L, 2);
-
-    if (strcmp(key, "x") == 0 || strcmp(key, "position_x") == 0)
-    {
-        lua_pushnumber(L, r->position.x);
-        return 1;
-    }
-    else if (strcmp(key, "y") == 0 || strcmp(key, "position_y") == 0)
-    {
-        lua_pushnumber(L, r->position.y);
-        return 1;
-    }
-    else if (strcmp(key, "width") == 0 || strcmp(key, "size_x") == 0)
-    {
-        lua_pushnumber(L, r->size.x);
-        return 1;
-    }
-    else if (strcmp(key, "height") == 0 || strcmp(key, "size_y") == 0)
-    {
-        lua_pushnumber(L, r->size.y);
-        return 1;
-    }
-    else if (strcmp(key, "position") == 0)
-    {
-        push_vector2(L, r->position);
-        return 1;
-    }
-    else if (strcmp(key, "size") == 0)
-    {
-        push_vector2(L, r->size);
-        return 1;
-    }
-
-    return 0;
-}
-
-static int rect2_newindex(lua_State *L)
-{
-    Rect2 *r = static_cast<Rect2 *>(lua_touserdata(L, 1));
-    const char *key = luaL_checkstring(L, 2);
-
-    if (strcmp(key, "x") == 0 || strcmp(key, "position_x") == 0)
-    {
-        r->position.x = luaL_checknumber(L, 3);
-    }
-    else if (strcmp(key, "y") == 0 || strcmp(key, "position_y") == 0)
-    {
-        r->position.y = luaL_checknumber(L, 3);
-    }
-    else if (strcmp(key, "width") == 0 || strcmp(key, "size_x") == 0)
-    {
-        r->size.x = luaL_checknumber(L, 3);
-    }
-    else if (strcmp(key, "height") == 0 || strcmp(key, "size_y") == 0)
-    {
-        r->size.y = luaL_checknumber(L, 3);
-    }
-
-    return 0;
-}
-
-static int rect2_eq(lua_State *L)
-{
-    Rect2 *a = static_cast<Rect2 *>(lua_touserdata(L, 1));
-    Rect2 *b = static_cast<Rect2 *>(lua_touserdata(L, 2));
-    lua_pushboolean(L, *a == *b);
-    return 1;
-}
-
-static int rect2_tostring(lua_State *L)
-{
-    Rect2 *r = static_cast<Rect2 *>(lua_touserdata(L, 1));
-    char buffer[128];
-    snprintf(buffer, sizeof(buffer), "Rect2(%g, %g, %g, %g)", r->position.x, r->position.y, r->size.x, r->size.y);
-    lua_pushstring(L, buffer);
-    return 1;
-}
-
-static void register_rect2_metatable(lua_State *L)
-{
-    ERR_FAIL_COND_MSG(!lua_checkstack(L, 3), "register_rect2_metatable(): Stack overflow. Cannot grow stack.");
-
-    luaL_newmetatable(L, "Rect2");
-
-    lua_pushcfunction(L, rect2_index, "__index");
-    lua_setfield(L, -2, "__index");
-
-    lua_pushcfunction(L, rect2_newindex, "__newindex");
-    lua_setfield(L, -2, "__newindex");
-
-    lua_pushcfunction(L, rect2_eq, "__eq");
-    lua_setfield(L, -2, "__eq");
-
-    lua_pushcfunction(L, rect2_tostring, "__tostring");
-    lua_setfield(L, -2, "__tostring");
-
-    lua_setuserdatametatable(L, LUA_TAG_RECT2);
-
-    // Register constructor
-    lua_pushcfunction(L, rect2_constructor, "Rect2");
-    lua_setglobal(L, "Rect2");
-}
-
-// =============================================================================
-// Rect2i
-// =============================================================================
 
 static int rect2i_constructor(lua_State *L)
 {
-    int x = luaL_optinteger(L, 1, 0);
-    int y = luaL_optinteger(L, 2, 0);
-    int width = luaL_optinteger(L, 3, 0);
-    int height = luaL_optinteger(L, 4, 0);
-    push_rect2i(L, Rect2i(x, y, width, height));
-    return 1;
-}
-
-static int rect2i_index(lua_State *L)
-{
-    Rect2i *r = static_cast<Rect2i *>(lua_touserdata(L, 1));
-    const char *key = luaL_checkstring(L, 2);
-
-    if (strcmp(key, "x") == 0 || strcmp(key, "position_x") == 0)
+    int isnum = 0;
+    int x = lua_tointegerx(L, 1, &isnum);
+    if (isnum)
     {
-        lua_pushinteger(L, r->position.x);
-        return 1;
-    }
-    else if (strcmp(key, "y") == 0 || strcmp(key, "position_y") == 0)
-    {
-        lua_pushinteger(L, r->position.y);
-        return 1;
-    }
-    else if (strcmp(key, "width") == 0 || strcmp(key, "size_x") == 0)
-    {
-        lua_pushinteger(L, r->size.x);
-        return 1;
-    }
-    else if (strcmp(key, "height") == 0 || strcmp(key, "size_y") == 0)
-    {
-        lua_pushinteger(L, r->size.y);
-        return 1;
-    }
-    else if (strcmp(key, "position") == 0)
-    {
-        push_vector2i(L, r->position);
-        return 1;
-    }
-    else if (strcmp(key, "size") == 0)
-    {
-        push_vector2i(L, r->size);
-        return 1;
-    }
-
-    return 0;
-}
-
-static int rect2i_newindex(lua_State *L)
-{
-    Rect2i *r = static_cast<Rect2i *>(lua_touserdata(L, 1));
-    const char *key = luaL_checkstring(L, 2);
-
-    if (strcmp(key, "x") == 0 || strcmp(key, "position_x") == 0)
-    {
-        r->position.x = luaL_checkinteger(L, 3);
-    }
-    else if (strcmp(key, "y") == 0 || strcmp(key, "position_y") == 0)
-    {
-        r->position.y = luaL_checkinteger(L, 3);
-    }
-    else if (strcmp(key, "width") == 0 || strcmp(key, "size_x") == 0)
-    {
-        r->size.x = luaL_checkinteger(L, 3);
-    }
-    else if (strcmp(key, "height") == 0 || strcmp(key, "size_y") == 0)
-    {
-        r->size.y = luaL_checkinteger(L, 3);
-    }
-
-    return 0;
-}
-
-static int rect2i_eq(lua_State *L)
-{
-    Rect2i *a = static_cast<Rect2i *>(lua_touserdata(L, 1));
-    Rect2i *b = static_cast<Rect2i *>(lua_touserdata(L, 2));
-    lua_pushboolean(L, *a == *b);
-    return 1;
-}
-
-static int rect2i_tostring(lua_State *L)
-{
-    Rect2i *r = static_cast<Rect2i *>(lua_touserdata(L, 1));
-    char buffer[128];
-    snprintf(buffer, sizeof(buffer), "Rect2i(%d, %d, %d, %d)", r->position.x, r->position.y, r->size.x, r->size.y);
-    lua_pushstring(L, buffer);
-    return 1;
-}
-
-static void register_rect2i_metatable(lua_State *L)
-{
-    ERR_FAIL_COND_MSG(!lua_checkstack(L, 3), "register_rect2i_metatable(): Stack overflow. Cannot grow stack.");
-
-    luaL_newmetatable(L, "Rect2i");
-
-    lua_pushcfunction(L, rect2i_index, "__index");
-    lua_setfield(L, -2, "__index");
-
-    lua_pushcfunction(L, rect2i_newindex, "__newindex");
-    lua_setfield(L, -2, "__newindex");
-
-    lua_pushcfunction(L, rect2i_eq, "__eq");
-    lua_setfield(L, -2, "__eq");
-
-    lua_pushcfunction(L, rect2i_tostring, "__tostring");
-    lua_setfield(L, -2, "__tostring");
-
-    lua_setuserdatametatable(L, LUA_TAG_RECT2I);
-
-    // Register constructor
-    lua_pushcfunction(L, rect2i_constructor, "Rect2i");
-    lua_setglobal(L, "Rect2i");
-}
-
-// =============================================================================
-// AABB
-// =============================================================================
-
-static int aabb_constructor(lua_State *L)
-{
-    double px = luaL_optnumber(L, 1, 0.0);
-    double py = luaL_optnumber(L, 2, 0.0);
-    double pz = luaL_optnumber(L, 3, 0.0);
-    double sx = luaL_optnumber(L, 4, 0.0);
-    double sy = luaL_optnumber(L, 5, 0.0);
-    double sz = luaL_optnumber(L, 6, 0.0);
-    push_aabb(L, AABB(Vector3(px, py, pz), Vector3(sx, sy, sz)));
-    return 1;
-}
-
-static int aabb_index(lua_State *L)
-{
-    AABB *aabb = static_cast<AABB *>(lua_touserdata(L, 1));
-    const char *key = luaL_checkstring(L, 2);
-
-    if (strcmp(key, "position") == 0)
-    {
-        push_vector3(L, aabb->position);
-        return 1;
-    }
-    else if (strcmp(key, "size") == 0)
-    {
-        push_vector3(L, aabb->size);
-        return 1;
-    }
-
-    return 0;
-}
-
-static int aabb_newindex(lua_State *L)
-{
-    AABB *aabb = static_cast<AABB *>(lua_touserdata(L, 1));
-    const char *key = luaL_checkstring(L, 2);
-
-    if (strcmp(key, "position") == 0)
-    {
-        aabb->position = to_vector3(L, 3);
-    }
-    else if (strcmp(key, "size") == 0)
-    {
-        aabb->size = to_vector3(L, 3);
-    }
-
-    return 0;
-}
-
-static int aabb_eq(lua_State *L)
-{
-    AABB *a = static_cast<AABB *>(lua_touserdata(L, 1));
-    AABB *b = static_cast<AABB *>(lua_touserdata(L, 2));
-    lua_pushboolean(L, *a == *b);
-    return 1;
-}
-
-static int aabb_tostring(lua_State *L)
-{
-    AABB *aabb = static_cast<AABB *>(lua_touserdata(L, 1));
-    char buffer[256];
-    snprintf(buffer, sizeof(buffer), "AABB((%g, %g, %g), (%g, %g, %g))",
-             aabb->position.x, aabb->position.y, aabb->position.z,
-             aabb->size.x, aabb->size.y, aabb->size.z);
-    lua_pushstring(L, buffer);
-    return 1;
-}
-
-static void register_aabb_metatable(lua_State *L)
-{
-    ERR_FAIL_COND_MSG(!lua_checkstack(L, 3), "register_aabb_metatable(): Stack overflow. Cannot grow stack.");
-
-    luaL_newmetatable(L, "AABB");
-
-    lua_pushcfunction(L, aabb_index, "__index");
-    lua_setfield(L, -2, "__index");
-
-    lua_pushcfunction(L, aabb_newindex, "__newindex");
-    lua_setfield(L, -2, "__newindex");
-
-    lua_pushcfunction(L, aabb_eq, "__eq");
-    lua_setfield(L, -2, "__eq");
-
-    lua_pushcfunction(L, aabb_tostring, "__tostring");
-    lua_setfield(L, -2, "__tostring");
-
-    lua_setuserdatametatable(L, LUA_TAG_AABB);
-
-    // Register constructor
-    lua_pushcfunction(L, aabb_constructor, "AABB");
-    lua_setglobal(L, "AABB");
-}
-
-// =============================================================================
-// Plane
-// =============================================================================
-
-static int plane_constructor(lua_State *L)
-{
-    double a = luaL_optnumber(L, 1, 0.0);
-    double b = luaL_optnumber(L, 2, 0.0);
-    double c = luaL_optnumber(L, 3, 0.0);
-    double d = luaL_optnumber(L, 4, 0.0);
-    push_plane(L, Plane(a, b, c, d));
-    return 1;
-}
-
-static int plane_index(lua_State *L)
-{
-    Plane *p = static_cast<Plane *>(lua_touserdata(L, 1));
-    const char *key = luaL_checkstring(L, 2);
-
-    if (strcmp(key, "normal") == 0)
-    {
-        push_vector3(L, p->normal);
-        return 1;
-    }
-    else if (strcmp(key, "d") == 0)
-    {
-        lua_pushnumber(L, p->d);
-        return 1;
-    }
-
-    return 0;
-}
-
-static int plane_newindex(lua_State *L)
-{
-    Plane *p = static_cast<Plane *>(lua_touserdata(L, 1));
-    const char *key = luaL_checkstring(L, 2);
-
-    if (strcmp(key, "normal") == 0)
-    {
-        p->normal = to_vector3(L, 3);
-    }
-    else if (strcmp(key, "d") == 0)
-    {
-        p->d = luaL_checknumber(L, 3);
-    }
-
-    return 0;
-}
-
-static int plane_unm(lua_State *L)
-{
-    Plane *p = static_cast<Plane *>(lua_touserdata(L, 1));
-    push_plane(L, -*p);
-    return 1;
-}
-
-static int plane_eq(lua_State *L)
-{
-    Plane *a = static_cast<Plane *>(lua_touserdata(L, 1));
-    Plane *b = static_cast<Plane *>(lua_touserdata(L, 2));
-    lua_pushboolean(L, *a == *b);
-    return 1;
-}
-
-static int plane_tostring(lua_State *L)
-{
-    Plane *p = static_cast<Plane *>(lua_touserdata(L, 1));
-    char buffer[256];
-    snprintf(buffer, sizeof(buffer), "Plane(%g, %g, %g, %g)", p->normal.x, p->normal.y, p->normal.z, p->d);
-    lua_pushstring(L, buffer);
-    return 1;
-}
-
-static void register_plane_metatable(lua_State *L)
-{
-    ERR_FAIL_COND_MSG(!lua_checkstack(L, 3), "register_plane_metatable(): Stack overflow. Cannot grow stack.");
-
-    luaL_newmetatable(L, "Plane");
-
-    lua_pushcfunction(L, plane_index, "__index");
-    lua_setfield(L, -2, "__index");
-
-    lua_pushcfunction(L, plane_newindex, "__newindex");
-    lua_setfield(L, -2, "__newindex");
-
-    lua_pushcfunction(L, plane_unm, "__unm");
-    lua_setfield(L, -2, "__unm");
-
-    lua_pushcfunction(L, plane_eq, "__eq");
-    lua_setfield(L, -2, "__eq");
-
-    lua_pushcfunction(L, plane_tostring, "__tostring");
-    lua_setfield(L, -2, "__tostring");
-
-    lua_setuserdatametatable(L, LUA_TAG_PLANE);
-
-    // Register constructor
-    lua_pushcfunction(L, plane_constructor, "Plane");
-    lua_setglobal(L, "Plane");
-}
-
-// =============================================================================
-// Quaternion
-// =============================================================================
-
-static int quaternion_constructor(lua_State *L)
-{
-    double x = luaL_optnumber(L, 1, 0.0);
-    double y = luaL_optnumber(L, 2, 0.0);
-    double z = luaL_optnumber(L, 3, 0.0);
-    double w = luaL_optnumber(L, 4, 1.0);
-    push_quaternion(L, Quaternion(x, y, z, w));
-    return 1;
-}
-
-static int quaternion_index(lua_State *L)
-{
-    Quaternion *q = static_cast<Quaternion *>(lua_touserdata(L, 1));
-    const char *key = luaL_checkstring(L, 2);
-
-    if (strcmp(key, "x") == 0)
-    {
-        lua_pushnumber(L, q->x);
-        return 1;
-    }
-    else if (strcmp(key, "y") == 0)
-    {
-        lua_pushnumber(L, q->y);
-        return 1;
-    }
-    else if (strcmp(key, "z") == 0)
-    {
-        lua_pushnumber(L, q->z);
-        return 1;
-    }
-    else if (strcmp(key, "w") == 0)
-    {
-        lua_pushnumber(L, q->w);
-        return 1;
-    }
-
-    return 0;
-}
-
-static int quaternion_newindex(lua_State *L)
-{
-    Quaternion *q = static_cast<Quaternion *>(lua_touserdata(L, 1));
-    const char *key = luaL_checkstring(L, 2);
-    double value = luaL_checknumber(L, 3);
-
-    if (strcmp(key, "x") == 0)
-    {
-        q->x = value;
-    }
-    else if (strcmp(key, "y") == 0)
-    {
-        q->y = value;
-    }
-    else if (strcmp(key, "z") == 0)
-    {
-        q->z = value;
-    }
-    else if (strcmp(key, "w") == 0)
-    {
-        q->w = value;
-    }
-
-    return 0;
-}
-
-static int quaternion_add(lua_State *L)
-{
-    Quaternion *a = static_cast<Quaternion *>(lua_touserdata(L, 1));
-    Quaternion *b = static_cast<Quaternion *>(lua_touserdata(L, 2));
-    push_quaternion(L, *a + *b);
-    return 1;
-}
-
-static int quaternion_sub(lua_State *L)
-{
-    Quaternion *a = static_cast<Quaternion *>(lua_touserdata(L, 1));
-    Quaternion *b = static_cast<Quaternion *>(lua_touserdata(L, 2));
-    push_quaternion(L, *a - *b);
-    return 1;
-}
-
-static int quaternion_mul(lua_State *L)
-{
-    Quaternion *a = static_cast<Quaternion *>(lua_touserdata(L, 1));
-
-    if (lua_isnumber(L, 2))
-    {
-        double scalar = lua_tonumber(L, 2);
-        push_quaternion(L, *a * scalar);
+        int y = luaL_checkinteger(L, 2);
+        int width = luaL_checkinteger(L, 3);
+        int height = luaL_checkinteger(L, 4);
+        lua_pop(L, 4);
+
+        push_variant(L, Rect2i(x, y, width, height));
     }
     else
     {
-        Quaternion *b = static_cast<Quaternion *>(lua_touserdata(L, 2));
-        push_quaternion(L, *a * *b);
+        Vector2i position = to_variant(L, 1);
+        Vector2i size = to_variant(L, 2);
+        lua_pop(L, 2);
+
+        push_variant(L, Rect2i(position, size));
     }
 
     return 1;
 }
 
-static int quaternion_div(lua_State *L)
+static int vector3i_constructor(lua_State *L)
 {
-    Quaternion *a = static_cast<Quaternion *>(lua_touserdata(L, 1));
-    double scalar = luaL_checknumber(L, 2);
-    push_quaternion(L, *a / scalar);
-    return 1;
-}
-
-static int quaternion_unm(lua_State *L)
-{
-    Quaternion *q = static_cast<Quaternion *>(lua_touserdata(L, 1));
-    push_quaternion(L, -*q);
-    return 1;
-}
-
-static int quaternion_eq(lua_State *L)
-{
-    Quaternion *a = static_cast<Quaternion *>(lua_touserdata(L, 1));
-    Quaternion *b = static_cast<Quaternion *>(lua_touserdata(L, 2));
-    lua_pushboolean(L, *a == *b);
-    return 1;
-}
-
-static int quaternion_tostring(lua_State *L)
-{
-    Quaternion *q = static_cast<Quaternion *>(lua_touserdata(L, 1));
-    char buffer[256];
-    snprintf(buffer, sizeof(buffer), "Quaternion(%g, %g, %g, %g)", q->x, q->y, q->z, q->w);
-    lua_pushstring(L, buffer);
-    return 1;
-}
-
-static void register_quaternion_metatable(lua_State *L)
-{
-    ERR_FAIL_COND_MSG(!lua_checkstack(L, 3), "register_quaternion_metatable(): Stack overflow. Cannot grow stack.");
-
-    luaL_newmetatable(L, "Quaternion");
-
-    lua_pushcfunction(L, quaternion_index, "__index");
-    lua_setfield(L, -2, "__index");
-
-    lua_pushcfunction(L, quaternion_newindex, "__newindex");
-    lua_setfield(L, -2, "__newindex");
-
-    lua_pushcfunction(L, quaternion_add, "__add");
-    lua_setfield(L, -2, "__add");
-
-    lua_pushcfunction(L, quaternion_sub, "__sub");
-    lua_setfield(L, -2, "__sub");
-
-    lua_pushcfunction(L, quaternion_mul, "__mul");
-    lua_setfield(L, -2, "__mul");
-
-    lua_pushcfunction(L, quaternion_div, "__div");
-    lua_setfield(L, -2, "__div");
-
-    lua_pushcfunction(L, quaternion_unm, "__unm");
-    lua_setfield(L, -2, "__unm");
-
-    lua_pushcfunction(L, quaternion_eq, "__eq");
-    lua_setfield(L, -2, "__eq");
-
-    lua_pushcfunction(L, quaternion_tostring, "__tostring");
-    lua_setfield(L, -2, "__tostring");
-
-    lua_setuserdatametatable(L, LUA_TAG_QUATERNION);
-
-    // Register constructor
-    lua_pushcfunction(L, quaternion_constructor, "Quaternion");
-    lua_setglobal(L, "Quaternion");
-}
-
-// =============================================================================
-// Basis
-// =============================================================================
-
-static int basis_constructor(lua_State *L)
-{
-    // Default constructor creates identity basis
-    push_basis(L, Basis());
-    return 1;
-}
-
-static int basis_index(lua_State *L)
-{
-    Basis *b = static_cast<Basis *>(lua_touserdata(L, 1));
-    const char *key = luaL_checkstring(L, 2);
-
-    if (strcmp(key, "x") == 0)
+    int isnum = 0;
+    int x = lua_tointegerx(L, 1, &isnum);
+    if (isnum)
     {
-        push_vector3(L, b->get_column(0));
-        return 1;
-    }
-    else if (strcmp(key, "y") == 0)
-    {
-        push_vector3(L, b->get_column(1));
-        return 1;
-    }
-    else if (strcmp(key, "z") == 0)
-    {
-        push_vector3(L, b->get_column(2));
-        return 1;
-    }
+        int y = luaL_checkinteger(L, 2);
+        int z = luaL_checkinteger(L, 3);
+        lua_pop(L, 3);
 
-    return 0;
-}
-
-static int basis_mul(lua_State *L)
-{
-    Basis *a = static_cast<Basis *>(lua_touserdata(L, 1));
-
-    if (lua_isnumber(L, 2))
-    {
-        double scalar = lua_tonumber(L, 2);
-        push_basis(L, *a * scalar);
+        push_variant(L, Vector3i(x, y, z));
     }
     else
     {
-        Basis *b = static_cast<Basis *>(lua_touserdata(L, 2));
-        push_basis(L, *a * *b);
+        Vector3 vec = to_variant(L, 1);
+        lua_pop(L, 1);
+
+        push_variant(L, Vector3i(vec));
     }
 
     return 1;
 }
-
-static int basis_eq(lua_State *L)
-{
-    Basis *a = static_cast<Basis *>(lua_touserdata(L, 1));
-    Basis *b = static_cast<Basis *>(lua_touserdata(L, 2));
-    lua_pushboolean(L, *a == *b);
-    return 1;
-}
-
-static int basis_tostring(lua_State *L)
-{
-    Basis *b = static_cast<Basis *>(lua_touserdata(L, 1));
-    char buffer[512];
-    Vector3 x = b->get_column(0);
-    Vector3 y = b->get_column(1);
-    Vector3 z = b->get_column(2);
-    snprintf(buffer, sizeof(buffer), "Basis((%g, %g, %g), (%g, %g, %g), (%g, %g, %g))",
-             x.x, x.y, x.z, y.x, y.y, y.z, z.x, z.y, z.z);
-    lua_pushstring(L, buffer);
-    return 1;
-}
-
-static void register_basis_metatable(lua_State *L)
-{
-    ERR_FAIL_COND_MSG(!lua_checkstack(L, 3), "register_basis_metatable(): Stack overflow. Cannot grow stack.");
-
-    luaL_newmetatable(L, "Basis");
-
-    lua_pushcfunction(L, basis_index, "__index");
-    lua_setfield(L, -2, "__index");
-
-    lua_pushcfunction(L, basis_mul, "__mul");
-    lua_setfield(L, -2, "__mul");
-
-    lua_pushcfunction(L, basis_eq, "__eq");
-    lua_setfield(L, -2, "__eq");
-
-    lua_pushcfunction(L, basis_tostring, "__tostring");
-    lua_setfield(L, -2, "__tostring");
-
-    lua_setuserdatametatable(L, LUA_TAG_BASIS);
-
-    // Register constructor
-    lua_pushcfunction(L, basis_constructor, "Basis");
-    lua_setglobal(L, "Basis");
-}
-
-// =============================================================================
-// Transform2D
-// =============================================================================
 
 static int transform2d_constructor(lua_State *L)
 {
-    // Default constructor creates identity transform
-    push_transform2d(L, Transform2D());
-    return 1;
-}
-
-static int transform2d_index(lua_State *L)
-{
-    Transform2D *t = static_cast<Transform2D *>(lua_touserdata(L, 1));
-    const char *key = luaL_checkstring(L, 2);
-
-    if (strcmp(key, "x") == 0)
+    int isnum = 0;
+    double rotation = lua_tonumberx(L, 1, &isnum);
+    if (!isnum)
     {
-        push_vector2(L, (*t)[0]);
-        return 1;
+        Vector2 x_axis = to_variant(L, 1);
+        Vector2 y_axis = to_variant(L, 2);
+        Vector2 origin = to_variant(L, 3);
+        lua_pop(L, 3);
+
+        push_variant(L, Transform2D(x_axis, y_axis, origin));
     }
-    else if (strcmp(key, "y") == 0)
+    else if (lua_gettop(L) == 4)
     {
-        push_vector2(L, (*t)[1]);
-        return 1;
+        Vector2 scale = to_variant(L, 2);
+        double skew = luaL_checknumber(L, 3);
+        Vector2 position = to_variant(L, 4);
+        lua_pop(L, 4);
+
+        push_variant(L, Transform2D(rotation, scale, skew, position));
     }
-    else if (strcmp(key, "origin") == 0)
+    else
     {
-        push_vector2(L, t->get_origin());
-        return 1;
+        Vector2 position = to_variant(L, 2);
+        lua_pop(L, 2);
+
+        push_variant(L, Transform2D(rotation, position));
     }
 
-    return 0;
-}
-
-static int transform2d_mul(lua_State *L)
-{
-    Transform2D *a = static_cast<Transform2D *>(lua_touserdata(L, 1));
-    Transform2D *b = static_cast<Transform2D *>(lua_touserdata(L, 2));
-    push_transform2d(L, *a * *b);
     return 1;
 }
 
-static int transform2d_eq(lua_State *L)
+static int vector4_constructor(lua_State *L)
 {
-    Transform2D *a = static_cast<Transform2D *>(lua_touserdata(L, 1));
-    Transform2D *b = static_cast<Transform2D *>(lua_touserdata(L, 2));
-    lua_pushboolean(L, *a == *b);
+    double x = luaL_checknumber(L, 1);
+    double y = luaL_checknumber(L, 2);
+    double z = luaL_checknumber(L, 3);
+    double w = luaL_checknumber(L, 4);
+    lua_pop(L, 4);
+
+    push_variant(L, Vector4(x, y, z, w));
     return 1;
 }
 
-static int transform2d_tostring(lua_State *L)
+static int vector4i_constructor(lua_State *L)
 {
-    Transform2D *t = static_cast<Transform2D *>(lua_touserdata(L, 1));
-    char buffer[256];
-    Vector2 x = (*t)[0];
-    Vector2 y = (*t)[1];
-    Vector2 o = t->get_origin();
-    snprintf(buffer, sizeof(buffer), "Transform2D((%g, %g), (%g, %g), (%g, %g))",
-             x.x, x.y, y.x, y.y, o.x, o.y);
-    lua_pushstring(L, buffer);
+    int isnum = 0;
+    int x = lua_tointegerx(L, 1, &isnum);
+    if (isnum)
+    {
+        int y = luaL_checkinteger(L, 2);
+        int z = luaL_checkinteger(L, 3);
+        int w = luaL_checkinteger(L, 4);
+        lua_pop(L, 4);
+
+        push_variant(L, Vector4i(x, y, z, w));
+    }
+    else
+    {
+        Vector4 vec = to_variant(L, 1);
+        lua_pop(L, 1);
+
+        push_variant(L, Vector4i(vec));
+    }
+
     return 1;
 }
 
-static void register_transform2d_metatable(lua_State *L)
+static int plane_constructor(lua_State *L)
 {
-    ERR_FAIL_COND_MSG(!lua_checkstack(L, 3), "register_transform2d_metatable(): Stack overflow. Cannot grow stack.");
+    int isnum = 0;
+    double a = lua_tonumberx(L, 1, &isnum);
+    if (isnum)
+    {
+        double b = luaL_checknumber(L, 2);
+        double c = luaL_checknumber(L, 3);
+        double d = luaL_checknumber(L, 4);
+        lua_pop(L, 4);
 
-    luaL_newmetatable(L, "Transform2D");
+        push_variant(L, Plane(a, b, c, d));
+    }
+    else if (lua_gettop(L) == 2)
+    {
+        Vector3 normal = to_variant(L, 1);
+        double d = lua_tonumberx(L, 2, &isnum);
+        if (isnum)
+        {
+            lua_pop(L, 2);
 
-    lua_pushcfunction(L, transform2d_index, "__index");
-    lua_setfield(L, -2, "__index");
+            push_variant(L, Plane(normal, d));
+        }
+        else
+        {
+            Vector3 point = to_variant(L, 2);
+            lua_pop(L, 2);
 
-    lua_pushcfunction(L, transform2d_mul, "__mul");
-    lua_setfield(L, -2, "__mul");
+            push_variant(L, Plane(normal, point));
+        }
+    }
+    else if (lua_gettop(L) == 3)
+    {
+        Vector3 point1 = to_variant(L, 1);
+        Vector3 point2 = to_variant(L, 2);
+        Vector3 point3 = to_variant(L, 3);
+        lua_pop(L, 3);
 
-    lua_pushcfunction(L, transform2d_eq, "__eq");
-    lua_setfield(L, -2, "__eq");
+        push_variant(L, Plane(point1, point2, point3));
+    }
+    else
+    {
+        Vector3 normal = to_variant(L, 1);
+        lua_pop(L, 1);
 
-    lua_pushcfunction(L, transform2d_tostring, "__tostring");
-    lua_setfield(L, -2, "__tostring");
+        push_variant(L, Plane(normal));
+    }
 
-    lua_setuserdatametatable(L, LUA_TAG_TRANSFORM2D);
-
-    // Register constructor
-    lua_pushcfunction(L, transform2d_constructor, "Transform2D");
-    lua_setglobal(L, "Transform2D");
+    return 1;
 }
 
-// =============================================================================
-// Transform3D
-// =============================================================================
+static int quaternion_constructor(lua_State *L)
+{
+    int nargs = lua_gettop(L);
+    if (nargs == 1)
+    {
+        Basis basis = to_variant(L, 1);
+        lua_pop(L, 1);
+
+        push_variant(L, Quaternion(basis));
+    }
+    else if (nargs == 4)
+    {
+        double x = luaL_checknumber(L, 1);
+        double y = luaL_checknumber(L, 2);
+        double z = luaL_checknumber(L, 3);
+        double w = luaL_checknumber(L, 4);
+        lua_pop(L, 4);
+
+        push_variant(L, Quaternion(x, y, z, w));
+    }
+    else
+    {
+        int isnum = 0;
+        double angle = lua_tonumberx(L, 2, &isnum);
+        if (isnum)
+        {
+            Vector3 axis = to_variant(L, 1);
+            lua_pop(L, 2);
+
+            push_variant(L, Quaternion(axis, angle));
+        }
+        else
+        {
+            Vector3 arc_from = to_variant(L, 1);
+            Vector3 arc_to = to_variant(L, 2);
+            lua_pop(L, 2);
+
+            push_variant(L, Quaternion(arc_from, arc_to));
+        }
+    }
+
+    return 1;
+}
+
+static int aabb_constructor(lua_State *L)
+{
+    Vector3 position = to_variant(L, 1);
+    Vector3 size = to_variant(L, 2);
+    lua_pop(L, 2);
+
+    push_variant(L, AABB(position, size));
+    return 1;
+}
+
+static int basis_constructor(lua_State *L)
+{
+    int nargs = lua_gettop(L);
+    if (nargs == 1)
+    {
+        Quaternion q = to_variant(L, 1);
+        lua_pop(L, 1);
+
+        push_variant(L, Basis(q));
+    }
+    else if (nargs == 3)
+    {
+        Vector3 x = to_variant(L, 1);
+        Vector3 y = to_variant(L, 2);
+        Vector3 z = to_variant(L, 3);
+        lua_pop(L, 3);
+
+        push_variant(L, Basis(x, y, z));
+    }
+    else
+    {
+        Vector3 axis = to_variant(L, 1);
+        double angle = luaL_checknumber(L, 2);
+        lua_pop(L, 2);
+
+        push_variant(L, Basis(axis, angle));
+    }
+
+    return 1;
+}
 
 static int transform3d_constructor(lua_State *L)
 {
-    // Default constructor creates identity transform
-    push_transform3d(L, Transform3D());
-    return 1;
-}
-
-static int transform3d_index(lua_State *L)
-{
-    Transform3D *t = static_cast<Transform3D *>(lua_touserdata(L, 1));
-    const char *key = luaL_checkstring(L, 2);
-
-    if (strcmp(key, "basis") == 0)
+    int nargs = lua_gettop(L);
+    if (nargs == 1)
     {
-        push_basis(L, t->basis);
-        return 1;
+        Projection p = to_variant(L, 1);
+        lua_pop(L, 1);
+
+        push_variant(L, Transform3D(p));
     }
-    else if (strcmp(key, "origin") == 0)
+    else if (nargs == 2)
     {
-        push_vector3(L, t->origin);
-        return 1;
+        Basis basis = to_variant(L, 1);
+        Vector3 origin = to_variant(L, 2);
+        lua_pop(L, 2);
+
+        push_variant(L, Transform3D(basis, origin));
+    }
+    else
+    {
+        Vector3 x_axis = to_variant(L, 1);
+        Vector3 y_axis = to_variant(L, 2);
+        Vector3 z_axis = to_variant(L, 3);
+        Vector3 origin = to_variant(L, 4);
+        lua_pop(L, 4);
+
+        push_variant(L, Transform3D(x_axis, y_axis, z_axis, origin));
     }
 
-    return 0;
-}
-
-static int transform3d_mul(lua_State *L)
-{
-    Transform3D *a = static_cast<Transform3D *>(lua_touserdata(L, 1));
-    Transform3D *b = static_cast<Transform3D *>(lua_touserdata(L, 2));
-    push_transform3d(L, *a * *b);
     return 1;
 }
-
-static int transform3d_eq(lua_State *L)
-{
-    Transform3D *a = static_cast<Transform3D *>(lua_touserdata(L, 1));
-    Transform3D *b = static_cast<Transform3D *>(lua_touserdata(L, 2));
-    lua_pushboolean(L, *a == *b);
-    return 1;
-}
-
-static int transform3d_tostring(lua_State *L)
-{
-    Transform3D *t = static_cast<Transform3D *>(lua_touserdata(L, 1));
-    char buffer[512];
-    snprintf(buffer, sizeof(buffer), "Transform3D(Basis(...), Origin(%g, %g, %g))",
-             t->origin.x, t->origin.y, t->origin.z);
-    lua_pushstring(L, buffer);
-    return 1;
-}
-
-static void register_transform3d_metatable(lua_State *L)
-{
-    ERR_FAIL_COND_MSG(!lua_checkstack(L, 3), "register_transform3d_metatable(): Stack overflow. Cannot grow stack.");
-
-    luaL_newmetatable(L, "Transform3D");
-
-    lua_pushcfunction(L, transform3d_index, "__index");
-    lua_setfield(L, -2, "__index");
-
-    lua_pushcfunction(L, transform3d_mul, "__mul");
-    lua_setfield(L, -2, "__mul");
-
-    lua_pushcfunction(L, transform3d_eq, "__eq");
-    lua_setfield(L, -2, "__eq");
-
-    lua_pushcfunction(L, transform3d_tostring, "__tostring");
-    lua_setfield(L, -2, "__tostring");
-
-    lua_setuserdatametatable(L, LUA_TAG_TRANSFORM3D);
-
-    // Register constructor
-    lua_pushcfunction(L, transform3d_constructor, "Transform3D");
-    lua_setglobal(L, "Transform3D");
-}
-
-// =============================================================================
-// Projection
-// =============================================================================
 
 static int projection_constructor(lua_State *L)
 {
-    // Default constructor creates identity projection
-    push_projection(L, Projection());
+    if (lua_gettop(L) == 1)
+    {
+        Transform3D transform = to_variant(L, 1);
+        lua_pop(L, 1);
+
+        push_variant(L, Projection(transform));
+    }
+    else
+    {
+        Vector4 x_axis = to_variant(L, 1);
+        Vector4 y_axis = to_variant(L, 2);
+        Vector4 z_axis = to_variant(L, 3);
+        Vector4 w_axis = to_variant(L, 4);
+        lua_pop(L, 4);
+
+        push_variant(L, Projection(x_axis, y_axis, z_axis, w_axis));
+    }
+
     return 1;
 }
 
-static int projection_mul(lua_State *L)
+static int color_constructor(lua_State *L)
 {
-    Projection *a = static_cast<Projection *>(lua_touserdata(L, 1));
-    Projection *b = static_cast<Projection *>(lua_touserdata(L, 2));
-    push_projection(L, *a * *b);
+    int nargs = lua_gettop(L);
+    if (nargs == 1)
+    {
+        size_t len = 0;
+        const char *cstr = luaL_checklstring(L, 1, &len);
+        String code = String::utf8(cstr, len);
+        lua_pop(L, 1);
+
+        push_variant(L, Color(code));
+    }
+    else if (nargs == 2)
+    {
+        double alpha = luaL_checknumber(L, 2);
+
+        if (lua_isstring(L, 1))
+        {
+            size_t len = 0;
+            const char *cstr = luaL_checklstring(L, 1, &len);
+            String code = String::utf8(cstr, len);
+            lua_pop(L, 2);
+
+            push_variant(L, Color(code, alpha));
+        }
+        else
+        {
+            Color base = to_variant(L, 1);
+            lua_pop(L, 2);
+
+            push_variant(L, Color(base, alpha));
+        }
+    }
+    else if (nargs == 3)
+    {
+        double r = luaL_checknumber(L, 1);
+        double g = luaL_checknumber(L, 2);
+        double b = luaL_checknumber(L, 3);
+        lua_pop(L, 3);
+
+        push_variant(L, Color(r, g, b));
+    }
+    else
+    {
+        double r = luaL_checknumber(L, 1);
+        double g = luaL_checknumber(L, 2);
+        double b = luaL_checknumber(L, 3);
+        double a = luaL_checknumber(L, 4);
+        lua_pop(L, 4);
+
+        push_variant(L, Color(r, g, b, a));
+    }
+
     return 1;
 }
 
-static int projection_eq(lua_State *L)
+static int rid_constructor(lua_State *L)
 {
-    Projection *a = static_cast<Projection *>(lua_touserdata(L, 1));
-    Projection *b = static_cast<Projection *>(lua_touserdata(L, 2));
-    lua_pushboolean(L, *a == *b);
+    push_variant(L, RID());
     return 1;
 }
 
-static int projection_tostring(lua_State *L)
+static int signal_constructor(lua_State *L)
 {
-    lua_pushstring(L, "Projection(...)");
+    Object *obj = to_object(L, 1);
+    StringName signal = to_stringname(L, 2);
+    lua_pop(L, 2);
+
+    push_variant(L, Signal(obj, signal));
     return 1;
 }
 
-static void register_projection_metatable(lua_State *L)
+static int packed_byte_array_constructor(lua_State *L)
 {
-    ERR_FAIL_COND_MSG(!lua_checkstack(L, 3), "register_projection_metatable(): Stack overflow. Cannot grow stack.");
+    if (lua_gettop(L) == 1)
+    {
+        Array array = to_array(L, 1);
+        lua_pop(L, 1);
 
-    luaL_newmetatable(L, "Projection");
+        push_variant(L, PackedByteArray(array));
+    }
+    else
+    {
+        lua_newbuffer(L, 0);
+    }
 
-    lua_pushcfunction(L, projection_mul, "__mul");
-    lua_setfield(L, -2, "__mul");
-
-    lua_pushcfunction(L, projection_eq, "__eq");
-    lua_setfield(L, -2, "__eq");
-
-    lua_pushcfunction(L, projection_tostring, "__tostring");
-    lua_setfield(L, -2, "__tostring");
-
-    lua_setuserdatametatable(L, LUA_TAG_PROJECTION);
-
-    // Register constructor
-    lua_pushcfunction(L, projection_constructor, "Projection");
-    lua_setglobal(L, "Projection");
+    return 1;
 }
 
-// =============================================================================
-// Public API - Push functions
-// =============================================================================
-
-void gdluau::push_vector2(lua_State *L, const Vector2 &value)
+static int packed_int32_array_constructor(lua_State *L)
 {
-    ERR_FAIL_COND_MSG(!lua_checkstack(L, 1), "push_vector2(): Stack overflow. Cannot grow stack.");
-    Vector2 *v = static_cast<Vector2 *>(lua_newuserdatataggedwithmetatable(L, sizeof(Vector2), LUA_TAG_VECTOR2));
-    *v = value;
+    if (lua_gettop(L) == 1)
+    {
+        Array array = to_array(L, 1);
+        lua_pop(L, 1);
+
+        push_variant(L, PackedInt32Array(array));
+    }
+    else
+    {
+        push_variant(L, PackedInt32Array());
+    }
+
+    return 1;
 }
 
-void gdluau::push_vector2i(lua_State *L, const Vector2i &value)
+static int packed_int64_array_constructor(lua_State *L)
 {
-    ERR_FAIL_COND_MSG(!lua_checkstack(L, 1), "push_vector2i(): Stack overflow. Cannot grow stack.");
-    Vector2i *v = static_cast<Vector2i *>(lua_newuserdatataggedwithmetatable(L, sizeof(Vector2i), LUA_TAG_VECTOR2I));
-    *v = value;
+    if (lua_gettop(L) == 1)
+    {
+        Array array = to_array(L, 1);
+        lua_pop(L, 1);
+
+        push_variant(L, PackedInt64Array(array));
+    }
+    else
+    {
+        push_variant(L, PackedInt64Array());
+    }
+
+    return 1;
 }
 
-void gdluau::push_vector3(lua_State *L, const Vector3 &value)
+static int packed_float32_array_constructor(lua_State *L)
 {
-    ERR_FAIL_COND_MSG(!lua_checkstack(L, 1), "push_vector3(): Stack overflow. Cannot grow stack.");
-    lua_pushvector(L, static_cast<float>(value.x), static_cast<float>(value.y), static_cast<float>(value.z));
+    if (lua_gettop(L) == 1)
+    {
+        Array array = to_array(L, 1);
+        lua_pop(L, 1);
+
+        push_variant(L, PackedFloat32Array(array));
+    }
+    else
+    {
+        push_variant(L, PackedFloat32Array());
+    }
+
+    return 1;
 }
 
-void gdluau::push_vector3i(lua_State *L, const Vector3i &value)
+static int packed_float64_array_constructor(lua_State *L)
 {
-    ERR_FAIL_COND_MSG(!lua_checkstack(L, 1), "push_vector3i(): Stack overflow. Cannot grow stack.");
-    Vector3i *v = static_cast<Vector3i *>(lua_newuserdatataggedwithmetatable(L, sizeof(Vector3i), LUA_TAG_VECTOR3I));
-    *v = value;
+    if (lua_gettop(L) == 1)
+    {
+        Array array = to_array(L, 1);
+        lua_pop(L, 1);
+
+        push_variant(L, PackedFloat64Array(array));
+    }
+    else
+    {
+        push_variant(L, PackedFloat64Array());
+    }
+
+    return 1;
 }
 
-void gdluau::push_color(lua_State *L, const Color &value)
+static int packed_string_array_constructor(lua_State *L)
 {
-    ERR_FAIL_COND_MSG(!lua_checkstack(L, 1), "push_color(): Stack overflow. Cannot grow stack.");
-    Color *c = static_cast<Color *>(lua_newuserdatataggedwithmetatable(L, sizeof(Color), LUA_TAG_COLOR));
-    *c = value;
+    if (lua_gettop(L) == 1)
+    {
+        Array array = to_array(L, 1);
+        lua_pop(L, 1);
+
+        push_variant(L, PackedStringArray(array));
+    }
+    else
+    {
+        push_variant(L, PackedStringArray());
+    }
+
+    return 1;
 }
 
-void gdluau::push_vector4(lua_State *L, const Vector4 &value)
+static int packed_vector2_array_constructor(lua_State *L)
 {
-    ERR_FAIL_COND_MSG(!lua_checkstack(L, 1), "push_vector4(): Stack overflow. Cannot grow stack.");
-    Vector4 *v = static_cast<Vector4 *>(lua_newuserdatataggedwithmetatable(L, sizeof(Vector4), LUA_TAG_VECTOR4));
-    *v = value;
+    if (lua_gettop(L) == 1)
+    {
+        Array array = to_array(L, 1);
+        lua_pop(L, 1);
+
+        push_variant(L, PackedVector2Array(array));
+    }
+    else
+    {
+        push_variant(L, PackedVector2Array());
+    }
+
+    return 1;
 }
 
-void gdluau::push_vector4i(lua_State *L, const Vector4i &value)
+static int packed_vector3_array_constructor(lua_State *L)
 {
-    ERR_FAIL_COND_MSG(!lua_checkstack(L, 1), "push_vector4i(): Stack overflow. Cannot grow stack.");
-    Vector4i *v = static_cast<Vector4i *>(lua_newuserdatataggedwithmetatable(L, sizeof(Vector4i), LUA_TAG_VECTOR4I));
-    *v = value;
+    if (lua_gettop(L) == 1)
+    {
+        Array array = to_array(L, 1);
+        lua_pop(L, 1);
+
+        push_variant(L, PackedVector3Array(array));
+    }
+    else
+    {
+        push_variant(L, PackedVector3Array());
+    }
+
+    return 1;
 }
 
-void gdluau::push_rect2(lua_State *L, const Rect2 &value)
+static int packed_color_array_constructor(lua_State *L)
 {
-    ERR_FAIL_COND_MSG(!lua_checkstack(L, 1), "push_rect2(): Stack overflow. Cannot grow stack.");
-    Rect2 *r = static_cast<Rect2 *>(lua_newuserdatataggedwithmetatable(L, sizeof(Rect2), LUA_TAG_RECT2));
-    *r = value;
+    if (lua_gettop(L) == 1)
+    {
+        Array array = to_array(L, 1);
+        lua_pop(L, 1);
+
+        push_variant(L, PackedColorArray(array));
+    }
+    else
+    {
+        push_variant(L, PackedColorArray());
+    }
+
+    return 1;
 }
 
-void gdluau::push_rect2i(lua_State *L, const Rect2i &value)
+static int packed_vector4_array_constructor(lua_State *L)
 {
-    ERR_FAIL_COND_MSG(!lua_checkstack(L, 1), "push_rect2i(): Stack overflow. Cannot grow stack.");
-    Rect2i *r = static_cast<Rect2i *>(lua_newuserdatataggedwithmetatable(L, sizeof(Rect2i), LUA_TAG_RECT2I));
-    *r = value;
+    if (lua_gettop(L) == 1)
+    {
+        Array array = to_array(L, 1);
+        lua_pop(L, 1);
+
+        push_variant(L, PackedVector4Array(array));
+    }
+    else
+    {
+        push_variant(L, PackedVector4Array());
+    }
+
+    return 1;
 }
 
-void gdluau::push_aabb(lua_State *L, const AABB &value)
+static void register_constructors(lua_State *L)
 {
-    ERR_FAIL_COND_MSG(!lua_checkstack(L, 1), "push_aabb(): Stack overflow. Cannot grow stack.");
-    AABB *aabb = static_cast<AABB *>(lua_newuserdatataggedwithmetatable(L, sizeof(AABB), LUA_TAG_AABB));
-    *aabb = value;
+    luaL_Reg constructors[] = {
+        {"Vector2", vector2_constructor},
+        {"Vector2i", vector2i_constructor},
+        {"Rect2", rect2_constructor},
+        {"Rect2i", rect2i_constructor},
+        {"Vector3i", vector3i_constructor},
+        {"Transform2D", transform2d_constructor},
+        {"Vector4", vector4_constructor},
+        {"Vector4i", vector4i_constructor},
+        {"Plane", plane_constructor},
+        {"Quaternion", quaternion_constructor},
+        {"AABB", aabb_constructor},
+        {"Basis", basis_constructor},
+        {"Transform3D", transform3d_constructor},
+        {"Projection", projection_constructor},
+        {"Color", color_constructor},
+        {"RID", rid_constructor},
+        {"Signal", signal_constructor},
+        {"PackedByteArray", packed_byte_array_constructor},
+        {"PackedInt32Array", packed_int32_array_constructor},
+        {"PackedInt64Array", packed_int64_array_constructor},
+        {"PackedFloat32Array", packed_float32_array_constructor},
+        {"PackedFloat64Array", packed_float64_array_constructor},
+        {"PackedStringArray", packed_string_array_constructor},
+        {"PackedVector2Array", packed_vector2_array_constructor},
+        {"PackedVector3Array", packed_vector3_array_constructor},
+        {"PackedColorArray", packed_color_array_constructor},
+        {"PackedVector4Array", packed_vector4_array_constructor},
+        {NULL, NULL} // sentinel
+    };
+
+    for (const luaL_Reg *reg = constructors; reg->name != NULL; ++reg)
+    {
+        lua_pushcfunction(L, reg->func, reg->name);
+        lua_setglobal(L, reg->name);
+    }
 }
-
-void gdluau::push_plane(lua_State *L, const Plane &value)
-{
-    ERR_FAIL_COND_MSG(!lua_checkstack(L, 1), "push_plane(): Stack overflow. Cannot grow stack.");
-    Plane *p = static_cast<Plane *>(lua_newuserdatataggedwithmetatable(L, sizeof(Plane), LUA_TAG_PLANE));
-    *p = value;
-}
-
-void gdluau::push_quaternion(lua_State *L, const Quaternion &value)
-{
-    ERR_FAIL_COND_MSG(!lua_checkstack(L, 1), "push_quaternion(): Stack overflow. Cannot grow stack.");
-    Quaternion *q = static_cast<Quaternion *>(lua_newuserdatataggedwithmetatable(L, sizeof(Quaternion), LUA_TAG_QUATERNION));
-    *q = value;
-}
-
-void gdluau::push_basis(lua_State *L, const Basis &value)
-{
-    ERR_FAIL_COND_MSG(!lua_checkstack(L, 1), "push_basis(): Stack overflow. Cannot grow stack.");
-    Basis *b = static_cast<Basis *>(lua_newuserdatataggedwithmetatable(L, sizeof(Basis), LUA_TAG_BASIS));
-    *b = value;
-}
-
-void gdluau::push_transform2d(lua_State *L, const Transform2D &value)
-{
-    ERR_FAIL_COND_MSG(!lua_checkstack(L, 1), "push_transform2d(): Stack overflow. Cannot grow stack.");
-    Transform2D *t = static_cast<Transform2D *>(lua_newuserdatataggedwithmetatable(L, sizeof(Transform2D), LUA_TAG_TRANSFORM2D));
-    *t = value;
-}
-
-void gdluau::push_transform3d(lua_State *L, const Transform3D &value)
-{
-    ERR_FAIL_COND_MSG(!lua_checkstack(L, 1), "push_transform3d(): Stack overflow. Cannot grow stack.");
-    Transform3D *t = static_cast<Transform3D *>(lua_newuserdatataggedwithmetatable(L, sizeof(Transform3D), LUA_TAG_TRANSFORM3D));
-    *t = value;
-}
-
-void gdluau::push_projection(lua_State *L, const Projection &value)
-{
-    ERR_FAIL_COND_MSG(!lua_checkstack(L, 1), "push_projection(): Stack overflow. Cannot grow stack.");
-    Projection *p = static_cast<Projection *>(lua_newuserdatataggedwithmetatable(L, sizeof(Projection), LUA_TAG_PROJECTION));
-    *p = value;
-}
-
-// =============================================================================
-// Public API - Type checking functions
-// =============================================================================
-
-bool gdluau::is_vector2(lua_State *L, int index)
-{
-    return lua_userdatatag(L, index) == LUA_TAG_VECTOR2;
-}
-
-bool gdluau::is_vector2i(lua_State *L, int index)
-{
-    return lua_userdatatag(L, index) == LUA_TAG_VECTOR2I;
-}
-
-bool gdluau::is_vector3(lua_State *L, int index)
-{
-    return lua_isvector(L, index);
-}
-
-bool gdluau::is_vector3i(lua_State *L, int index)
-{
-    return lua_userdatatag(L, index) == LUA_TAG_VECTOR3I;
-}
-
-bool gdluau::is_color(lua_State *L, int index)
-{
-    return lua_userdatatag(L, index) == LUA_TAG_COLOR;
-}
-
-bool gdluau::is_vector4(lua_State *L, int index)
-{
-    return lua_userdatatag(L, index) == LUA_TAG_VECTOR4;
-}
-
-bool gdluau::is_vector4i(lua_State *L, int index)
-{
-    return lua_userdatatag(L, index) == LUA_TAG_VECTOR4I;
-}
-
-bool gdluau::is_rect2(lua_State *L, int index)
-{
-    return lua_userdatatag(L, index) == LUA_TAG_RECT2;
-}
-
-bool gdluau::is_rect2i(lua_State *L, int index)
-{
-    return lua_userdatatag(L, index) == LUA_TAG_RECT2I;
-}
-
-bool gdluau::is_aabb(lua_State *L, int index)
-{
-    return lua_userdatatag(L, index) == LUA_TAG_AABB;
-}
-
-bool gdluau::is_plane(lua_State *L, int index)
-{
-    return lua_userdatatag(L, index) == LUA_TAG_PLANE;
-}
-
-bool gdluau::is_quaternion(lua_State *L, int index)
-{
-    return lua_userdatatag(L, index) == LUA_TAG_QUATERNION;
-}
-
-bool gdluau::is_basis(lua_State *L, int index)
-{
-    return lua_userdatatag(L, index) == LUA_TAG_BASIS;
-}
-
-bool gdluau::is_transform2d(lua_State *L, int index)
-{
-    return lua_userdatatag(L, index) == LUA_TAG_TRANSFORM2D;
-}
-
-bool gdluau::is_transform3d(lua_State *L, int index)
-{
-    return lua_userdatatag(L, index) == LUA_TAG_TRANSFORM3D;
-}
-
-bool gdluau::is_projection(lua_State *L, int index)
-{
-    return lua_userdatatag(L, index) == LUA_TAG_PROJECTION;
-}
-
-// =============================================================================
-// Public API - Extract functions
-// =============================================================================
-
-Vector2 gdluau::to_vector2(lua_State *L, int index)
-{
-    Vector2 *v = static_cast<Vector2 *>(lua_touserdatatagged(L, index, LUA_TAG_VECTOR2));
-    ERR_FAIL_NULL_V_MSG(v, Vector2(), "Invalid Vector2 userdata");
-    return *v;
-}
-
-Vector2i gdluau::to_vector2i(lua_State *L, int index)
-{
-    Vector2i *v = static_cast<Vector2i *>(lua_touserdatatagged(L, index, LUA_TAG_VECTOR2I));
-    ERR_FAIL_NULL_V_MSG(v, Vector2i(), "Invalid Vector2i userdata");
-    return *v;
-}
-
-Vector3 gdluau::to_vector3(lua_State *L, int index)
-{
-    const float *v = lua_tovector(L, index);
-    ERR_FAIL_NULL_V_MSG(v, Vector3(), "Invalid Vector3 (expected native vector)");
-    return Vector3(static_cast<real_t>(v[0]), static_cast<real_t>(v[1]), static_cast<real_t>(v[2]));
-}
-
-Vector3i gdluau::to_vector3i(lua_State *L, int index)
-{
-    Vector3i *v = static_cast<Vector3i *>(lua_touserdatatagged(L, index, LUA_TAG_VECTOR3I));
-    ERR_FAIL_NULL_V_MSG(v, Vector3i(), "Invalid Vector3i userdata");
-    return *v;
-}
-
-Color gdluau::to_color(lua_State *L, int index)
-{
-    Color *c = static_cast<Color *>(lua_touserdatatagged(L, index, LUA_TAG_COLOR));
-    ERR_FAIL_NULL_V_MSG(c, Color(), "Invalid Color userdata");
-    return *c;
-}
-
-Vector4 gdluau::to_vector4(lua_State *L, int index)
-{
-    Vector4 *v = static_cast<Vector4 *>(lua_touserdatatagged(L, index, LUA_TAG_VECTOR4));
-    ERR_FAIL_NULL_V_MSG(v, Vector4(), "Invalid Vector4 userdata");
-    return *v;
-}
-
-Vector4i gdluau::to_vector4i(lua_State *L, int index)
-{
-    Vector4i *v = static_cast<Vector4i *>(lua_touserdatatagged(L, index, LUA_TAG_VECTOR4I));
-    ERR_FAIL_NULL_V_MSG(v, Vector4i(), "Invalid Vector4i userdata");
-    return *v;
-}
-
-Rect2 gdluau::to_rect2(lua_State *L, int index)
-{
-    Rect2 *r = static_cast<Rect2 *>(lua_touserdatatagged(L, index, LUA_TAG_RECT2));
-    ERR_FAIL_NULL_V_MSG(r, Rect2(), "Invalid Rect2 userdata");
-    return *r;
-}
-
-Rect2i gdluau::to_rect2i(lua_State *L, int index)
-{
-    Rect2i *r = static_cast<Rect2i *>(lua_touserdatatagged(L, index, LUA_TAG_RECT2I));
-    ERR_FAIL_NULL_V_MSG(r, Rect2i(), "Invalid Rect2i userdata");
-    return *r;
-}
-
-AABB gdluau::to_aabb(lua_State *L, int index)
-{
-    AABB *aabb = static_cast<AABB *>(lua_touserdatatagged(L, index, LUA_TAG_AABB));
-    ERR_FAIL_NULL_V_MSG(aabb, AABB(), "Invalid AABB userdata");
-    return *aabb;
-}
-
-Plane gdluau::to_plane(lua_State *L, int index)
-{
-    Plane *p = static_cast<Plane *>(lua_touserdatatagged(L, index, LUA_TAG_PLANE));
-    ERR_FAIL_NULL_V_MSG(p, Plane(), "Invalid Plane userdata");
-    return *p;
-}
-
-Quaternion gdluau::to_quaternion(lua_State *L, int index)
-{
-    Quaternion *q = static_cast<Quaternion *>(lua_touserdatatagged(L, index, LUA_TAG_QUATERNION));
-    ERR_FAIL_NULL_V_MSG(q, Quaternion(), "Invalid Quaternion userdata");
-    return *q;
-}
-
-Basis gdluau::to_basis(lua_State *L, int index)
-{
-    Basis *b = static_cast<Basis *>(lua_touserdatatagged(L, index, LUA_TAG_BASIS));
-    ERR_FAIL_NULL_V_MSG(b, Basis(), "Invalid Basis userdata");
-    return *b;
-}
-
-Transform2D gdluau::to_transform2d(lua_State *L, int index)
-{
-    Transform2D *t = static_cast<Transform2D *>(lua_touserdatatagged(L, index, LUA_TAG_TRANSFORM2D));
-    ERR_FAIL_NULL_V_MSG(t, Transform2D(), "Invalid Transform2D userdata");
-    return *t;
-}
-
-Transform3D gdluau::to_transform3d(lua_State *L, int index)
-{
-    Transform3D *t = static_cast<Transform3D *>(lua_touserdatatagged(L, index, LUA_TAG_TRANSFORM3D));
-    ERR_FAIL_NULL_V_MSG(t, Transform3D(), "Invalid Transform3D userdata");
-    return *t;
-}
-
-Projection gdluau::to_projection(lua_State *L, int index)
-{
-    Projection *p = static_cast<Projection *>(lua_touserdatatagged(L, index, LUA_TAG_PROJECTION));
-    ERR_FAIL_NULL_V_MSG(p, Projection(), "Invalid Projection userdata");
-    return *p;
-}
-
-// =============================================================================
-// Library Entry Point
-// =============================================================================
 
 int luaopen_godot(lua_State *L)
 {
-    // Ensure sufficient stack space for library initialization
-    ERR_FAIL_COND_V_MSG(!lua_checkstack(L, 10), 0, "luaopen_godot(): Stack overflow. Cannot grow stack.");
+    luaL_checkstack(L, 3, "luaopen_godot(): Stack overflow. Cannot grow stack.");
 
-    // Register all math type metatables
-    register_vector2_metatable(L);
-    register_vector2i_metatable(L);
+    // Register constructors into globals, not the `godot` table
+    register_constructors(L);
 
-    // Vector3 uses native vector type - just register the constructor
-    lua_pushcfunction(L, vector3_constructor, "Vector3");
-    lua_setglobal(L, "Vector3");
-
-    register_vector3i_metatable(L);
-    register_vector4_metatable(L);
-    register_vector4i_metatable(L);
-    register_color_metatable(L);
-    register_rect2_metatable(L);
-    register_rect2i_metatable(L);
-    register_aabb_metatable(L);
-    register_plane_metatable(L);
-    register_quaternion_metatable(L);
-    register_basis_metatable(L);
-    register_transform2d_metatable(L);
-    register_transform3d_metatable(L);
-    register_projection_metatable(L);
-
+    luaL_Reg reg[] = {
+        {NULL, NULL} // sentinel
+    };
+    luaL_register(L, "godot", reg);
     return 1;
 }

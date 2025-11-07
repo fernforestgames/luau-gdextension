@@ -40,6 +40,11 @@ namespace gdluau
             options.debugLevel = 1;
             options.typeInfoLevel = 0;
             options.coverageLevel = 0;
+
+            options.vectorLib = "";
+            options.vectorCtor = "Vector3";
+            options.vectorType = "Vector3";
+
             return options;
         }
 
