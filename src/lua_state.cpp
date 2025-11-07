@@ -9,7 +9,7 @@
 #include "lua_debug.h"
 #include "lua_godotlib.h"
 #include "luau.h"
-#include "str_atom_cache.h"
+#include "string_cache.h"
 
 #include <godot_cpp/core/class_db.hpp>
 #include <godot_cpp/core/error_macros.hpp>
@@ -916,8 +916,7 @@ void LuaState::push_string_name(const StringName &p_string_name)
     ERR_FAIL_COND_MSG(!is_valid(), "Lua state is invalid. Cannot push string.");
     ERR_FAIL_COND_MSG(!lua_checkstack(L, 1), "LuaState.push_string(): Stack overflow. Cannot grow stack.");
 
-    String str = p_string_name;
-    CharString utf8 = str.utf8();
+    CharString utf8 = char_string(p_string_name);
     lua_pushlstring(L, utf8.get_data(), utf8.length());
 }
 
@@ -974,14 +973,15 @@ lua_Type LuaState::get_field(int p_index, const StringName &p_key)
     ERR_FAIL_COND_V_MSG(!is_valid_index(p_index), static_cast<lua_Type>(LUA_TNONE), vformat("LuaState.get_field(%d, \"%s\"): Invalid table index. Stack has %d elements.", p_index, p_key, lua_gettop(L)));
     ERR_FAIL_COND_V_MSG(!lua_checkstack(L, 1), static_cast<lua_Type>(LUA_TNONE), "LuaState.get_field(): Stack overflow. Cannot grow stack.");
 
-    return static_cast<lua_Type>(lua_getfield(L, p_index, STRING_NAME_TO_UTF8(p_key)));
+    return static_cast<lua_Type>(lua_getfield(L, p_index, char_string(p_key).get_data()));
 }
 
 lua_Type LuaState::get_global(const StringName &p_key)
 {
     ERR_FAIL_COND_V_MSG(!is_valid(), static_cast<lua_Type>(LUA_TNONE), "Lua state is invalid. Cannot get global variable.");
     ERR_FAIL_COND_V_MSG(!lua_checkstack(L, 1), static_cast<lua_Type>(LUA_TNONE), "LuaState.get_global(): Stack overflow. Cannot grow stack.");
-    return static_cast<lua_Type>(lua_getglobal(L, STRING_NAME_TO_UTF8(p_key)));
+
+    return static_cast<lua_Type>(lua_getglobal(L, char_string(p_key).get_data()));
 }
 
 lua_Type LuaState::raw_get_field(int p_index, const StringName &p_key)
@@ -990,7 +990,7 @@ lua_Type LuaState::raw_get_field(int p_index, const StringName &p_key)
     ERR_FAIL_COND_V_MSG(!is_valid_index(p_index), static_cast<lua_Type>(LUA_TNONE), vformat("LuaState.raw_get_field(%d, \"%s\"): Invalid table index. Stack has %d elements.", p_index, p_key, lua_gettop(L)));
     ERR_FAIL_COND_V_MSG(!lua_checkstack(L, 1), static_cast<lua_Type>(LUA_TNONE), "LuaState.raw_get_field(): Stack overflow. Cannot grow stack.");
 
-    return static_cast<lua_Type>(lua_rawgetfield(L, p_index, STRING_NAME_TO_UTF8(p_key)));
+    return static_cast<lua_Type>(lua_rawgetfield(L, p_index, char_string(p_key).get_data()));
 }
 
 lua_Type LuaState::raw_get(int p_index)
@@ -1089,7 +1089,7 @@ void LuaState::set_field(int p_index, const StringName &p_key)
 
     ERR_FAIL_COND_MSG(!is_valid_index(p_index), vformat("LuaState.set_field(%d, \"%s\"): Invalid table index. Stack has %d elements.", p_index, p_key, top));
 
-    lua_setfield(L, p_index, STRING_NAME_TO_UTF8(p_key));
+    lua_setfield(L, p_index, char_string(p_key).get_data());
 }
 
 void LuaState::set_global(const StringName &p_key)
@@ -1099,7 +1099,7 @@ void LuaState::set_global(const StringName &p_key)
     int top = lua_gettop(L);
     ERR_FAIL_COND_MSG(top < 1, vformat("LuaState.set_global(): Need value on stack. Stack has %d elements.", top));
 
-    lua_setglobal(L, STRING_NAME_TO_UTF8(p_key));
+    lua_setglobal(L, char_string(p_key).get_data());
 }
 
 void LuaState::raw_set_field(int p_index, const StringName &p_key)
@@ -1111,7 +1111,7 @@ void LuaState::raw_set_field(int p_index, const StringName &p_key)
     ERR_FAIL_COND_MSG(p_index == -1 || p_index == top, vformat("LuaState.raw_set_field(%d, \"%s\"): Table index cannot be the value (at index %d).", p_index, p_key, top));
     ERR_FAIL_COND_MSG(!is_valid_index(p_index), vformat("LuaState.raw_set_field(%d, \"%s\"): Invalid table index. Stack has %d elements.", p_index, p_key, top));
 
-    lua_rawsetfield(L, p_index, STRING_NAME_TO_UTF8(p_key));
+    lua_rawsetfield(L, p_index, char_string(p_key).get_data());
 }
 
 void LuaState::raw_set(int p_index)
@@ -1172,7 +1172,7 @@ bool LuaState::load_bytecode(const PackedByteArray &p_bytecode, const StringName
     ERR_FAIL_COND_V_MSG(!is_valid(), false, "Lua state is invalid. Cannot load bytecode.");
     ERR_FAIL_COND_V_MSG(!lua_checkstack(L, 1), false, "LuaState.load_bytecode(): Stack overflow. Cannot grow stack.");
 
-    return luau_load(L, STRING_NAME_TO_UTF8(p_chunk_name), reinterpret_cast<const char *>(p_bytecode.ptr()), p_bytecode.size(), p_env) == 0;
+    return luau_load(L, char_string(p_chunk_name).get_data(), reinterpret_cast<const char *>(p_bytecode.ptr()), p_bytecode.size(), p_env) == 0;
 }
 
 void LuaState::call(int p_nargs, int p_nresults)
@@ -1357,7 +1357,7 @@ void LuaState::get_userdata_metatable(int p_tag)
 void LuaState::set_light_userdata_name(int p_tag, const StringName &p_name)
 {
     ERR_FAIL_COND_MSG(!is_valid(), "Lua state is invalid. Cannot set light userdata name.");
-    lua_setlightuserdataname(L, p_tag, STRING_NAME_TO_UTF8(p_name));
+    lua_setlightuserdataname(L, p_tag, char_string(p_name).get_data());
 }
 
 StringName LuaState::get_light_userdata_name(int p_tag)
@@ -1561,7 +1561,7 @@ void LuaState::register_library(const StringName &p_lib_name, const Dictionary &
 
     // First, reuse the annoying bits of logic around table creation and registration
     luaL_Reg reg{0};
-    luaL_register(L, STRING_NAME_TO_UTF8(p_lib_name), &reg);
+    luaL_register(L, char_string(p_lib_name).get_data(), &reg);
 
     // Table is now at the top of the stack; populate it with the provided functions
     for (const Variant &key : p_functions.keys())
@@ -1580,7 +1580,7 @@ bool LuaState::get_meta_field(int p_index, const StringName &p_field)
     ERR_FAIL_COND_V_MSG(!is_valid_index(p_index), false, vformat("LuaState.get_meta_field(%d, \"%s\"): Invalid stack index. Stack has %d elements.", p_index, p_field, lua_gettop(L)));
     ERR_FAIL_COND_V_MSG(!lua_checkstack(L, 1), false, vformat("LuaState.get_meta_field(%d, \"%s\"): Stack overflow. Cannot grow stack.", p_index, p_field));
 
-    return luaL_getmetafield(L, p_index, STRING_NAME_TO_UTF8(p_field)) != 0;
+    return luaL_getmetafield(L, p_index, char_string(p_field).get_data()) != 0;
 }
 
 bool LuaState::call_meta(int p_index, const StringName &p_field)
@@ -1588,20 +1588,22 @@ bool LuaState::call_meta(int p_index, const StringName &p_field)
     ERR_FAIL_COND_V_MSG(!is_valid(), false, "Lua state is invalid. Cannot call meta method.");
     ERR_FAIL_COND_V_MSG(!is_valid_index(p_index), false, vformat("LuaState.call_meta(%d, \"%s\"): Invalid stack index. Stack has %d elements.", p_index, p_field, lua_gettop(L)));
 
-    return luaL_callmeta(L, p_index, STRING_NAME_TO_UTF8(p_field)) != 0;
+    return luaL_callmeta(L, p_index, char_string(p_field).get_data()) != 0;
 }
 
 void LuaState::type_error(int p_index, const StringName &p_expected)
 {
     ERR_FAIL_COND_MSG(!is_valid(), "Lua state is invalid. Cannot raise type error.");
     ERR_FAIL_COND_MSG(!is_valid_index(p_index), vformat("LuaState.type_error(%d, \"%s\"): Invalid stack index. Stack has %d elements.", p_index, p_expected, lua_gettop(L)));
-    luaL_typeerror(L, p_index, STRING_NAME_TO_UTF8(p_expected));
+
+    luaL_typeerror(L, p_index, char_string(p_expected).get_data());
 }
 
 void LuaState::arg_error(int p_index, const String &p_message)
 {
     ERR_FAIL_COND_MSG(!is_valid(), "Lua state is invalid. Cannot raise argument error.");
     ERR_FAIL_COND_MSG(!is_valid_index(p_index), vformat("LuaState.arg_error(%d, \"%s\"): Invalid stack index. Stack has %d elements.", p_index, p_message, lua_gettop(L)));
+
     luaL_argerror(L, p_index, p_message.utf8().get_data());
 }
 
@@ -1755,7 +1757,7 @@ void LuaState::enforce_any(int p_index)
 bool LuaState::new_metatable_named(const StringName &p_name)
 {
     ERR_FAIL_COND_V_MSG(!is_valid(), false, "Lua state is invalid. Cannot create new metatable.");
-    return luaL_newmetatable(L, STRING_NAME_TO_UTF8(p_name)) != 0;
+    return luaL_newmetatable(L, char_string(p_name).get_data()) != 0;
 }
 
 lua_Type LuaState::get_metatable_named(const StringName &p_name)
@@ -1763,7 +1765,7 @@ lua_Type LuaState::get_metatable_named(const StringName &p_name)
     ERR_FAIL_COND_V_MSG(!is_valid(), static_cast<lua_Type>(LUA_TNONE), "Lua state is invalid. Cannot get metatable.");
     ERR_FAIL_COND_V_MSG(!lua_checkstack(L, 1), static_cast<lua_Type>(LUA_TNONE), vformat("LuaState.get_metatable_named(\"%s\"): Stack overflow. Cannot grow stack.", p_name));
 
-    return static_cast<lua_Type>(luaL_getmetatable(L, STRING_NAME_TO_UTF8(p_name)));
+    return static_cast<lua_Type>(luaL_getmetatable(L, char_string(p_name).get_data()));
 }
 
 Object *LuaState::enforce_userdata(int p_index, const StringName &p_name)
@@ -1771,7 +1773,7 @@ Object *LuaState::enforce_userdata(int p_index, const StringName &p_name)
     ERR_FAIL_COND_V_MSG(!is_valid(), nullptr, "Lua state is invalid. Cannot enforce userdata.");
     ERR_FAIL_COND_V_MSG(!is_valid_index(p_index), nullptr, vformat("LuaState.enforce_userdata(%d, \"%s\"): Invalid stack index. Stack has %d elements.", p_index, p_name, lua_gettop(L)));
 
-    void *ud = luaL_checkudata(L, p_index, STRING_NAME_TO_UTF8(p_name));
+    void *ud = luaL_checkudata(L, p_index, char_string(p_name).get_data());
     return static_cast<Object *>(ud);
 }
 

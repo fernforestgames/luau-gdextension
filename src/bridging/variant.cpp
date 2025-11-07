@@ -1,10 +1,12 @@
 #include "bridging/variant.h"
+
 #include "bridging/array.h"
 #include "bridging/callable.h"
 #include "bridging/dictionary.h"
 #include "bridging/object.h"
 #include "helpers.h"
 #include "lua_state.h"
+#include "string_cache.h"
 
 #include <godot_cpp/core/error_macros.hpp>
 #include <godot_cpp/classes/ref_counted.hpp>
@@ -365,10 +367,14 @@ void godot::push_variant(lua_State *L, const Variant &p_variant)
         lua_pushnumber(L, p_variant);
         return;
 
-    case Variant::NODE_PATH:
-        [[fallthrough]];
-
     case Variant::STRING_NAME:
+    {
+        CharString utf8 = char_string(p_variant);
+        lua_pushlstring(L, utf8.get_data(), utf8.length());
+        return;
+    }
+
+    case Variant::NODE_PATH:
         [[fallthrough]];
 
     case Variant::STRING:

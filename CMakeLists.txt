@@ -48,7 +48,7 @@ add_library(${PROJECT_NAME}_core OBJECT ${SOURCES})
 target_compile_features(${PROJECT_NAME}_core PRIVATE
     # Disable C++ exceptions in our code (Godot doesn't use them, Luau uses setjmp/longjmp via LUAU_EXTERN_C)
     cxx_noexcept
-    cxx_std_17
+    cxx_std_20
 )
 target_include_directories(${PROJECT_NAME}_core PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/src

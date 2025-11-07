@@ -42,10 +42,4 @@ TEST_SUITE("Helpers")
 
         lua_pop(L, 1);
     }
-
-    TEST_CASE("STRING_NAME_TO_UTF8 macro")
-    {
-        StringName test_name("test_string");
-        CHECK(strcmp(STRING_NAME_TO_UTF8(test_name), "test_string") == 0);
-    }
 }
