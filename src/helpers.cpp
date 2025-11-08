@@ -62,6 +62,8 @@ bool gdluau::is_valid_index(lua_State *L, int p_index)
 
 StringName gdluau::to_stringname(lua_State *L, int p_index)
 {
+    ERR_FAIL_COND_V_MSG(lua_type(L, p_index) != LUA_TSTRING, StringName(), vformat("to_stringname(%d): Value is not a string.", p_index));
+
     size_t len;
     int atom = -1;
     const char *str = lua_tolstringatom(L, p_index, &len, &atom);
