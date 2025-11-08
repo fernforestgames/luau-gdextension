@@ -101,6 +101,9 @@ static void push_callable_metatable(lua_State *L)
 
 static String lua_function_name(lua_State *L, int p_index)
 {
+    ERR_FAIL_COND_V_MSG(p_index >= 0, "<unknown>", vformat("lua_function_name(%d): Expected a negative stack index.", p_index));
+    ERR_FAIL_COND_V_MSG(!lua_isfunction(L, p_index), "<invalid>", vformat("lua_function_name(%d): Not a function on the stack.", p_index));
+
     String funcname;
     lua_Debug ar;
     if (lua_getinfo(L, p_index, "n", &ar))
@@ -123,8 +126,11 @@ Callable gdluau::to_callable(lua_State *L, int p_index)
     // Protect the function from GC
     int func_ref = lua_ref(L, p_index);
 
+    // Need a relative stack index for lua_getinfo (positive numbers are treated as call stack levels)
+    int negative_index = p_index < 0 ? p_index : p_index - lua_gettop(L) - 1;
+
     LuaState *state = LuaState::find_lua_state(L);
-    String func_name = lua_function_name(L, p_index);
+    String func_name = lua_function_name(L, negative_index);
     LuaCallable *lc;
     if (state)
     {
