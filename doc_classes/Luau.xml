@@ -5,7 +5,6 @@
 	</brief_description>
 	<description>
 		The [Luau] class provides static methods for compiling Luau source code to bytecode and utility functions from the Lua C API.
-		Luau is a fast, small, safe scripting language derived from Lua 5.1 with performance optimizations and a gradual type system.
 		This class also exposes constants and enums from the Lua C API, such as status codes ([constant LUA_OK], [constant LUA_YIELD], etc.) and type identifiers ([constant LUA_TNIL], [constant LUA_TNUMBER], etc.).
 	</description>
 	<tutorials>
@@ -14,6 +13,14 @@
 		<method name="clock" qualifiers="static">
 			<return type="float" />
 			<description>
+				Returns a monotonic clock time in seconds as a floating-point number.
+				This is useful for measuring elapsed time or implementing timers in Luau scripts. However, the absolute value of this clock is arbitrary and platform-dependent.
+				[codeblock]
+				var start_time := Luau.clock()
+				# ... do some work ...
+				var elapsed := Luau.clock() - start_time
+				print("Operation took ", elapsed, " seconds")
+				[/codeblock]
 			</description>
 		</method>
 		<method name="compile" qualifiers="static">
@@ -22,13 +29,13 @@
 			<param index="1" name="options" type="LuaCompileOptions" default="null" />
 			<description>
 				Compiles Luau source code to bytecode. Returns a [PackedByteArray] containing the compiled bytecode.
-				When source compilation fails, the resulting bytecode contains the encoded error.
+				When source compilation fails, the resulting bytecode contains the encoded error, which will be raised when the bytecode is executed in a [LuaState].
+				The [param options] parameter allows you to customize compilation behavior such as optimization level and code generation settings. If [code]null[/code], default compilation options are used.
 				[codeblock]
 				var bytecode := Luau.compile("return 1 + 2")
 				var state := LuaState.new()
-				var result := state.load_bytecode(bytecode, "chunk")
-				if result == LuaState.LUA_OK:
-					state.pcall(0, 1, 0)
+				if state.load_bytecode(bytecode, "one_plus_two"):
+					var status := state.pcall(0, 1)
 					print(state.to_number(-1))  # Prints 3
 				[/codeblock]
 			</description>
@@ -38,157 +45,159 @@
 			<param index="0" name="index" type="int" />
 			<description>
 				Returns [code]true[/code] if the given stack index is a pseudo-index (e.g., [constant LUA_REGISTRYINDEX], [constant LUA_GLOBALSINDEX]).
+				Pseudo-indices are special indices that refer to virtual stack positions outside the normal stack range. They have fixed negative values and are used to access special tables like the Lua registry or globals table.
 			</description>
 		</method>
 		<method name="upvalue_index" qualifiers="static">
 			<return type="int" />
 			<param index="0" name="upvalue" type="int" />
 			<description>
-				Returns the index of upvalue [param upvalue] as it exists on the stack.
+				Returns the stack index of the upvalue [param upvalue] for the currently executing function.
+				Upvalues are variables from outer scopes that are captured by a function. The [param upvalue] parameter is 1-indexed, where 1 refers to the first upvalue of the function.
 			</description>
 		</method>
 	</methods>
 	<constants>
 		<constant name="LUA_MULTRET" value="-1">
-			Used for [code]nresults[/code] with functions like [LuaState.call] to indicate that all results, however many, should be returned.
+			Used for [code]nresults[/code] with functions like [method LuaState.call] to indicate that all results, however many, should be returned.
 		</constant>
 		<constant name="LUA_REGISTRYINDEX" value="-10000">
-			Pseudo-index for the Lua registry table, which can be used by the host application to store arbitrary values associated with a Lua state.
+			Pseudo-index for the Lua registry table, which can be used by the host application to store arbitrary values associated with a Lua state. The registry is persistent across function calls and is accessible only from the host, not from Luau scripts.
 		</constant>
 		<constant name="LUA_ENVIRONINDEX" value="-10001">
-			Pseudo-index for the Lua environment table, which contains the environment for the currently executing [i]host[/i] function.
+			Pseudo-index for the Lua environment table, which contains the environment for the currently executing [i]host[/i] function. This is used for looking up global variables in the host's context.
 		</constant>
 		<constant name="LUA_GLOBALSINDEX" value="-10002">
-			Pseudo-index for the Lua globals table, which contains the environment for the current thread (Lua state).
+			Pseudo-index for the Lua globals table, which contains the environment for the current thread (Lua state). This is the table where global variables are stored and is shared across all functions in the state (though threads have their own stack).
 		</constant>
 		<constant name="LUA_OK" value="0" enum="lua_Status">
-			Indicates successful completion.
+			Indicates successful completion of a Lua operation.
 		</constant>
 		<constant name="LUA_YIELD" value="1" enum="lua_Status">
-			Indicates that the coroutine yielded.
+			Indicates that a coroutine yielded.
 		</constant>
 		<constant name="LUA_ERRRUN" value="2" enum="lua_Status">
-			Indicates a runtime error.
+			Indicates a runtime error occurred during Lua code execution.
 		</constant>
 		<constant name="LUA_ERRSYNTAX" value="3" enum="lua_Status">
-			Indicates a syntax error. This is a legacy Lua 5.1 error code, and isn't generated by Luau.
+			Indicates a syntax error during compilation. This is a legacy Lua 5.1 error code and is not generated by Luau itself, though luau-gdextension may produce it if bytecode loading fails.
 		</constant>
 		<constant name="LUA_ERRMEM" value="4" enum="lua_Status">
-			Indicates a memory allocation error.
+			Indicates a memory allocation error. This is typically a fatal condition.
 		</constant>
 		<constant name="LUA_ERRERR" value="5" enum="lua_Status">
-			Indicates an error while running the error handler function.
+			Indicates an error occurred while running the error handler function (the error recovery mechanism itself failed).
 		</constant>
 		<constant name="LUA_BREAK" value="6" enum="lua_Status">
-			Indicates that the coroutine yielded for a debug breakpoint.
+			Indicates that the coroutine yielded for a debug breakpoint. This is specific to Luau debugging.
 		</constant>
 		<constant name="LUA_CORUN" value="0" enum="lua_CoStatus">
-			Indicates that the coroutine is running.
+			Indicates that the coroutine is currently running.
 		</constant>
 		<constant name="LUA_COSUS" value="1" enum="lua_CoStatus">
-			Indicates that the coroutine is suspended.
+			Indicates that the coroutine is suspended and ready to be resumed.
 		</constant>
 		<constant name="LUA_CONOR" value="2" enum="lua_CoStatus">
-			Indicates that the coroutine is in "normal" state (it resumed another coroutine).
+			Indicates that the coroutine is in "normal" state (it resumed another coroutine and is waiting for it to complete).
 		</constant>
 		<constant name="LUA_COFIN" value="3" enum="lua_CoStatus">
-			Indicates that the coroutine has finished execution.
+			Indicates that the coroutine has finished execution normally.
 		</constant>
 		<constant name="LUA_COERR" value="4" enum="lua_CoStatus">
 			Indicates that the coroutine finished with an error.
 		</constant>
 		<constant name="LUA_TNONE" value="-1">
-			Pseudo-type representing no value.
+			Pseudo-type representing no value (no type). This is distinct from [constant LUA_TNIL] and indicates the absence of a stack value at a given index.
 		</constant>
 		<constant name="LUA_TNIL" value="0" enum="lua_Type">
-			Type representing the absence of a value.
+			Type representing the absence of a value. In Luau, [code]nil[/code] is the unique value of this type.
 		</constant>
 		<constant name="LUA_TBOOLEAN" value="1" enum="lua_Type">
-			Type representing a boolean.
+			Type representing a boolean value, which can be either [code]true[/code] or [code]false[/code].
 		</constant>
 		<constant name="LUA_TLIGHTUSERDATA" value="2" enum="lua_Type">
-			Type representing a "light userdata," which is an opaque pointer.
+			Type representing "light userdata," which is an opaque pointer value. Light userdata is not garbage collected and is used for storing references to data in the host application.
 		</constant>
 		<constant name="LUA_TNUMBER" value="3" enum="lua_Type">
-			Type representing a number. All numbers in Luau are floating point, even if they are representable as integers.
+			Type representing a number. All numbers in Luau are stored as 64-bit floating-point values (IEEE 754 double precision), even if they are representable as integers.
 		</constant>
 		<constant name="LUA_TVECTOR" value="4" enum="lua_Type">
-			Type representing a 3-component vector (x, y, z). The [code]vector[/code] library can be used to manipulate these.
+			Type representing a 3-component vector (x, y, z), similar to Godot's [Vector3]. Vectors are a native Luau type with built-in support for arithmetic operations and optimized by the JIT compiler. The [code]vector[/code] library can be used to manipulate these within Luau code.
 		</constant>
 		<constant name="LUA_TSTRING" value="5" enum="lua_Type">
-			Type representing a string.
+			Type representing an immutable string. Godot's [String], [StringName], and [NodePath] types are bridged to Luau strings.
 		</constant>
 		<constant name="LUA_TTABLE" value="6" enum="lua_Type">
-			Type representing a table. Tables are used in Luau to represent both arrays and dictionaries.
+			Type representing a table. Tables are the primary aggregate data structure in Luau and are used to represent both arrays and dictionaries. Godot's [Array] and [Dictionary] types are bridged to Luau tables.
 		</constant>
 		<constant name="LUA_TFUNCTION" value="7" enum="lua_Type">
-			Type representing a Luau function.
+			Type representing a Luau function. This includes both Luau-defined functions and C functions callable from Luau.
 		</constant>
 		<constant name="LUA_TUSERDATA" value="8" enum="lua_Type">
-			Type representing a "full userdata," which is a custom object managed by Luau.
+			Type representing "full userdata," which is a custom object managed by Luau and subject to garbage collection. Godot [Vector2], [Color], and [Object] instances are bridged as userdata with metatables.
 		</constant>
 		<constant name="LUA_TTHREAD" value="9" enum="lua_Type">
-			Type representing a Lua thread (coroutine).
+			Type representing a Luau thread (coroutine). Threads maintain an independent execution stack while sharing the global state. Create threads using [method LuaState.new_thread].
 		</constant>
 		<constant name="LUA_TBUFFER" value="10" enum="lua_Type">
-			Type representing a Luau buffer, a fixed-size mutable block of memory. The [code]buffer[/code] library can be used to manipulate these.
-			Not to be confused with Lua string buffers.
+			Type representing a Luau buffer, a fixed-size mutable block of memory for efficient binary data manipulation. The [code]buffer[/code] library can be used to manipulate these within Luau code. Godot's [PackedByteArray] is bridged to Luau buffers.
 		</constant>
 		<constant name="LUA_TPROTO" value="11" enum="lua_Type">
-			Type representing a Luau function prototype. This will only show up in garbage collection and debugging APIs.
+			Type representing a Luau function prototype. This will only show up in garbage collection and debugging APIs and is not directly used in normal script execution.
 		</constant>
 		<constant name="LUA_TUPVAL" value="12" enum="lua_Type">
-			Type representing a Luau upvalue. This will only show up in garbage collection and debugging APIs.
+			Type representing a Luau upvalue (a captured variable from an outer scope). This will only show up in garbage collection and debugging APIs.
 		</constant>
 		<constant name="LUA_TDEADKEY" value="13" enum="lua_Type">
-			Type representing a "dead key" in a table. This will only show up in garbage collection and debugging APIs.
+			Type representing a "dead key" in a table (a key that was deleted). This will only show up in garbage collection and debugging APIs.
 		</constant>
 		<constant name="LUA_T_COUNT" value="11" enum="lua_Type">
-			Number of Lua types.
+			The total number of Lua types. This is useful for bounds checking when iterating over all types.
 		</constant>
 		<constant name="LUA_GCSTOP" value="0" enum="lua_GCOp">
-			Stop incremental garbage collection.
+			Stop incremental garbage collection. No GC work will be performed until [constant LUA_GCRESTART] is used.
 		</constant>
 		<constant name="LUA_GCRESTART" value="1" enum="lua_GCOp">
 			Resume incremental garbage collection.
 		</constant>
 		<constant name="LUA_GCCOLLECT" value="2" enum="lua_GCOp">
-			Run a full GC cycle. Not recommended for latency sensitive applications.
+			Run a full garbage collection cycle immediately. Not recommended for latency-sensitive applications.
 		</constant>
 		<constant name="LUA_GCCOUNT" value="3" enum="lua_GCOp">
-			Return the heap size in KB.
+			Return the current heap size in kilobytes.
 		</constant>
 		<constant name="LUA_GCCOUNTB" value="4" enum="lua_GCOp">
-			Return the remainder of the heap size (after [LUA_GCCOUNT]) in bytes.
+			Return the remainder of the heap size (bytes component after [constant LUA_GCCOUNT]).
 		</constant>
 		<constant name="LUA_GCISRUNNING" value="5" enum="lua_GCOp">
-			Return whether the garbage collector is running. Note that the GC may not be actively collecting even if it's running.
+			Return whether the garbage collector is running. Note that the GC may not be actively collecting even if it is running.
 		</constant>
 		<constant name="LUA_GCSTEP" value="6" enum="lua_GCOp">
-			Perform an explicit GC step, with the step size specified in KB.
+			Perform an explicit garbage collection step with the step size specified in kilobytes.
 			Garbage collection is handled by "assists" that perform some amount of GC work matching the pace of allocation. Explicit GC steps allow you to perform some amount of work at custom points to offset the need for GC assists.
 			Note that GC might also be paused for some duration (until bytes allocated meet the threshold). If an explicit step is performed during this pause, it will trigger the start of the next collection cycle.
 		</constant>
 		<constant name="LUA_GCSETGOAL" value="7" enum="lua_GCOp">
-			Tune GC parameter [code]G[/code] (goal).
-			Garbage collection is incremental and tries to maintain the heap size to balance memory and performance overhead. This overhead is determined by [code]G[/code] (goal) which is the ratio between total heap size and the amount of live data in it. [code]G[/code] is specified in percentages; by default, [code]G[/code] is 200%, which means that the heap is allowed to grow to ~2x the size of live data.
+			Tune the GC parameter [code]G[/code] (goal). Returns the previous value for the parameter.
+			Garbage collection is incremental and tries to maintain the heap size to balance memory and performance overhead. This overhead is determined by [code]G[/code] (goal), which is the ratio between total heap size and the amount of live data in it. [code]G[/code] is specified in percentages; by default, [code]G[/code] is 200%, which means that the heap is allowed to grow to approximately 2x the size of live data.
 		</constant>
 		<constant name="LUA_GCSETSTEPMUL" value="8" enum="lua_GCOp">
-			Tune GC parameter [code]S[/code] (step multiplier).
-			The collector tries to collect [code]S%[/code] of allocated bytes by interrupting the application after [code]step size[/code] bytes were allocated. When [code]S[/code] is too small, the collector may not be able to catch up, and the effective goal that can be reached will be larger. [code]S[/code] is specified in percentages; by default, [code]S[/code] is 200%, which means that collector will run at ~2x the pace of allocations.
+			Tune the GC parameter [code]S[/code] (step multiplier). Returns the previous value for the parameter.
+			The collector tries to collect [code]S[/code]% of allocated bytes by interrupting the application after [code]step size[/code] bytes were allocated. When [code]S[/code] is too small, the collector may not be able to keep up, and the effective goal that can be reached will be larger. [code]S[/code] is specified in percentages; by default, [code]S[/code] is 200%, which means that the collector will run at approximately 2x the pace of allocations.
 			It is recommended to set [code]S[/code] in the interval [code][100 / (G - 100), 100 + 100 / (G - 100)][/code] with a minimum value of 150%; for example:
 			- For [code]G=200%[/code], [code]S[/code] should be in the interval [code][150%, 200%][/code]
 			- For [code]G=150%[/code], [code]S[/code] should be in the interval [code][200%, 300%][/code]
 			- For [code]G=125%[/code], [code]S[/code] should be in the interval [code][400%, 500%][/code]
 		</constant>
 		<constant name="LUA_GCSETSTEPSIZE" value="9" enum="lua_GCOp">
-			Tune GC step size. This is usually best left ignored.
+			Tune the garbage collection step size in kilobytes. Returns the previous value for the parameter.
+			This is usually best left unchanged unless you have specific performance tuning requirements.
 		</constant>
 		<constant name="LUA_NOREF" value="-1">
-			A constant guaranteed to be different from any reference returned by [LuaState.ref].
+			A constant guaranteed to be different from any valid reference returned by [method LuaState.ref]. Used to indicate an invalid or non-existent reference.
 		</constant>
 		<constant name="LUA_REFNIL" value="0">
-			A constant returned when attempting to generate a reference to a [code]nil[/code] value.
+			A constant returned when attempting to generate a reference to a [code]nil[/code] value using [method LuaState.ref]. Indicates that the reference is not valid.
 		</constant>
 	</constants>
 </class>

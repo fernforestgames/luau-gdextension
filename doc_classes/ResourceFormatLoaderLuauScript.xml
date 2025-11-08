@@ -1,8 +1,10 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <class name="ResourceFormatLoaderLuauScript" inherits="ResourceFormatLoader" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="https://raw.githubusercontent.com/godotengine/godot/master/doc/class.xsd">
 	<brief_description>
+		Resource loader for Luau script files ([code].lua[/code] and [code].luau[/code]).
 	</brief_description>
 	<description>
+		[ResourceFormatLoaderLuauScript] is a specialized [ResourceFormatLoader] that integrates Luau scripts into Godot's resource loading system. It automatically handles loading [code].lua[/code] and [code].luau[/code] files as [LuauScript] resources when they are accessed through Godot's resource management system.
 	</description>
 	<tutorials>
 	</tutorials>

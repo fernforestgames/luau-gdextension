@@ -1,8 +1,10 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <class name="ResourceFormatSaverLuauScript" inherits="ResourceFormatSaver" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="https://raw.githubusercontent.com/godotengine/godot/master/doc/class.xsd">
 	<brief_description>
+		Saves [LuauScript] resources to Luau script files ([code].lua[/code] and [code].luau[/code]).
 	</brief_description>
 	<description>
+		[ResourceFormatSaverLuauScript] is a specialized [ResourceFormatSaver] that integrates Luau scripts into Godot's resource saving system. It automatically handles saving [LuauScript] resources to [code].lua[/code] and [code].luau[/code] files when they are saved through Godot's resource management system.
 	</description>
 	<tutorials>
 	</tutorials>

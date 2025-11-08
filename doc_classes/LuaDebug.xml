@@ -1,0 +1,144 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<class name="LuaDebug" inherits="RefCounted" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="https://raw.githubusercontent.com/godotengine/godot/master/doc/class.xsd">
+	<brief_description>
+		Represents debug information for a Lua function or stack frame.
+	</brief_description>
+	<description>
+		The [LuaDebug] class wraps Luau's [code]lua_Debug[/code] structure and provides access to debug information about a function or stack frame. This includes the function's name, source file, line numbers, and parameter information.
+		[LuaDebug] objects are typically obtained by calling [method LuaState.get_info].
+	</description>
+	<tutorials>
+	</tutorials>
+	<methods>
+		<method name="get_current_line" qualifiers="const">
+			<return type="int" />
+			<description>
+				Returns the current line number where the function is executing.
+				Returns [code]-1[/code] if line information is not available (e.g., for C functions or if the function has no line information).
+				[codeblock]
+				var debug := state.get_info(1, "l")
+				print("Executing at line: ", debug.get_current_line())
+				[/codeblock]
+			</description>
+		</method>
+		<method name="get_line_defined" qualifiers="const">
+			<return type="int" />
+			<description>
+				Returns the line number where the function was defined in its source file.
+				For Lua functions, this is the line where the [code]function[/code] keyword appears. For C functions, this returns [code]-1[/code].
+				[codeblock]
+				var debug := state.get_info(1, "s")
+				print("Function defined at line: ", debug.get_line_defined())
+				[/codeblock]
+			</description>
+		</method>
+		<method name="get_name" qualifiers="const">
+			<return type="String" />
+			<description>
+				Returns the name of the function.
+				For named functions, returns the function name. For anonymous functions or when the name cannot be determined, returns an empty string.
+				[codeblock]
+				var debug := state.get_info(1, "n")
+				print("Function name: ", debug.get_name())
+				[/codeblock]
+			</description>
+		</method>
+		<method name="get_nparams" qualifiers="const">
+			<return type="int" />
+			<description>
+				Returns the number of parameters (fixed arguments) the function accepts.
+				This count does not include variadic arguments ([code]...[/code]). Use [method is_vararg] to check if the function accepts variadic arguments.
+				[codeblock]
+				# For: function example(a, b, c, ...)
+				var debug := state.get_info(1, "a")
+				print("Parameters: ", debug.get_nparams())  # Prints: 3
+				print("Vararg: ", debug.is_vararg())        # Prints: true
+				[/codeblock]
+			</description>
+		</method>
+		<method name="get_nupvals" qualifiers="const">
+			<return type="int" />
+			<description>
+				Returns the number of upvalues captured by the function. Upvalues are variables from outer scopes that a function closes over.
+				[codeblock]
+				state.do_string("""
+					local x = 10
+					function closure()
+						return x  -- 'x' is an upvalue
+					end
+				""")
+
+				state.get_global("closure")
+				var debug := state.get_info(-1, "u")
+				print("Upvalues: ", debug.get_nupvals())  # Prints: 1
+				[/codeblock]
+			</description>
+		</method>
+		<method name="get_short_src" qualifiers="const">
+			<return type="String" />
+			<description>
+				Returns a short, printable version of [member get_source].
+				This is useful for displaying source information in error messages without overwhelming the user with long paths or source code.
+				[codeblock]
+				var debug := state.get_info(1, "s")
+				print("Source: ", debug.get_short_src())
+				[/codeblock]
+			</description>
+		</method>
+		<method name="get_source" qualifiers="const">
+			<return type="String" />
+			<description>
+				Returns the full source identifier for the function.
+				For functions defined in strings, this returns the full source string. For functions loaded from files, this returns the filename. This can be quite long for functions defined inline.
+				For most display purposes, [method get_short_src] is preferred as it provides a more readable format.
+				[codeblock]
+				var debug := state.get_info(1, "s")
+				print("Full source: ", debug.get_source())
+				[/codeblock]
+			</description>
+		</method>
+		<method name="get_what" qualifiers="const">
+			<return type="String" />
+			<description>
+				Returns a string identifying the function type.
+				Common values include [code]"Lua"[/code] for a Lua function, or [code]"C"[/code] for a C function registered with Lua.
+				[codeblock]
+				var debug := state.get_info(1, "s")
+				if debug.get_what() == "Lua":
+				    print("This is a Lua function")
+				elif debug.get_what() == "C":
+				    print("This is a C function")
+				[/codeblock]
+			</description>
+		</method>
+		<method name="is_vararg" qualifiers="const">
+			<return type="bool" />
+			<description>
+				Returns [code]true[/code] if the function accepts variadic arguments ([code]...[/code]).
+				Functions that accept variadic arguments can receive additional arguments beyond their fixed parameters.
+				[codeblock]
+				state.do_string("""
+					function fixed(a, b)
+						return a + b
+					end
+
+					function vararg(a, ...)
+						return a
+					end
+				""")
+
+				state.get_global("fixed")
+				var debug1 := state.get_info(-1, "a")
+				state.get_stack(-1, debug1)
+				print(debug1.is_vararg())  # Prints: false
+				state.pop(1)
+
+				state.get_global("vararg")
+				var debug2 := state.get_info(-1, "a")
+				state.get_stack(-1, debug2)
+				print(debug2.is_vararg())  # Prints: true
+				[/codeblock]
+			</description>
+		</method>
+	</methods>
+</class>

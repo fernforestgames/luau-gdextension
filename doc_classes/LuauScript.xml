@@ -4,13 +4,45 @@
 		A Resource for storing Luau script source code.
 	</brief_description>
 	<description>
-		[LuauScript] is a [Resource] type that stores Luau source code. It can be saved as a [code].luau[/code] file and loaded through Godot's resource system.
+		[LuauScript] is a [Resource] type that encapsulates Luau source code for use within Godot. It provides storing and loading of Luau scripts as first-class Godot resources.
+		There are multiple ways to work with LuauScript resources:
+		[b]Method 1: Load from disk[/b]
+		[codeblock]
+		var script: LuauScript = ResourceLoader.load("res://my_script.luau")
+		var state := LuaState.new()
+		state.open_libs()
+		state.do_string(script.get_source_code(), script.get_path())
+		[/codeblock]
+
+		[b]Method 2: Create programmatically[/b]
+		[codeblock]
+		var script := LuauScript.new()
+		script.set_source_code("return 42")
+		script.set_path_cache("res://dynamic_script.luau")
+		ResourceSaver.save(script)
+		[/codeblock]
+
+		[b]Method 3: Import via the editor[/b]
+		[code].lua[/code] and [code].luau[/code] files can be imported directly into the Godot editor, creating LuauScript resources that can be assigned to nodes or other resources. Both file extensions are recognized and handled identically by the resource system.
 	</description>
 	<tutorials>
 	</tutorials>
+	<methods>
+		<method name="get_source_code">
+			<return type="String" />
+			<description>
+			</description>
+		</method>
+		<method name="set_source_code">
+			<return type="void" />
+			<param index="0" name="source" type="String" />
+			<description>
+			</description>
+		</method>
+	</methods>
 	<members>
 		<member name="source_code" type="String" setter="set_source_code" getter="get_source_code" default="&quot;&quot;">
-			The Luau source code contained in this resource.
+			The Luau source code contained in this resource. Setting this property does not automatically save the resource to disk.
 		</member>
 	</members>
 </class>

@@ -1,11 +1,20 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <class name="LuaCompileOptions" inherits="RefCounted" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="https://raw.githubusercontent.com/godotengine/godot/master/doc/class.xsd">
 	<brief_description>
-		Options for compiling Luau source code to bytecode.
+		Configurable options for compiling Luau source code to bytecode.
 	</brief_description>
 	<description>
-		Defines various options that control how Luau source code is compiled to bytecode.
-		Not all options from Luau's [code]lua_CompileOptions[/code] are exposed here, particularly where they might conflict with environment customization performed by this GDExtension.
+		[LuaCompileOptions] allows fine-grained control over how the Luau compiler generates bytecode from source code. This class provides access to Luau's compilation settings, enabling customization of optimization levels, debugging information, type information generation, and code coverage tracking.
+		Use [LuaCompileOptions] with [method Luau.compile] to control compilation behavior. For example, increase debug level when developing to enable full step-through debugging, or increase optimization level for production builds.
+		[codeblock]
+		var options := LuaCompileOptions.new()
+		options.optimization_level = 2  # Enable aggressive optimization
+		options.debug_level = 0          # Minimal debug info for smaller bytecode
+
+		var bytecode := Luau.compile(source_code, options)
+		[/codeblock]
+
+		Not all options from Luau's native [code]lua_CompileOptions[/code] are exposed here, particularly where they might conflict with environment customization performed by this GDExtension (e.g., bridging [Vector3] to Luau's native [code]vector[/code] type).
 	</description>
 	<tutorials>
 	</tutorials>
@@ -13,76 +22,71 @@
 		<method name="get_optimization_level" qualifiers="const">
 			<return type="int" />
 			<description>
-			Returns the optimization level.
 			</description>
 		</method>
 		<method name="get_coverage_level" qualifiers="const">
 			<return type="int" />
 			<description>
-			Returns the code coverage level.
 			</description>
 		</method>
 		<method name="get_debug_level" qualifiers="const">
 			<return type="int" />
 			<description>
-			Returns the debugging support level.
 			</description>
 		</method>
 		<method name="get_type_info_level" qualifiers="const">
 			<return type="int" />
 			<description>
-			Returns the type information level.
 			</description>
 		</method>
 		<method name="set_optimization_level">
 			<return type="void" />
 			<param index="0" name="level" type="int" />
 			<description>
-			Sets the optimization level.
 			</description>
 		</method>
 		<method name="set_coverage_level">
 			<return type="void" />
 			<param index="0" name="level" type="int" />
 			<description>
-			Sets the code coverage level.
 			</description>
 		</method>
 		<method name="set_debug_level">
 			<return type="void" />
 			<param index="0" name="level" type="int" />
 			<description>
-			Sets the debugging support level.
 			</description>
 		</method>
 		<method name="set_type_info_level">
 			<return type="void" />
 			<param index="0" name="level" type="int" />
 			<description>
-			Sets the type information level.
 			</description>
 		</method>
 	</methods>
 	<members>
 		<member name="optimization_level" type="int" setter="set_optimization_level" getter="get_optimization_level" default="1">
-		0 - no optimization
-		1 - baseline optimization level that doesn't prevent debuggability
-		2 - includes optimizations that harm debuggability such as inlining
+			Controls compilation optimization level.
+			[b]0[/b]: No optimization. Bytecode will be larger and execute more slowly, but optimization does not affect debuggability.
+			[b]1[/b]: Baseline optimization level that doesn't prevent debuggability. This is the recommended default for most use cases.
+			[b]2[/b]: Aggressive optimization including inlining and other techniques. This can significantly improve performance but may harm debuggability. Use for production builds where debugging is not needed.
 		</member>
 		<member name="debug_level" type="int" setter="set_debug_level" getter="get_debug_level" default="1">
-		0 - no debugging support
-		1 - line info &amp; function names only; sufficient for backtraces
-		2 - full debug info with local &amp; upvalue names; necessary for debugger
+			Controls the level of debugging information included in the compiled bytecode.
+			[b]0[/b]: No debugging support. Results in minimal bytecode size but backtraces will lack detail.
+			[b]1[/b]: Line information and function names only. Sufficient for generating useful backtraces and error messages. Recommended for production.
+			[b]2[/b]: Full debug information with local variable and upvalue names. Use during development but not in production due to larger bytecode size.
 		</member>
 		<member name="type_info_level" type="int" setter="set_type_info_level" getter="get_type_info_level" default="0">
-		Type information is used to guide native code generation decisions. Information includes testable types for function arguments, labels, upvalues, and some temporaries.
-		0 - generate for native modules
-		1 - generate for all modules
+			Controls whether type information is generated in the compiled bytecode. Type information is used to guide native code generation decisions.
+			[b]0[/b]: Generate type information only for native modules. Standard configuration for most use cases.
+			[b]1[/b]: Generate type information for all modules. Use this if all your scripts contain type annotations and you want the compiler to optimize based on them.
 		</member>
 		<member name="coverage_level" type="int" setter="set_coverage_level" getter="get_coverage_level" default="0">
-		0 - no code coverage support
-		1 - statement coverage
-		2 - statement and expression coverage (verbose)
+			Controls code coverage tracking in the compiled bytecode. Use [method LuaState.get_coverage] to retrieve coverage data at runtime.
+			[b]0[/b]: No code coverage support. Smallest bytecode size, fastest execution.
+			[b]1[/b]: Statement coverage. Tracks which statements have been executed.
+			[b]2[/b]: Statement and expression coverage. Tracks both statements and expressions. More verbose and increases bytecode size.
 		</member>
 	</members>
 </class>

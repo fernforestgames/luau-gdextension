@@ -1,45 +1,1075 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <class name="LuaState" inherits="RefCounted" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="https://raw.githubusercontent.com/godotengine/godot/master/doc/class.xsd">
 	<brief_description>
-		Manages a Luau virtual machine instance for executing Luau code.
+		Represents a Luau thread of execution.
 	</brief_description>
 	<description>
-		The [LuaState] class wraps a Luau virtual machine (VM) instance and provides methods to interact with the Lua stack, execute code, and bridge between Godot and Luau types.
-
+		The [LuaState] class wraps a Luau thread (coroutine) and provides methods to interact with the Lua stack, execute code, and bridge between Godot and Luau types.
 		[LuaState] uses a stack-based API similar to the Lua C API. Most operations push values onto the stack or read values from stack positions indicated by indices. Positive indices count from the bottom of the stack (1 is the first element), while negative indices count from the top (-1 is the top element).
-
-		[b]Key features:[/b]
-		- Execute Luau bytecode or source code
-		- Bridge Godot types (Vector2, Color, Array, Dictionary, Callable, etc.) to/from Lua
-		- Create Lua threads (coroutines) for cooperative multitasking
-		- Single-step debugging support
-		- Sandboxing capabilities
-
-		[b]Example:[/b]
+		When constructed with [code]LuaState.new()[/code], a new Luau VM is created and the returned [LuaState] instance represents the main thread of that VM. The lifetime of the VM will be tied to that of the main thread [LuaState]. The new state starts with an empty stack and no libraries loaded.
 		[codeblock]
-		var state = LuaState.new()
+		var state := LuaState.new()
 		state.open_libs()  # Open standard libraries
-		state.do_string("return 1 + 2")
+		state.do_string("return 1 + 2", "example")
 		print(state.to_number(-1))  # Prints 3
 		state.close()
 		[/codeblock]
-
-		[b]Thread safety:[/b] Lua threads created via [method new_thread] are cooperative coroutines that share global state but have independent execution stacks. They are [b]not[/b] OS threads and all Lua execution happens on a single OS thread.
-
-		[b]Important:[/b] When resuming threads from signal handlers, always use [code]call_deferred()[/code] to prevent reentrancy crashes:
-		[codeblock]
-		func _on_step(state: LuaState) -&gt; void:
-		    # Do work...
-		    state.resume.call_deferred()  # Correct
-		[/codeblock]
+		[b]Thread safety:[/b] Lua threads created via [method new_thread] are cooperative coroutines that share the Lua VM's global state but have independent execution stacks. They are [b]not[/b] independent OS threads. All Lua threads within the same VM must be run on the same OS thread.
 	</description>
 	<tutorials>
 	</tutorials>
 	<methods>
-		<method name="abs_index" qualifiers="const">
+		<method name="is_valid" qualifiers="const">
+			<return type="bool" />
+			<description>
+				Returns [code]true[/code] if this Lua state is valid and can be used, [code]false[/code] if it has been closed or invalidated. Child threads become invalid if the main state is closed.
+				[codeblock]
+				var state := LuaState.new()
+				print(state.is_valid())  # Prints true
+				state.close()
+				print(state.is_valid())  # Prints false
+				[/codeblock]
+			</description>
+		</method>
+		<method name="is_main_thread" qualifiers="const">
+			<return type="bool" />
+			<description>
+				Returns [code]true[/code] if this thread state is the main thread, [code]false[/code] otherwise.
+				[codeblock]
+				var main := LuaState.new()
+				print(main.is_main_thread())    # Prints true (main thread)
+
+				var thread := main.new_thread()
+				print(thread.is_main_thread())  # Prints false (child thread)
+				[/codeblock]
+			</description>
+		</method>
+		<method name="close">
+			<return type="void" />
+			<description>
+				Closes the Lua state and frees all associated resources. This will automatically run when the [LuaState] reference count reaches zero.
+				For main threads, this destroys the entire VM, including all child threads.
+				For child threads, this invalidates the thread reference.
+				After calling [method close], the state becomes invalid and all subsequent operations will fail.
+				[codeblock]
+				var state := LuaState.new()
+				state.open_libs()
+				# ... use state ...
+				state.close()  # Clean up
+				[/codeblock]
+			</description>
+		</method>
+		<method name="new_thread">
+			<return type="LuaState" />
+			<description>
+				Creates a new Lua thread (coroutine) and pushes it onto the stack. Returns a [LuaState] wrapper for the thread.
+				Threads share the global environment with the parent state but have independent execution stacks.
+				[b]Important:[/b] Thread [LuaState]s maintain a strong reference to the main thread [LuaState] to keep the VM alive. Release all [LuaState]s or call [method close] on the main thread to free the Luau VM.
+				[codeblock]
+				var state := LuaState.new()
+				state.open_libs()
+				state.do_string("function coro() coroutine.yield(1); return 2 end", "example")
+
+				var thread := state.new_thread()
+				state.pop(1)  # Clean up stack
+				thread.get_global("coro")
+				thread.resume(0)  # Yields 1
+				[/codeblock]
+			</description>
+		</method>
+		<method name="get_main_thread">
+			<return type="LuaState" />
+			<description>
+				Returns a reference to the main thread. If called on the main thread, returns itself. If called on a child thread, returns the parent main thread.
+				[codeblock]
+				var main := LuaState.new()
+				var thread := main.new_thread()
+				print(thread.get_main_thread() == main)  # Prints true
+				[/codeblock]
+			</description>
+		</method>
+		<method name="reset_thread">
+			<return type="void" />
+			<description>
+				Resets a thread to its initial state, clearing its stack and allowing it to be reused. This is useful for recycling thread objects.
+				[codeblock]
+				var thread := state.new_thread()
+				# ... use thread ...
+				thread.reset_thread()  # Ready to use again
+				[/codeblock]
+			</description>
+		</method>
+		<method name="is_thread_reset">
+			<return type="bool" />
+			<description>
+				Returns [code]true[/code] if this thread state has been reset (is in its initial state), [code]false[/code] otherwise. A reset thread can be reused.
+				[codeblock]
+				var thread := state.new_thread()
+				print(thread.is_thread_reset())  # Prints true (new thread)
+				thread.reset_thread()
+				print(thread.is_thread_reset())  # Prints true (after reset)
+				[/codeblock]
+			</description>
+		</method>
+		<method name="abs_index">
 			<return type="int" />
 			<param index="0" name="index" type="int" />
 			<description>
+				Converts a stack index to an absolute index (a positive index). Negative indices are relative to the top of the stack, while absolute indices always count from the bottom. Returns the converted index.
+				[codeblock]
+				state.push_number(10)
+				state.push_number(20)
+				var abs_idx := state.abs_index(-1)  # Returns 2 (the top element)
+				[/codeblock]
+			</description>
+		</method>
+		<method name="get_top">
+			<return type="int" />
+			<description>
+				Returns the index of the top element in the stack. Since indices start at 1, this also represents the number of elements on the stack. Returns [code]0[/code] if the stack is empty.
+				[codeblock]
+				print(state.get_top())  # Prints 0
+				state.push_number(10)
+				state.push_string("hello")
+				print(state.get_top())  # Prints 2
+				[/codeblock]
+			</description>
+		</method>
+		<method name="set_top">
+			<return type="void" />
+			<param index="0" name="index" type="int" />
+			<description>
+				Sets the stack top to [param index]. If the new top is higher than the old one, new elements are filled with [code]nil[/code]. If it's lower, elements are discarded.
+				[codeblock]
+				state.push_number(1)
+				state.push_number(2)
+				state.push_number(3)
+				state.set_top(1)  # Keep only first element
+				print(state.get_top())  # Prints 1
+				[/codeblock]
+			</description>
+		</method>
+		<method name="pop">
+			<return type="void" />
+			<param index="0" name="n" type="int" />
+			<description>
+				Pops [param n] elements from the stack.
+				[codeblock]
+				state.push_number(10)
+				state.push_number(20)
+				state.push_number(30)
+				state.pop(2)  # Remove top 2 elements
+				print(state.get_top())  # Prints 1
+				[/codeblock]
+			</description>
+		</method>
+		<method name="push_value">
+			<return type="void" />
+			<param index="0" name="index" type="int" />
+			<description>
+				Pushes a copy of the element at [param index] onto the stack. The original value remains in place.
+				[codeblock]
+				state.push_number(42)
+				state.push_value(-1)  # Duplicate the top element
+				print(state.get_top())  # Prints 2
+				[/codeblock]
+			</description>
+		</method>
+		<method name="remove">
+			<return type="void" />
+			<param index="0" name="index" type="int" />
+			<description>
+				Removes the element at [param index] from the stack, shifting down elements above that position to fill the gap.
+				[codeblock]
+				state.push_number(1)
+				state.push_number(2)
+				state.push_number(3)
+				state.remove(2)  # Stack now: [1, 3]
+				[/codeblock]
+			</description>
+		</method>
+		<method name="insert">
+			<return type="void" />
+			<param index="0" name="index" type="int" />
+			<description>
+				Moves the top element into the given position at [param index], shifting up elements above that position to make room. The top element is removed from its original position.
+				[codeblock]
+				state.push_number(1)
+				state.push_number(2)
+				state.push_number(3)
+				state.insert(1)  # Stack now: [3, 1, 2]
+				[/codeblock]
+			</description>
+		</method>
+		<method name="replace">
+			<return type="void" />
+			<param index="0" name="index" type="int" />
+			<description>
+				Moves the top element to [param index] without shifting any other elements, replacing the value at that index. The top element is removed from its original position.
+				[codeblock]
+				state.push_number(1)
+				state.push_number(2)
+				state.push_number(3)
+				state.replace(1)  # Stack now: [3, 2]
+				[/codeblock]
+			</description>
+		</method>
+		<method name="check_stack">
+			<return type="bool" />
+			<param index="0" name="size" type="int" />
+			<description>
+				Ensures the stack has space for at least [param size] additional elements. Returns [code]true[/code] if successful, [code]false[/code] if unable to grow the stack.
+				luau-gdextension automatically grows the stack as needed, so you don't need to call this function manually.
+			</description>
+		</method>
+		<method name="raw_check_stack">
+			<return type="void" />
+			<param index="0" name="size" type="int" />
+			<description>
+				Ensures the stack has space for at least [param size] additional elements. This will always succeed, even if the total stack size exceeds Luau's normal limits.
+			</description>
+		</method>
+		<method name="xmove">
+			<return type="void" />
+			<param index="0" name="to_state" type="LuaState" />
+			<param index="1" name="count" type="int" />
+			<description>
+				Moves [param count] values from the top of this state's stack to the top of [param to_state]'s stack. Both states must belong to the same Luau VM.
+				[codeblock]
+				var thread := state.new_thread()
+				state.push_number(42)
+				state.xmove(thread, 1)  # Move value to thread
+				[/codeblock]
+			</description>
+		</method>
+		<method name="xpush">
+			<return type="void" />
+			<param index="0" name="to_state" type="LuaState" />
+			<param index="1" name="index" type="int" />
+			<description>
+				Pushes a copy of the value at [param index] from this state onto [param to_state]'s stack. Both states must belong to the same Luau VM.
+				[codeblock]
+				var thread := state.new_thread()
+				state.push_number(42)
+				state.xpush(thread, -1)  # Copy value to thread
+				[/codeblock]
+			</description>
+		</method>
+		<method name="is_number">
+			<return type="bool" />
+			<param index="0" name="index" type="int" />
+			<description>
+				Returns [code]true[/code] if the value at [param index] is a number or a string convertible to a number, [code]false[/code] otherwise.
+				[codeblock]
+				state.push_number(42)
+				print(state.is_number(-1))  # Prints true
+				state.push_string("123")
+				print(state.is_number(-1))  # Prints true (convertible)
+				[/codeblock]
+			</description>
+		</method>
+		<method name="is_string">
+			<return type="bool" />
+			<param index="0" name="index" type="int" />
+			<description>
+				Returns [code]true[/code] if the value at [param index] is a string or a number (which is always convertible to a string), [code]false[/code] otherwise.
+				[codeblock]
+				state.push_string("hello")
+				print(state.is_string(-1))  # Prints true
+				state.push_number(123)
+				print(state.is_string(-1))  # Prints true (convertible)
+				[/codeblock]
+			</description>
+		</method>
+		<method name="is_c_function">
+			<return type="bool" />
+			<param index="0" name="index" type="int" />
+			<description>
+				Returns [code]true[/code] if the value at [param index] is a C function (not a Lua function), [code]false[/code] otherwise.
+				C functions are defined by the Luau runtime or luau-gdextension itself.
+				[codeblock]
+				state.open_libs(LuaState.LIB_GODOT)
+				state.get_global("Vector2")
+				print(state.is_c_function(-1))  # Prints true (Vector2 constructor is a C function)
+				[/codeblock]
+			</description>
+		</method>
+		<method name="is_lua_function">
+			<return type="bool" />
+			<param index="0" name="index" type="int" />
+			<description>
+				Returns [code]true[/code] if the value at [param index] is a Lua function (not a C function), [code]false[/code] otherwise.
+				[codeblock]
+				state.do_string("return function() end", "test")
+				print(state.is_lua_function(-1))  # Prints true
+				[/codeblock]
+			</description>
+		</method>
+		<method name="is_userdata">
+			<return type="bool" />
+			<param index="0" name="index" type="int" />
+			<description>
+				Returns [code]true[/code] if the value at [param index] is userdata (either full userdata or light userdata), [code]false[/code] otherwise.
+				Userdata represents arbitrary data from the host application, and cannot be defined in Lua code.
+				[codeblock]
+				state.push_userdata(some_object)
+				print(state.is_userdata(-1))  # Prints true
+				[/codeblock]
+			</description>
+		</method>
+		<method name="type">
+			<return type="int" enum="lua_Type" />
+			<param index="0" name="index" type="int" />
+			<description>
+				Returns the type of the value at [param index] as a [enum Luau.lua_Type] value (e.g., [constant Luau.LUA_TNUMBER], [constant Luau.LUA_TSTRING], [constant Luau.LUA_TTABLE]).
+				[codeblock]
+				state.push_number(42)
+				var type_id := state.type(-1)
+				print(type_id == Luau.LUA_TNUMBER)  # Prints true
+				[/codeblock]
+			</description>
+		</method>
+		<method name="is_function">
+			<return type="bool" />
+			<param index="0" name="index" type="int" />
+			<description>
+				Returns [code]true[/code] if the value at [param index] is a function (either Lua or C function), [code]false[/code] otherwise.
+				[codeblock]
+				state.get_global("print")
+				print(state.is_function(-1))  # Prints true
+				[/codeblock]
+			</description>
+		</method>
+		<method name="is_table">
+			<return type="bool" />
+			<param index="0" name="index" type="int" />
+			<description>
+				Returns [code]true[/code] if the value at [param index] is a table, [code]false[/code] otherwise.
+				[codeblock]
+				state.create_table()
+				print(state.is_table(-1))  # Prints true
+				[/codeblock]
+			</description>
+		</method>
+		<method name="is_full_userdata">
+			<return type="bool" />
+			<param index="0" name="index" type="int" />
+			<description>
+				Returns [code]true[/code] if the value at [param index] is full userdata (as opposed to light userdata), [code]false[/code] otherwise.
+				Full userdata has its own memory managed by Luau, and its behavior can be customized with a metatable.
+				[codeblock]
+				state.push_userdata(some_object)
+				print(state.is_full_userdata(-1))  # Prints true
+				[/codeblock]
+			</description>
+		</method>
+		<method name="is_light_userdata">
+			<return type="bool" />
+			<param index="0" name="index" type="int" />
+			<description>
+				Returns [code]true[/code] if the value at [param index] is light userdata, [code]false[/code] otherwise. Light userdata is a raw pointer to data in the host application, without memory management.
+				[codeblock]
+				state.push_light_userdata(some_object)
+				print(state.is_light_userdata(-1))  # Prints true
+				[/codeblock]
+			</description>
+		</method>
+		<method name="is_nil">
+			<return type="bool" />
+			<param index="0" name="index" type="int" />
+			<description>
+				Returns [code]true[/code] if the value at [param index] is [code]nil[/code], [code]false[/code] otherwise.
+				[codeblock]
+				state.push_nil()
+				print(state.is_nil(-1))  # Prints true
+				[/codeblock]
+			</description>
+		</method>
+		<method name="is_boolean">
+			<return type="bool" />
+			<param index="0" name="index" type="int" />
+			<description>
+				Returns [code]true[/code] if the value at [param index] is a boolean, [code]false[/code] otherwise.
+				[codeblock]
+				state.push_boolean(true)
+				print(state.is_boolean(-1))  # Prints true
+				[/codeblock]
+			</description>
+		</method>
+		<method name="is_vector">
+			<return type="bool" />
+			<param index="0" name="index" type="int" />
+			<description>
+				Returns [code]true[/code] if the value at [param index] is a Luau native vector (Godot [Vector3]), [code]false[/code] otherwise.
+				[b]Note:[/b] [Vector3] is bridged to Luau's native [code]vector[/code] type for high performance, unlike other Godot math types which are bridged as userdata.
+				[codeblock]
+				state.push_vector3(Vector3(1, 2, 3))
+				print(state.is_vector(-1))  # Prints true
+				[/codeblock]
+			</description>
+		</method>
+		<method name="is_thread">
+			<return type="bool" />
+			<param index="0" name="index" type="int" />
+			<description>
+				Returns [code]true[/code] if the value at [param index] is a Lua thread (coroutine), [code]false[/code] otherwise.
+				[codeblock]
+				var thread := state.new_thread()
+				print(state.is_thread(-1))  # Prints true
+				[/codeblock]
+			</description>
+		</method>
+		<method name="is_buffer">
+			<return type="bool" />
+			<param index="0" name="index" type="int" />
+			<description>
+				Returns [code]true[/code] if the value at [param index] is a Luau buffer, [code]false[/code] otherwise. Buffers are used for efficient byte array manipulation.
+				[PackedByteArray]s automatically become Luau buffers when pushed onto the stack.
+				[codeblock]
+				state.push_variant(PackedByteArray([1, 2, 3, 4]))
+				print(state.is_buffer(-1))  # Prints true
+				[/codeblock]
+			</description>
+		</method>
+		<method name="is_none">
+			<return type="bool" />
+			<param index="0" name="index" type="int" />
+			<description>
+				Returns [code]true[/code] if [param index] is not a valid stack index (beyond the stack top), [code]false[/code] otherwise.
+				[codeblock]
+				state.push_number(10)
+				print(state.is_none(5))  # Prints true (stack only has 1 element)
+				[/codeblock]
+			</description>
+		</method>
+		<method name="is_none_or_nil">
+			<return type="bool" />
+			<param index="0" name="index" type="int" />
+			<description>
+				Returns [code]true[/code] if [param index] is not a valid stack index or the value is [code]nil[/code], [code]false[/code] otherwise.
+				[codeblock]
+				state.push_nil()
+				print(state.is_none_or_nil(-1))  # Prints true
+				print(state.is_none_or_nil(5))   # Prints true
+				[/codeblock]
+			</description>
+		</method>
+		<method name="type_name">
+			<return type="String" />
+			<param index="0" name="type_id" type="int" enum="lua_Type" />
+			<description>
+				Returns the name of the given Lua type as a string. [param type_id] should be a [enum lua_Type] value.
+				[codeblock]
+				state.push_string("hello")
+				var type_id := state.type(-1)
+				print(state.type_name(type_id))  # Prints "string"
+				[/codeblock]
+			</description>
+		</method>
+		<method name="equal">
+			<return type="bool" />
+			<param index="0" name="index1" type="int" />
+			<param index="1" name="index2" type="int" />
+			<description>
+				Compares two values at stack indices [param index1] and [param index2] for equality using Lua's [code]==[/code] operator. This may invoke [code]__eq[/code] metamethods. Returns [code]true[/code] if equal, [code]false[/code] otherwise.
+				For raw comparison without metamethods, use [method raw_equal].
+				[codeblock]
+				state.push_number(42)
+				state.push_number(42)
+				print(state.equal(-1, -2))  # Prints true
+				[/codeblock]
+			</description>
+		</method>
+		<method name="raw_equal">
+			<return type="bool" />
+			<param index="0" name="index1" type="int" />
+			<param index="1" name="index2" type="int" />
+			<description>
+				Compares two values at stack indices [param index1] and [param index2] for raw equality without invoking metamethods. Returns [code]true[/code] if the values are primitively equal, [code]false[/code] otherwise.
+				[codeblock]
+				state.push_number(42)
+				state.push_number(42)
+				print(state.raw_equal(-1, -2))  # Prints true
+				[/codeblock]
+			</description>
+		</method>
+		<method name="less_than">
+			<return type="bool" />
+			<param index="0" name="index1" type="int" />
+			<param index="1" name="index2" type="int" />
+			<description>
+				Compares two values at stack indices [param index1] and [param index2] using Lua's [code]&lt;[/code] operator. This may invoke [code]__lt[/code] metamethods. Returns [code]true[/code] if the first value is less than the second, [code]false[/code] otherwise.
+				[codeblock]
+				state.push_number(10)
+				state.push_number(20)
+				print(state.less_than(-2, -1))  # Prints true (10 &lt; 20)
+				[/codeblock]
+			</description>
+		</method>
+		<method name="to_number">
+			<return type="float" />
+			<param index="0" name="index" type="int" />
+			<description>
+				Converts the value at [param index] to a number. Strings are parsed if possible. Returns [code]0.0[/code] if the conversion fails.
+				[codeblock]
+				state.push_string("3.14159")
+				print(state.to_number(-1))  # Prints 3.14159
+				[/codeblock]
+			</description>
+		</method>
+		<method name="to_integer">
+			<return type="int" />
+			<param index="0" name="index" type="int" />
+			<description>
+				Converts the value at [param index] to an integer. Numbers are truncated, strings are parsed. Returns [code]0[/code] if the conversion fails.
+				[codeblock]
+				state.push_number(42.7)
+				print(state.to_integer(-1))  # Prints 42
+				[/codeblock]
+			</description>
+		</method>
+		<method name="to_vector3">
+			<return type="Vector3" />
+			<param index="0" name="index" type="int" />
+			<description>
+				Converts the Luau native [code]vector[/code] at [param index] to a Godot [Vector3]. Returns a zero vector if the conversion fails.
+				[codeblock]
+				state.push_vector3(Vector3(1, 2, 3))
+				var vec := state.to_vector3(-1)
+				[/codeblock]
+			</description>
+		</method>
+		<method name="to_boolean">
+			<return type="bool" />
+			<param index="0" name="index" type="int" />
+			<description>
+				Converts the value at [param index] to a boolean according to Lua rules: [code]false[/code] and [code]nil[/code] are false, everything else is true.
+				[codeblock]
+				state.push_boolean(true)
+				print(state.to_boolean(-1))  # Prints true
+				state.push_nil()
+				print(state.to_boolean(-1))  # Prints false
+				[/codeblock]
+			</description>
+		</method>
+		<method name="to_string_inplace">
+			<return type="String" />
+			<param index="0" name="index" type="int" />
+			<description>
+				Converts the value at [param index] to a string in-place. Numbers are converted to their string representation. [b]This may modify the actual value on the stack.[/b] Returns an empty string if the conversion fails.
+				[b]Warning:[/b] Converting a numeric key to a string during iteration with [method next] will invalidate the iterator. Use [method push_as_string] instead if you need to preserve the original value.
+				[codeblock]
+				state.push_number(42)
+				print(state.to_string_inplace(-1))  # Prints "42"
+				[/codeblock]
+			</description>
+		</method>
+		<method name="to_string_name">
+			<return type="StringName" />
+			<param index="0" name="index" type="int" />
+			<description>
+				Converts the value at [param index] to a [StringName]. Returns an empty [StringName] if the conversion fails. Unlike [method to_string_inplace], this does not convert numbers and will not modify the value on the stack.
+				[codeblock]
+				state.push_string("my_signal")
+				var name := state.to_string_name(-1)
+				[/codeblock]
+			</description>
+		</method>
+		<method name="get_namecall">
+			<return type="String" />
+			<description>
+				Returns the name being used in a namecall (method call with colon syntax). This is only valid during the execution of a [code]__namecall[/code] metamethod.
+				[codeblock]
+				# In __namecall metamethod:
+				var method_name := state.get_namecall()
+				print("Method called: ", method_name)
+				[/codeblock]
+			</description>
+		</method>
+		<method name="obj_len">
+			<return type="int" />
+			<param index="0" name="index" type="int" />
+			<description>
+				Returns the length of the value at [param index]. For strings, returns the string length. For tables, returns the array length (number of sequential integer keys starting from 1). This may invoke the [code]__len[/code] metamethod.
+				[codeblock]
+				state.push_string("hello")
+				print(state.obj_len(-1))  # Prints 5
+				state.do_string("return {10, 20, 30}", "test")
+				print(state.obj_len(-1))  # Prints 3
+				[/codeblock]
+			</description>
+		</method>
+		<method name="to_light_userdata">
+			<return type="Object" />
+			<param index="0" name="index" type="int" />
+			<param index="1" name="tag" type="int" default="-1" />
+			<description>
+				Converts the light userdata at [param index] to an [Object]. If [param tag] is provided, only returns the object if the tag matches. Returns null if the value is not light userdata or the tag doesn't match.
+				[b]Warning:[/b] Because light userdata is not memory managed by Luau, you must ensure that the pushed Godot object remains valid as long as it is used as light userdata.
+				[codeblock]
+				state.push_light_userdata(some_object)
+				var obj := state.to_light_userdata(-1)
+				[/codeblock]
+			</description>
+		</method>
+		<method name="to_userdata">
+			<return type="Object" />
+			<param index="0" name="index" type="int" />
+			<param index="1" name="tag" type="int" default="-1" />
+			<description>
+				Converts the full userdata at [param index] to an [Object]. If [param tag] is provided, only returns the object if the tag matches. Returns null if the value is not full userdata, the tag doesn't match, or if the userdata is not an Object instance (or one of its subclasses).
+				[codeblock]
+				state.push_userdata(some_object)
+				var obj := state.to_userdata(-1)
+				[/codeblock]
+			</description>
+		</method>
+		<method name="to_object">
+			<return type="Object" />
+			<param index="0" name="index" type="int" />
+			<param index="1" name="tag" type="int" default="-1" />
+			<description>
+				Converts the userdata at [param index] to an [Object]. Works with both full userdata and light userdata. If [param tag] is provided, only returns the object if the tag matches. Returns null if the value is not userdata or the tag doesn't match.
+				[codeblock]
+				state.push_userdata(some_object)
+				var obj := state.to_object(-1)
+				[/codeblock]
+			</description>
+		</method>
+		<method name="light_userdata_tag">
+			<return type="int" />
+			<param index="0" name="index" type="int" />
+			<description>
+				Returns the tag of the light userdata at [param index], or -1 if the value is not light userdata. Tags can be used to distinguish different types of light userdata.
+				[codeblock]
+				state.push_light_userdata(obj, MY_TAG)
+				print(state.light_userdata_tag(-1))  # Prints MY_TAG
+				[/codeblock]
+			</description>
+		</method>
+		<method name="userdata_tag">
+			<return type="int" />
+			<param index="0" name="index" type="int" />
+			<description>
+				Returns the tag of the full userdata at [param index], or -1 if the value is not full userdata. Tags can be used to distinguish different types of userdata.
+				[codeblock]
+				state.push_userdata(obj)
+				state.set_userdata_tag(-1, MY_TAG)
+				print(state.userdata_tag(-1))  # Prints MY_TAG
+				[/codeblock]
+			</description>
+		</method>
+		<method name="to_thread">
+			<return type="LuaState" />
+			<param index="0" name="index" type="int" />
+			<description>
+				Converts the thread at [param index] to a [LuaState]. Returns null if the value is not a thread.
+				[codeblock]
+				var thread := state.new_thread()  # Thread is pushed to stack
+				var thread_ref := state.to_thread(-1)
+				[/codeblock]
+			</description>
+		</method>
+		<method name="to_buffer">
+			<return type="PackedByteArray" />
+			<param index="0" name="index" type="int" />
+			<description>
+				Converts the buffer at [param index] to a [PackedByteArray]. Returns an empty array if the value is not a buffer.
+				[codeblock]
+				state.push_variant(PackedByteArray([1, 2, 3, 4]))
+				var data := state.to_buffer(-1)
+				[/codeblock]
+			</description>
+		</method>
+		<method name="to_pointer">
+			<return type="int" />
+			<param index="0" name="index" type="int" />
+			<description>
+				Returns a unique identifier (pointer address) for the value at [param index]. This can be used to compare values by identity rather than equality.
+				[codeblock]
+				state.create_table()
+				var ptr1 := state.to_pointer(-1)
+				state.push_value(-1)
+				var ptr2 := state.to_pointer(-1)
+				print(ptr1 == ptr2)  # Prints true (same table)
+				[/codeblock]
+			</description>
+		</method>
+		<method name="push_nil">
+			<return type="void" />
+			<description>
+				Pushes a [code]nil[/code] value onto the stack.
+				[codeblock]
+				state.push_nil()
+				[/codeblock]
+			</description>
+		</method>
+		<method name="push_number">
+			<return type="void" />
+			<param index="0" name="n" type="float" />
+			<description>
+				Pushes a floating-point number onto the stack.
+				[codeblock]
+				state.push_number(3.14159)
+				[/codeblock]
+			</description>
+		</method>
+		<method name="push_integer">
+			<return type="void" />
+			<param index="0" name="n" type="int" />
+			<description>
+				Pushes an integer value onto the stack. In Lua, integers and floats are both represented as numbers.
+				[codeblock]
+				state.push_integer(42)
+				[/codeblock]
+			</description>
+		</method>
+		<method name="push_vector3">
+			<return type="void" />
+			<param index="0" name="value" type="Vector3" />
+			<description>
+				Pushes a Godot [Vector3] value onto the stack as a Luau native [code]vector[/code] type.
+				[b]Note:[/b] Vector3 uses Luau's native vector type for high performance with inline arithmetic operations and JIT compilation support.
+				[codeblock]
+				state.push_vector3(Vector3(1, 2, 3))
+				[/codeblock]
+			</description>
+		</method>
+		<method name="push_string">
+			<return type="void" />
+			<param index="0" name="s" type="String" />
+			<description>
+				Pushes a string onto the stack.
+				[codeblock]
+				state.push_string("Hello, Lua!")
+				[/codeblock]
+			</description>
+		</method>
+		<method name="push_string_name">
+			<return type="void" />
+			<param index="0" name="string_name" type="StringName" />
+			<description>
+				Pushes a [StringName] onto the stack as a string.
+				[codeblock]
+				state.push_string_name(&amp;"my_signal")
+				[/codeblock]
+			</description>
+		</method>
+		<method name="push_boolean">
+			<return type="void" />
+			<param index="0" name="b" type="bool" />
+			<description>
+				Pushes a boolean value onto the stack.
+				[codeblock]
+				state.push_boolean(true)
+				[/codeblock]
+			</description>
+		</method>
+		<method name="push_thread">
+			<return type="bool" />
+			<description>
+				Pushes this [LuaState]'s thread onto the stack. Returns [code]true[/code] if successful. This can be used to get a reference to the current coroutine.
+			</description>
+		</method>
+		<method name="push_light_userdata">
+			<return type="void" />
+			<param index="0" name="obj" type="Object" />
+			<param index="1" name="tag" type="int" default="-1" />
+			<description>
+				Pushes an [Object] as light userdata onto the stack. Light userdata is a raw pointer without memory management. The optional [param tag], an integer between 0 and 128, can be associated with different types of light userdata to easily identify them later.
+				[b]Warning:[/b] Because light userdata is not memory managed by Luau, you must ensure that the pushed Godot object remains valid as long as it is used as light userdata.
+				[codeblock]
+				state.push_light_userdata(some_object)
+				[/codeblock]
+			</description>
+		</method>
+		<method name="push_userdata">
+			<return type="void" />
+			<param index="0" name="obj" type="Object" />
+			<param index="1" name="tag" type="int" default="-1" />
+			<description>
+				Pushes an [Object] as full userdata onto the stack. The optional [param tag], an integer between 0 and 128, can be associated with different types of userdata to easily identify them later.
+				[RefCounted] and its subclasses are automatically memory managed by Luau when pushed as full userdata. [Object] instances that do not subclass [RefCounted] will be freed by Luau when the userdata is garbage collected.
+				[codeblock]
+				state.push_userdata(some_object)
+				[/codeblock]
+			</description>
+		</method>
+		<method name="get_table">
+			<return type="int" enum="lua_Type" />
+			<param index="0" name="index" type="int" />
+			<description>
+				Pops a key from the stack and pushes the value [code]t[key][/code] where [code]t[/code] is the table at [param index]. This operation may invoke the [code]__index[/code] metamethod. Returns the type of the pushed value.
+				[codeblock]
+				state.get_global("math")
+				state.push_string("pi")
+				state.get_table(-2)  # Get math["pi"]
+				print(state.to_number(-1))  # Prints 3.14159...
+				[/codeblock]
+			</description>
+		</method>
+		<method name="get_field">
+			<return type="int" enum="lua_Type" />
+			<param index="0" name="index" type="int" />
+			<param index="1" name="key" type="String" />
+			<description>
+				Gets the value [code]t[key][/code] where [code]t[/code] is the table at [param index], and pushes it onto the stack. This operation may invoke the [code]__index[/code] metamethod. Returns the type of the pushed value.
+				[codeblock]
+				state.get_global("math")  # Get the math table
+				state.get_field(-1, "pi")  # Get math.pi
+				print(state.to_number(-1))  # Prints 3.14159...
+				[/codeblock]
+			</description>
+		</method>
+		<method name="get_global">
+			<return type="int" enum="lua_Type" />
+			<param index="0" name="key" type="String" />
+			<description>
+				Pushes onto the stack the value of the global variable [param key]. Returns the type of the pushed value. This is equivalent to [code]get_field(Luau.LUA_GLOBALSINDEX, key)[/code].
+				[codeblock]
+				state.get_global("print")  # Get the global print function
+				state.push_string("Hello")
+				state.call(1, 0)  # Call print("Hello")
+				[/codeblock]
+			</description>
+		</method>
+		<method name="raw_get_field">
+			<return type="int" enum="lua_Type" />
+			<param index="0" name="index" type="int" />
+			<param index="1" name="key" type="String" />
+			<description>
+				Similar to [method get_field], but performs a raw access without invoking [code]__index[/code] metamethods. Gets [code]t[key][/code] where [code]t[/code] is the table at [param index] and pushes it onto the stack. Returns the type of the pushed value.
+				[codeblock]
+				state.get_global("math")
+				state.raw_get_field(-1, "pi")
+				print(state.to_number(-1))  # Prints 3.14159...
+				[/codeblock]
+			</description>
+		</method>
+		<method name="raw_get">
+			<return type="int" enum="lua_Type" />
+			<param index="0" name="index" type="int" />
+			<description>
+				Similar to [method get_table], but performs a raw access without invoking [code]__index[/code] metamethods. Pops a key from the stack and pushes [code]t[key][/code] where [code]t[/code] is the table at [param index]. Returns the type of the pushed value.
+				[codeblock]
+				state.create_table()
+				state.push_string("value")
+				state.set_field(-2, "key")
+
+				state.push_string("key")
+				state.raw_get(-2)
+				print(state.to_string(-1))  # Prints "value"
+				[/codeblock]
+			</description>
+		</method>
+		<method name="raw_geti">
+			<return type="int" enum="lua_Type" />
+			<param index="0" name="index" type="int" />
+			<param index="1" name="n" type="int" />
+			<description>
+				Performs a raw array access without invoking metamethods. Gets [code]t[n][/code] where [code]t[/code] is the table at stack index [param index] and [param n] is the array index, then pushes the value onto the stack. Returns the type of the pushed value.
+				[codeblock]
+				state.do_string("return {10, 20, 30}", "test")
+				state.raw_geti(-1, 2)  # Get element at index 2
+				print(state.to_number(-1))  # Prints 20
+				[/codeblock]
+			</description>
+		</method>
+		<method name="create_table">
+			<return type="void" />
+			<param index="0" name="narr" type="int" default="0" />
+			<param index="1" name="nrec" type="int" default="0" />
+			<description>
+				Creates a new empty table and pushes it onto the stack. [param narr] and [param nrec] can optionally be provided as hints about the number of array and non-array elements that will be inserted, respectively.
+				[codeblock]
+				state.create_table(5, 2)  # Table optimized for 5 array + 2 dictionary elements
+				state.push_number(100)
+				state.raw_seti(-2, 1)  # Set array[1] = 100
+				[/codeblock]
+			</description>
+		</method>
+		<method name="set_read_only">
+			<return type="void" />
+			<param index="0" name="index" type="int" />
+			<param index="1" name="enabled" type="bool" />
+			<description>
+				Makes the table at [param index] read-only if [param enabled] is [code]true[/code], or makes it writable if [code]false[/code]. Read-only tables cannot be modified by the host application or Luau code.
+				[codeblock]
+				state.create_table()
+				state.push_number(100)
+				state.set_field(-2, "value")
+				state.set_read_only(-1, true)  # Lock the table
+				[/codeblock]
+			</description>
+		</method>
+		<method name="get_read_only">
+			<return type="bool" />
+			<param index="0" name="index" type="int" />
+			<description>
+				Returns [code]true[/code] if the table at [param index] is marked as read-only, [code]false[/code] otherwise.
+				[codeblock]
+				state.create_table()
+				state.set_read_only(-1, true)
+				print(state.get_read_only(-1))  # Prints true
+				[/codeblock]
+			</description>
+		</method>
+		<method name="set_safe_env">
+			<return type="void" />
+			<param index="0" name="index" type="int" />
+			<param index="1" name="enabled" type="bool" />
+			<description>
+				To enable many performance improvements, you can set [param enabled] to [code]true[/code] on an environment table to indicate that globals aren't shared with other scripts.
+				Generally, this does not need to be set directly. Instead, use [method sandbox] on the global state and [method sandbox_thread] for each new script's execution thread to automatically create safe environments.
+				[codeblock]
+				state.create_table()
+				state.set_safe_env(-1, true)
+				[/codeblock]
+			</description>
+		</method>
+		<method name="get_metatable">
+			<return type="bool" />
+			<param index="0" name="index" type="int" />
+			<description>
+				Pushes onto the stack the metatable of the value at [param index]. Returns [code]true[/code] if the value has a metatable, [code]false[/code] otherwise. If [code]false[/code], nothing is pushed.
+				[codeblock]
+				state.push_string("hello")
+				if state.get_metatable(-1):
+				    print("String has a metatable")
+				[/codeblock]
+			</description>
+		</method>
+		<method name="get_fenv">
+			<return type="void" />
+			<param index="0" name="index" type="int" />
+			<description>
+				Pushes onto the stack the environment table of the function or thread at [param index]. The environment table is used for global variable lookups.
+				[b]Note:[/b] This will disable [code]safeenv[/code] optimizations, so avoid using this function unless necessary.
+				[codeblock]
+				state.get_global("some_function")
+				state.get_fenv(-1)  # Get function's environment
+				# Now environment table is on top of stack
+				[/codeblock]
+			</description>
+		</method>
+		<method name="set_table">
+			<return type="void" />
+			<param index="0" name="index" type="int" />
+			<description>
+				Pops a value and a key from the stack and assigns [code]t[key] = value[/code] where [code]t[/code] is the table at [param index]. This operation may invoke the [code]__newindex[/code] metamethod.
+				[codeblock]
+				state.create_table()
+				state.push_string("key")
+				state.push_string("value")
+				state.set_table(-3)  # table["key"] = "value"
+				[/codeblock]
+			</description>
+		</method>
+		<method name="set_field">
+			<return type="void" />
+			<param index="0" name="index" type="int" />
+			<param index="1" name="key" type="String" />
+			<description>
+				Pops a value from the stack and assigns [code]t[key] = value[/code] where [code]t[/code] is the table at [param index]. This operation may invoke the [code]__newindex[/code] metamethod.
+				[codeblock]
+				state.create_table()
+				state.push_number(42)
+				state.set_field(-2, "answer")  # table.answer = 42
+				[/codeblock]
+			</description>
+		</method>
+		<method name="set_global">
+			<return type="void" />
+			<param index="0" name="key" type="String" />
+			<description>
+				Pops a value from the stack and sets it as the global variable [param key]. This is equivalent to [code]set_field(LUA_GLOBALSINDEX, key)[/code].
+				[codeblock]
+				state.push_number(42)
+				state.set_global("my_global")
+				# Now in Lua: my_global == 42
+				[/codeblock]
+			</description>
+		</method>
+		<method name="raw_set_field">
+			<return type="void" />
+			<param index="0" name="index" type="int" />
+			<param index="1" name="key" type="String" />
+			<description>
+				Similar to [method set_field], but performs a raw assignment without invoking [code]__newindex[/code] metamethods. Pops a value from the stack and assigns [code]t[key] = value[/code] where [code]t[/code] is the table at [param index].
+				[codeblock]
+				state.create_table()
+				state.push_string("value")
+				state.raw_set_field(-2, "key")  # table.key = "value"
+				[/codeblock]
+			</description>
+		</method>
+		<method name="raw_set">
+			<return type="void" />
+			<param index="0" name="index" type="int" />
+			<description>
+				Similar to [method set_table], but performs a raw assignment without invoking [code]__newindex[/code] metamethods. Pops a value and a key from the stack and assigns [code]t[key] = value[/code] where [code]t[/code] is the table at [param index].
+				[codeblock]
+				state.create_table()
+				state.push_string("key")
+				state.push_string("value")
+				state.raw_set(-3)  # table["key"] = "value"
+				[/codeblock]
+			</description>
+		</method>
+		<method name="raw_seti">
+			<return type="void" />
+			<param index="0" name="index" type="int" />
+			<param index="1" name="n" type="int" />
+			<description>
+				Performs a raw array assignment without invoking metamethods. Pops a value from the stack and assigns [code]t[n] = value[/code] where [code]t[/code] is the table at stack index [param index] and [param n] is the array index.
+				[codeblock]
+				state.create_table()
+				state.push_number(100)
+				state.raw_seti(-2, 1)  # table[1] = 100
+				[/codeblock]
+			</description>
+		</method>
+		<method name="set_metatable">
+			<return type="void" />
+			<param index="0" name="index" type="int" />
+			<description>
+				Pops a table from the stack and sets it as the metatable for the table or userdata at [param index]. If the value at [param index] is [code]nil[/code], removes any existing metatable.
+				[codeblock]
+				state.create_table()  # Create object table
+				state.create_table()  # Create metatable
+				# Set up metatable...
+				state.set_metatable(-2)  # Assign metatable to object
+				[/codeblock]
+			</description>
+		</method>
+		<method name="set_fenv">
+			<return type="bool" />
+			<param index="0" name="index" type="int" />
+			<description>
+				Pops a table from the stack and sets it as the environment table for the function or thread at [param index]. Returns [code]true[/code] if successful, [code]false[/code] otherwise.
+				[b]Note:[/b] This will disable [code]safeenv[/code] optimizations, so avoid using this function unless necessary.
+				[codeblock]
+				state.get_global("some_function")
+				state.create_table()  # Create new environment
+				state.set_fenv(-2)  # Set as function's environment
+				[/codeblock]
+			</description>
+		</method>
+		<method name="load_bytecode">
+			<return type="bool" />
+			<param index="0" name="bytecode" type="PackedByteArray" />
+			<param index="1" name="chunk_name" type="String" />
+			<param index="2" name="env" type="int" default="0" />
+			<description>
+				Loads pre-compiled Luau bytecode and pushes it as a function onto the stack. Returns whether loading was successful. [param chunk_name] is used to identify the function in error messages and debugging. [param env] can optionally specify the stack index of a custom environment table to use.
+				Use [method Luau.compile] to generate bytecode from source code. After loading, use [method call] or [method pcall] to execute the function.
+				[codeblock]
+				var bytecode := Luau.compile("return 1 + 2", "example")
+				var result := state.load_bytecode(bytecode, "example")
+				if result:
+				    state.call(0, 1)
+				    print(state.to_number(-1))  # Prints 3
+				[/codeblock]
 			</description>
 		</method>
 		<method name="call">
@@ -47,46 +1077,117 @@
 			<param index="0" name="nargs" type="int" />
 			<param index="1" name="nresults" type="int" />
 			<description>
+				Calls a Lua function without error handling. The function and its arguments must already be on the stack. [param nargs] is the number of arguments, and [param nresults] is the number of expected return values. Use [constant Luau.LUA_MULTRET] for [param nresults] to return all values.
+				[b]Warning:[/b] If an error occurs, the Lua VM will panic and the state becomes invalid. Use [method pcall] for protected calls with error handling.
+				[codeblock]
+				state.get_global("math")
+				state.get_field(-1, "sqrt")
+				state.push_number(16)
+				state.call(1, 1)  # Call math.sqrt(16)
+				print(state.to_number(-1))  # Prints 4
+				[/codeblock]
 			</description>
 		</method>
-		<method name="check_stack">
-			<return type="bool" />
-			<param index="0" name="extra" type="int" />
+		<method name="pcall">
+			<return type="int" enum="lua_Status" />
+			<param index="0" name="nargs" type="int" />
+			<param index="1" name="nresults" type="int" />
+			<param index="2" name="errfunc" type="int" default="0" />
 			<description>
+				Calls a Lua function in protected mode. The function and its arguments must already be on the stack. [param nargs] is the number of arguments, [param nresults] is the number of expected return values.
+				Returns [constant Luau.LUA_OK] on success. In case of error, the error function at [param errfunc] (if given) will be called with the error message, and its result pushed on the stack. If no error function is used, the error message is pushed directly. The function then returns an appropriate error status code.
+				[codeblock]
+				state.get_global("math")
+				state.get_field(-1, "sqrt")
+				state.push_number(16)
+				var result := state.pcall(1, 1, 0)
+				if result == Luau.LUA_OK:
+				    print(state.to_number(-1))  # Prints 4
+				else:
+				    print("Error: ", state.to_string(-1))
+				[/codeblock]
 			</description>
 		</method>
-		<method name="close">
+		<method name="cpcall">
+			<return type="int" enum="lua_Status" />
+			<param index="0" name="callable" type="Callable" />
+			<description>
+				Calls a Godot [Callable] in protected mode. Any value returned by [param callable] will be discarded.
+				Returns [constant Luau.LUA_OK] on success. In case of error, the error message is pushed onto the stack and the function returns an appropriate error status code.
+				This can be used to perform operations that may raise Lua errors, without causing a panic.
+				[codeblock]
+				var erroring_func := func(): state.error()
+				var result := state.cpcall(erroring_func)
+				[/codeblock]
+			</description>
+		</method>
+		<method name="yield">
+			<return type="void" />
+			<param index="0" name="nresults" type="int" />
+			<description>
+				Yields the current coroutine, returning [param nresults] values from the stack to the caller. Can only be called from within a yieldable function (inside a coroutine).
+			</description>
+		</method>
+		<method name="break">
 			<return type="void" />
 			<description>
+				Breaks the execution of the current coroutine, returning control to the caller.
+			</description>
+		</method>
+		<method name="resume">
+			<return type="int" enum="lua_Status" />
+			<param index="0" name="narg" type="int" default="0" />
+			<param index="1" name="from" type="LuaState" default="null" />
+			<description>
+				Resumes execution of a coroutine. [param narg] is the number of arguments to pass to the coroutine (which must be on the stack). [param from] is the state resuming this thread (optional). Returns [constant Luau.LUA_OK] if the coroutine completes, [constant Luau.LUA_YIELD] if it yields, or an error status code on failure.
+				[b]Important:[/b] When resuming after handling signals like [signal interrupt], use [code]call_deferred()[/code] to prevent reentrancy.
+				[codeblock]
+				var thread = state.new_thread()
+				state.pop(1)
+				thread.get_global("some_coroutine")
+				var status := thread.resume(0)
+				if status == LuaState.LUA_YIELD:
+				    print("Coroutine yielded")
+				elif status == LuaState.LUA_OK:
+				    print("Coroutine completed")
+				[/codeblock]
+			</description>
+		</method>
+		<method name="resume_error">
+			<return type="int" enum="lua_Status" />
+			<param index="0" name="from" type="LuaState" default="null" />
+			<description>
+				Resumes a coroutine that has encountered an error. [param from] is the state resuming this thread (optional). Returns a status code indicating the result.
+			</description>
+		</method>
+		<method name="status">
+			<return type="int" enum="lua_Status" />
+			<description>
+				Returns the status of this Lua state. For threads, returns [constant Luau.LUA_OK] if the thread is finished or hasn't started, [constant Luau.LUA_YIELD] if suspended, or an error status code if an error occurred.
+				[codeblock]
+				var status := thread.status()
+				if status == LuaState.LUA_YIELD:
+				    print("Thread is yielded")
+				[/codeblock]
+			</description>
+		</method>
+		<method name="is_yieldable">
+			<return type="bool" />
+			<description>
+				Returns [code]true[/code] if the current function can yield (i.e., is running inside a coroutine), [code]false[/code] otherwise.
 			</description>
 		</method>
 		<method name="co_status">
 			<return type="int" enum="lua_CoStatus" />
 			<param index="0" name="co" type="LuaState" />
 			<description>
-			</description>
-		</method>
-		<method name="create_table">
-			<return type="void" />
-			<param index="0" name="narr" type="int" />
-			<param index="1" name="nrec" type="int" />
-			<description>
-			</description>
-		</method>
-		<method name="do_string">
-			<return type="int" enum="lua_Status" />
-			<param index="0" name="code" type="String" />
-			<param index="1" name="chunk_name" type="String" />
-			<description>
-				Compiles and executes Luau source code. Returns a status code ([constant LUA_OK] on success).
-				The [param chunk_name] is used for error messages and debugging.
-			</description>
-		</method>
-		<method name="equal" qualifiers="const">
-			<return type="bool" />
-			<param index="0" name="index1" type="int" />
-			<param index="1" name="index2" type="int" />
-			<description>
+				Returns the status of the coroutine [param co]. The return value is one of the [enum Luau.lua_CoStatus] values indicating whether the coroutine is running, suspended, dead, or normal.
+				[codeblock]
+				var thread := state.new_thread()
+				var status := state.co_status(thread)
+				if status == LuaState.CO_SUS:
+				    print("Thread is suspended")
+				[/codeblock]
 			</description>
 		</method>
 		<method name="gc">
@@ -94,283 +1195,43 @@
 			<param index="0" name="what" type="int" enum="lua_GCOp" />
 			<param index="1" name="data" type="int" />
 			<description>
-			</description>
-		</method>
-		<method name="get_fenv">
-			<return type="void" />
-			<param index="0" name="index" type="int" />
-			<description>
-			</description>
-		</method>
-		<method name="get_field">
-			<return type="void" />
-			<param index="0" name="index" type="int" />
-			<param index="1" name="key" type="String" />
-			<description>
-			</description>
-		</method>
-		<method name="get_global">
-			<return type="void" />
-			<param index="0" name="key" type="String" />
-			<description>
-			</description>
-		</method>
-		<method name="get_main_thread">
-			<return type="LuaState" />
-			<description>
-			</description>
-		</method>
-		<method name="get_metatable">
-			<return type="bool" />
-			<param index="0" name="index" type="int" />
-			<description>
-			</description>
-		</method>
-		<method name="get_read_only" qualifiers="const">
-			<return type="bool" />
-			<param index="0" name="index" type="int" />
-			<description>
-			</description>
-		</method>
-		<method name="get_ref">
-			<return type="void" />
-			<param index="0" name="ref" type="int" />
-			<description>
-			</description>
-		</method>
-		<method name="get_table">
-			<return type="void" />
-			<param index="0" name="index" type="int" />
-			<description>
-			</description>
-		</method>
-		<method name="get_top" qualifiers="const">
-			<return type="int" />
-			<description>
-			</description>
-		</method>
-		<method name="insert">
-			<return type="void" />
-			<param index="0" name="index" type="int" />
-			<description>
-			</description>
-		</method>
-		<method name="is_aabb">
-			<return type="bool" />
-			<param index="0" name="index" type="int" />
-			<description>
-			</description>
-		</method>
-		<method name="is_array">
-			<return type="bool" />
-			<param index="0" name="index" type="int" />
-			<description>
-			</description>
-		</method>
-		<method name="is_basis">
-			<return type="bool" />
-			<param index="0" name="index" type="int" />
-			<description>
-			</description>
-		</method>
-		<method name="is_boolean" qualifiers="const">
-			<return type="bool" />
-			<param index="0" name="index" type="int" />
-			<description>
-			</description>
-		</method>
-		<method name="is_callable">
-			<return type="bool" />
-			<param index="0" name="index" type="int" />
-			<description>
-			</description>
-		</method>
-		<method name="is_color">
-			<return type="bool" />
-			<param index="0" name="index" type="int" />
-			<description>
-			</description>
-		</method>
-		<method name="is_dictionary">
-			<return type="bool" />
-			<param index="0" name="index" type="int" />
-			<description>
-			</description>
-		</method>
-		<method name="is_function" qualifiers="const">
-			<return type="bool" />
-			<param index="0" name="index" type="int" />
-			<description>
-			</description>
-		</method>
-		<method name="is_nil" qualifiers="const">
-			<return type="bool" />
-			<param index="0" name="index" type="int" />
-			<description>
-			</description>
-		</method>
-		<method name="is_number" qualifiers="const">
-			<return type="bool" />
-			<param index="0" name="index" type="int" />
-			<description>
-			</description>
-		</method>
-		<method name="is_plane">
-			<return type="bool" />
-			<param index="0" name="index" type="int" />
-			<description>
-			</description>
-		</method>
-		<method name="is_projection">
-			<return type="bool" />
-			<param index="0" name="index" type="int" />
-			<description>
-			</description>
-		</method>
-		<method name="is_quaternion">
-			<return type="bool" />
-			<param index="0" name="index" type="int" />
-			<description>
-			</description>
-		</method>
-		<method name="is_rect2">
-			<return type="bool" />
-			<param index="0" name="index" type="int" />
-			<description>
-			</description>
-		</method>
-		<method name="is_rect2i">
-			<return type="bool" />
-			<param index="0" name="index" type="int" />
-			<description>
-			</description>
-		</method>
-		<method name="is_string" qualifiers="const">
-			<return type="bool" />
-			<param index="0" name="index" type="int" />
-			<description>
-			</description>
-		</method>
-		<method name="is_table" qualifiers="const">
-			<return type="bool" />
-			<param index="0" name="index" type="int" />
-			<description>
-			</description>
-		</method>
-		<method name="is_thread" qualifiers="const">
-			<return type="bool" />
-			<param index="0" name="index" type="int" />
-			<description>
-			</description>
-		</method>
-		<method name="is_thread_reset" qualifiers="const">
-			<return type="bool" />
-			<description>
-			</description>
-		</method>
-		<method name="is_transform2d">
-			<return type="bool" />
-			<param index="0" name="index" type="int" />
-			<description>
-			</description>
-		</method>
-		<method name="is_transform3d">
-			<return type="bool" />
-			<param index="0" name="index" type="int" />
-			<description>
-			</description>
-		</method>
-		<method name="is_userdata" qualifiers="const">
-			<return type="bool" />
-			<param index="0" name="index" type="int" />
-			<description>
-			</description>
-		</method>
-		<method name="is_valid" qualifiers="const">
-			<return type="bool" />
-			<description>
-			</description>
-		</method>
-		<method name="is_vector2">
-			<return type="bool" />
-			<param index="0" name="index" type="int" />
-			<description>
-			</description>
-		</method>
-		<method name="is_vector2i">
-			<return type="bool" />
-			<param index="0" name="index" type="int" />
-			<description>
-			</description>
-		</method>
-		<method name="is_vector3">
-			<return type="bool" />
-			<param index="0" name="index" type="int" />
-			<description>
-			</description>
-		</method>
-		<method name="is_vector3i">
-			<return type="bool" />
-			<param index="0" name="index" type="int" />
-			<description>
-			</description>
-		</method>
-		<method name="is_vector4">
-			<return type="bool" />
-			<param index="0" name="index" type="int" />
-			<description>
-			</description>
-		</method>
-		<method name="is_vector4i">
-			<return type="bool" />
-			<param index="0" name="index" type="int" />
-			<description>
-			</description>
-		</method>
-		<method name="is_yieldable" qualifiers="const">
-			<return type="bool" />
-			<description>
-			</description>
-		</method>
-		<method name="less_than" qualifiers="const">
-			<return type="bool" />
-			<param index="0" name="index1" type="int" />
-			<param index="1" name="index2" type="int" />
-			<description>
-			</description>
-		</method>
-		<method name="load_bytecode">
-			<return type="int" enum="lua_Status" />
-			<param index="0" name="bytecode" type="PackedByteArray" />
-			<param index="1" name="chunk_name" type="String" />
-			<description>
-			</description>
-		</method>
-		<method name="load_string">
-			<return type="int" enum="lua_Status" />
-			<param index="0" name="code" type="String" />
-			<param index="1" name="chunk_name" type="String" />
-			<description>
-			</description>
-		</method>
-		<method name="new_table">
-			<return type="void" />
-			<description>
-			</description>
-		</method>
-		<method name="new_thread">
-			<return type="LuaState" />
-			<description>
-				Creates a new Lua thread (coroutine) and pushes it to the stack. Returns a [LuaState] wrapper for the thread.
-				Threads share the global environment with the parent state but have independent execution stacks.
+				Controls the garbage collector. The [param what] parameter specifies the operation (stop, restart, collect, count, etc.), and [param data] provides operation-specific data. Returns operation-specific results.
 				[codeblock]
-				var state = LuaState.new()
-				state.open_libs()
-				state.do_string("function coro() coroutine.yield(1); return 2 end")
-				var thread = state.new_thread()
-				state.pop(1)  # Clean up stack
-				thread.get_global("coro")
-				thread.resume(0)  # Yields 1
+				var kb_used := state.gc(LuaState.LUA_GCCOUNT, 0)
+				print("Memory used: ", kb_used, " KB")
+
+				state.gc(LuaState.LUA_GCCOLLECT, 0)  # Force full collection
+				[/codeblock]
+			</description>
+		</method>
+		<method name="set_memory_category">
+			<return type="void" />
+			<param index="0" name="category" type="int" />
+			<description>
+				Sets the memory category, an integer between 0 and 256, for subsequent Lua allocations. Memory categories can be used to track memory usage across different areas.
+				[codeblock]
+				state.set_memory_category(1)
+				[/codeblock]
+			</description>
+		</method>
+		<method name="get_total_bytes">
+			<return type="int" />
+			<param index="0" name="category" type="int" />
+			<description>
+				Returns the total number of bytes allocated by Lua in the given memory [param category]. Memory categories are used for tracking memory usage by different parts of the Lua VM.
+				[codeblock]
+				var bytes := state.get_total_bytes(0)
+				print("Memory used: ", bytes, " bytes")
+				[/codeblock]
+			</description>
+		</method>
+		<method name="error">
+			<return type="void" />
+			<description>
+				Raises a Lua error with the value at the top of the stack as the error message. This function does not return (unless the state is invalid).
+				[codeblock]
+				state.push_string("Something went wrong!")
+				state.error()  # Raises error
 				[/codeblock]
 			</description>
 		</method>
@@ -378,12 +1239,689 @@
 			<return type="bool" />
 			<param index="0" name="index" type="int" />
 			<description>
+				Pops a key from the stack and pushes the next key-value pair from the table at [param index]. This may invoke the [code]__iter[/code] metamethod.
+				Returns [code]true[/code] if there is a next pair, [code]false[/code] if the table traversal is complete. Used for iterating over tables.
+				[b]Note:[/b] Push [code]nil[/code] to start iteration from the beginning.
+				[b]Warning:[/b] Converting a numeric key to a string with [method to_string_inplace] will invalidate the iterator. Use [method push_as_string] instead if you need to preserve the original value.
+				[codeblock]
+				state.create_table()
+				state.push_string("value1")
+				state.set_field(-2, "key1")
+				state.push_nil()  # Start iteration
+				while state.next(-2):
+				    print(state.to_string(-2), " = ", state.to_string(-1))
+				    state.pop(1)  # Remove value, keep key for next iteration
+				[/codeblock]
 			</description>
 		</method>
-		<method name="obj_len">
+		<method name="raw_iter">
+			<return type="int" />
+			<param index="0" name="index" type="int" />
+			<param index="1" name="iter" type="int" />
+			<description>
+				Performs a raw iteration over the table at [param index], similar to [param next] but without invoking the [code]__iter[/code] metamethod. [param iter] should be 0 to start iteration, or the value returned from the previous call. Returns the next iterator value, or -1 when iteration is complete.
+				Pushes the key and value onto the stack for each iteration.
+				[codeblock]
+				state.create_table()
+				state.push_string("value")
+				state.set_field(-2, "key")
+				var iter = 0
+				while true:
+				    iter = state.raw_iter(-1, iter)
+				    if iter == -1:
+				        break
+
+				    print(state.to_string(-2), " = ", state.to_string(-1))
+				    state.pop(2)
+				[/codeblock]
+			</description>
+		</method>
+		<method name="concat">
+			<return type="void" />
+			<param index="0" name="count" type="int" />
+			<description>
+				Concatenates the top [param count] values on the stack into a single string. Pops all values and pushes the result.
+				[codeblock]
+				state.push_string("Hello")
+				state.push_string(" ")
+				state.push_string("World")
+				state.concat(3)
+				print(state.to_string(-1))  # Prints "Hello World"
+				[/codeblock]
+			</description>
+		</method>
+		<method name="set_userdata_tag">
+			<return type="void" />
+			<param index="0" name="index" type="int" />
+			<param index="1" name="tag" type="int" />
+			<description>
+				Sets the tag of the full userdata at [param index] to [param tag], an integer between 0 and 128. Tags can be associated with different types of userdata to easily identify them later.
+				[codeblock]
+				state.push_userdata(some_object)
+				state.set_userdata_tag(-1, MY_TAG)
+				[/codeblock]
+			</description>
+		</method>
+		<method name="set_userdata_metatable">
+			<return type="void" />
+			<param index="0" name="tag" type="int" />
+			<description>
+				Pops a table from the stack and sets it as the metatable for all userdata with the given [param tag].
+				[codeblock]
+				state.create_table()
+				# Set up metatable...
+				state.set_userdata_metatable(MY_TAG)
+				[/codeblock]
+			</description>
+		</method>
+		<method name="get_userdata_metatable">
+			<return type="void" />
+			<param index="0" name="tag" type="int" />
+			<description>
+				Gets the metatable associated with userdata tag [param tag] and pushes it onto the stack.
+				[codeblock]
+				state.get_userdata_metatable(MY_TAG)
+				# Metatable is now on top of stack
+				[/codeblock]
+			</description>
+		</method>
+		<method name="set_light_userdata_name">
+			<return type="void" />
+			<param index="0" name="tag" type="int" />
+			<param index="1" name="name" type="String" />
+			<description>
+				Associates a name with a light userdata tag.
+				[codeblock]
+				state.set_light_userdata_name(MY_TAG, "MyObjectType")
+				[/codeblock]
+			</description>
+		</method>
+		<method name="get_light_userdata_name">
+			<return type="String" />
+			<param index="0" name="tag" type="int" />
+			<description>
+				Returns the name associated with light userdata tag [param tag].
+			</description>
+		</method>
+		<method name="clone_function">
+			<return type="void" />
+			<param index="0" name="index" type="int" />
+			<description>
+				Creates a clone of the function at [param index] and pushes it onto the stack. The cloned function is independent of the original and can have different upvalues.
+				[codeblock]
+				state.get_global("some_function")
+				state.clone_function(-1)  # Now have 2 copies on stack
+				[/codeblock]
+			</description>
+		</method>
+		<method name="clear_table">
+			<return type="void" />
+			<param index="0" name="index" type="int" />
+			<description>
+				Clears all elements from the table at [param index], making it an empty table.
+				[codeblock]
+				state.create_table()
+				state.push_number(100)
+				state.set_field(-2, "key")
+				state.clear_table(-1)  # Table is now empty
+				[/codeblock]
+			</description>
+		</method>
+		<method name="clone_table">
+			<return type="void" />
+			<param index="0" name="index" type="int" />
+			<description>
+				Creates a shallow clone of the table at [param index] and pushes it onto the stack. The clone is a new table with the same key-value pairs, but nested tables are not cloned (references are copied).
+				[codeblock]
+				state.create_table()
+				state.push_number(100)
+				state.set_field(-2, "key")
+				state.clone_table(-1)  # Creates a copy
+				[/codeblock]
+			</description>
+		</method>
+		<method name="ref">
 			<return type="int" />
 			<param index="0" name="index" type="int" />
 			<description>
+				Creates a reference to the value at [param index] and returns a reference integer. The value is stored in the registry and can be retrieved later with [method get_ref].
+				Values will not be garbage collected while there is a reference to them, so references must be released with [method unref] when no longer needed.
+				[codeblock]
+				state.push_string("important value")
+				var ref := state.ref(-1)
+				state.pop(1)
+
+				# Later...
+				state.get_ref(ref)
+				print(state.to_string(-1))  # Prints "important value"
+				state.unref(ref)
+				[/codeblock]
+			</description>
+		</method>
+		<method name="get_ref">
+			<return type="void" />
+			<param index="0" name="ref" type="int" />
+			<description>
+				Pushes onto the stack the value associated with reference [param ref]. References are created with [method ref].
+				[codeblock]
+				state.push_string("saved value")
+				var ref := state.ref(-1)
+				state.pop(1)
+
+				# Later...
+				state.get_ref(ref)
+				print(state.to_string(-1))  # Prints "saved value"
+				state.unref(ref)
+				[/codeblock]
+			</description>
+		</method>
+		<method name="unref">
+			<return type="void" />
+			<param index="0" name="ref" type="int" />
+			<description>
+				Releases the reference [param ref] created by [method ref]. After calling this, the reference is no longer valid and the associated value may be garbage collected.
+				[codeblock]
+				state.push_string("temporary")
+				var ref := state.ref(-1)
+				state.pop(1)
+				# ... use ref ...
+				state.unref(ref)  # Free the reference
+				[/codeblock]
+			</description>
+		</method>
+		<method name="get_stack_depth">
+			<return type="int" />
+			<description>
+				Returns the current depth of the call stack. Useful for debugging.
+				[codeblock]
+				var depth := state.get_stack_depth()
+				print("Call stack depth: ", depth)
+				[/codeblock]
+			</description>
+		</method>
+		<method name="get_info">
+			<return type="LuaDebug" />
+			<param index="0" name="level" type="int" />
+			<param index="1" name="what" type="String" />
+			<description>
+				Returns a [LuaDebug] object containing debug information about the function in the call stack at [param level] (if non-negative) or the function in the stack at relative index [param level] (if negative).
+				The [param what] string contains one or more characters specifying what information to retrieve:
+				[code]"n"[/code] populates [method LuaDebug.get_name]
+				[code]"s"[/code] populates [method LuaDebug.get_source], [method LuaDebug.get_short_src], and [method LuaDebug.get_line_defined]
+				[code]"l"[/code] populates [method LuaDebug.get_current_line]
+				[code]"u"[/code] populates [method LuaDebug.get_nupvals]
+				[code]"a"[/code] populates [method LuaDebug.get_nparams] and [method LuaDebug.is_vararg]
+				[codeblock]
+				var info := state.get_info(0, "nsl")
+				print("Function: ", info.get_name(), " at line ", info.get_current_line())
+				[/codeblock]
+			</description>
+		</method>
+		<method name="get_argument">
+			<return type="bool" />
+			<param index="0" name="level" type="int" />
+			<param index="1" name="narg" type="int" />
+			<description>
+				Gets the [param narg]-th argument of the function in the call stack at [param level] and pushes it onto the stack. Returns [code]true[/code] if successful, [code]false[/code] if the argument doesn't exist or the function is not introspectable.
+				Used for debugging to inspect function arguments at different call stack levels.
+				[codeblock]
+				if state.get_argument(0, 1):  # Get first argument
+				    print("Argument 1: ", state.to_variant(-1))
+				    state.pop(1)
+				[/codeblock]
+			</description>
+		</method>
+		<method name="get_local">
+			<return type="StringName" />
+			<param index="0" name="level" type="int" />
+			<param index="1" name="nlocal" type="int" />
+			<description>
+				Gets the [param nlocal]-th local variable of the function in the call stack at [param level] and pushes its value onto the stack. Returns the variable name, or an empty string if the variable doesn't exist or the function is not introspectable.
+				Used for debugging to inspect local variables.
+				[codeblock]
+				var name := state.get_local(0, 1)  # Get first local variable
+				if name:
+				    print("Local variable: ", name, " = ", state.to_variant(-1))
+				    state.pop(1)
+				[/codeblock]
+			</description>
+		</method>
+		<method name="set_local">
+			<return type="StringName" />
+			<param index="0" name="level" type="int" />
+			<param index="1" name="nlocal" type="int" />
+			<description>
+				Sets the [param nlocal]-th local variable of the function in the call stack at [param level] to the value at the top of the stack (pops the value). Returns the variable name, or an empty string if the variable doesn't exist.
+				[codeblock]
+				state.push_number(100)
+				var name := state.set_local(0, 1)  # Set first local variable
+				[/codeblock]
+			</description>
+		</method>
+		<method name="get_upvalue">
+			<return type="StringName" />
+			<param index="0" name="funcindex" type="int" />
+			<param index="1" name="nupvalue" type="int" />
+			<description>
+				Gets the [param nupvalue]-th upvalue of the function at stack index [param funcindex] and pushes its value onto the stack. Returns the upvalue name, or an empty string if the upvalue doesn't exist.
+				Upvalues are variables captured by closures.
+				[codeblock]
+				state.get_global("some_closure")
+				var name := state.get_upvalue(-1, 1)
+				if name:
+				    print("Upvalue: ", name, " = ", state.to_variant(-1))
+				    state.pop(1)
+				[/codeblock]
+			</description>
+		</method>
+		<method name="set_upvalue">
+			<return type="StringName" />
+			<param index="0" name="funcindex" type="int" />
+			<param index="1" name="nupvalue" type="int" />
+			<description>
+				Sets the [param nupvalue]-th upvalue of the function at stack index [param funcindex] to the value at the top of the stack (pops the value). Returns the upvalue name, or an empty string if the upvalue doesn't exist.
+				[codeblock]
+				state.get_global("some_closure")
+				state.push_number(100)
+				var name := state.set_upvalue(-2, 1)
+				[/codeblock]
+			</description>
+		</method>
+		<method name="set_single_step">
+			<return type="void" />
+			<param index="0" name="enabled" type="bool" />
+			<description>
+				Enables or disables single-step debugging mode. When enabled, the [signal debugstep] signal is emitted after each Lua instruction executes, allowing step-by-step debugging.
+			</description>
+		</method>
+		<method name="set_breakpoint">
+			<return type="int" />
+			<param index="0" name="funcindex" type="int" />
+			<param index="1" name="nline" type="int" />
+			<param index="2" name="enabled" type="bool" />
+			<description>
+				Sets or clears a breakpoint at line [param nline] in the function at stack index [param funcindex]. If [param enabled] is [code]true[/code], sets the breakpoint; if [code]false[/code], clears it. Returns the actual line number where the breakpoint was set (the next closest line with valid instructions), or -1 if it could not be set.
+				When execution hits a breakpoint, the [signal debugbreak] signal is emitted.
+				[codeblock]
+				state.get_global("my_function")
+				state.set_breakpoint(-1, 10, true)  # Set breakpoint at line 10
+				[/codeblock]
+			</description>
+		</method>
+		<method name="get_coverage">
+			<return type="void" />
+			<param index="0" name="funcindex" type="int" />
+			<param index="1" name="callback" type="Callable" />
+			<description>
+				Retrieves code coverage information for the function at stack index [param funcindex]. The [param callback] is called zero or more times with the following coverage data:
+				[code]function: String[/code]: The function's debug name
+				[code]linedefined: int[/code]: The line number where the function is defined
+				[code]depth: int[/code]: The depth of the function in the call stack
+				[code]hits: PackedInt32Array[/code]: The number of times each line was executed.
+				[codeblock]
+				func _coverage_callback(fn: String, line: int, depth: int, hits: PackedInt32Array) -&gt; void:
+				    print("Function: ", fn, " Line: ", line, " Hits: ", hits)
+
+				func print_coverage() -&gt; void:
+					state.get_coverage(-1, _coverage_callback)
+				[/codeblock]
+			</description>
+		</method>
+		<method name="debug_trace">
+			<return type="String" />
+			<description>
+				Returns a string containing a call stack traceback from the current point of execution. Useful for debugging and error reporting.
+				[codeblock]
+				var trace := state.debug_trace()
+				print("Current execution trace:\n", trace)
+				[/codeblock]
+			</description>
+		</method>
+		<method name="register_library">
+			<return type="void" />
+			<param index="0" name="lib_name" type="StringName" />
+			<param index="1" name="functions" type="Dictionary" />
+			<description>
+				Opens a library.
+				When called with an empty [param lib_name], it simply registers everything in [param functions] into the table on the top of the stack.
+				When called with a non-empty [param lib_name], creates a new table, sets it as the value of the global variable [param lib_name], sets it as the value of [code]package.loaded[lib_name][/code], and registers on it everything in [param functions]. If there is a table in [code]package.loaded[lib_name][/code] or in variable [param lib_name], reuses this table instead of creating a new one.
+				In either case, this leaves the table on the top of the stack.
+				[param functions] should be a dictionary mapping function names to [Callable]s.
+				[codeblock]
+				var mylib := {
+				    "add": func(a, b): return a + b,
+				    "multiply": func(a, b): return a * b
+				}
+				state.register_library("mylib", mylib)
+				# In Lua: mylib.add(2, 3) returns 5
+				[/codeblock]
+			</description>
+		</method>
+		<method name="get_meta_field">
+			<return type="bool" />
+			<param index="0" name="index" type="int" />
+			<param index="1" name="field" type="StringName" />
+			<description>
+				Gets the metamethod [param field] from the metatable of the value at [param index] and pushes it onto the stack. Returns [code]true[/code] if the metamethod exists, [code]false[/code] otherwise.
+				[codeblock]
+				state.push_variant(some_value)
+				if state.get_meta_field(-1, "__index"):
+				    print("Has __index metamethod")
+				    state.pop(1)
+				[/codeblock]
+			</description>
+		</method>
+		<method name="call_meta">
+			<return type="bool" />
+			<param index="0" name="index" type="int" />
+			<param index="1" name="field" type="StringName" />
+			<description>
+				Calls the metamethod [param field] on the value at [param index]. Returns [code]true[/code] if the metamethod exists and was called successfully, [code]false[/code] otherwise.
+				[codeblock]
+				state.push_variant(some_value)
+				if state.call_meta(-1, "__tostring"):
+				    print(state.to_string(-1))
+				[/codeblock]
+			</description>
+		</method>
+		<method name="type_error">
+			<return type="void" />
+			<param index="0" name="index" type="int" />
+			<param index="1" name="expected" type="StringName" />
+			<description>
+				Raises a type error for the value at [param index], indicating that [param expected] type was expected. This function raises a Lua error and does not return (unless the state is invalid).
+				[codeblock]
+				if not state.is_number(1):
+				    state.type_error(1, "number")
+				[/codeblock]
+			</description>
+		</method>
+		<method name="arg_error">
+			<return type="void" />
+			<param index="0" name="index" type="int" />
+			<param index="1" name="message" type="String" />
+			<description>
+				Raises an argument error for the value at [param index] with the given error [param message]. This function raises a Lua error and does not return (unless the state is invalid).
+				[codeblock]
+				if not state.is_number(1):
+				    state.arg_error(1, "expected number")
+				[/codeblock]
+			</description>
+		</method>
+		<method name="enforce_string_inplace">
+			<return type="String" />
+			<param index="0" name="index" type="int" />
+			<description>
+				Converts the value at [param index] to a string in-place. [b]This may modify the actual value on the stack.[/b] If the value is not a string or number, raises a type error.
+				[b]Warning:[/b] Converting a numeric key to a string during iteration with [method next] will invalidate the iterator. Use [method push_as_string] instead if you need to preserve the original value.
+				[codeblock]
+				state.push_number(42)
+				var str := state.enforce_string_inplace(-1)  # str = "42"
+				[/codeblock]
+			</description>
+		</method>
+		<method name="opt_string_inplace">
+			<return type="String" />
+			<param index="0" name="index" type="int" />
+			<param index="1" name="default" type="String" />
+			<description>
+				Converts the value at [param index] to a string in-place. [b]This may modify the actual value on the stack.[/b] If the value is not a string or number, returns [param default].
+				[codeblock]
+				state.push_string("hello")
+				var value := state.opt_string(-1, "default")  # Returns "hello"
+				state.push_nil()
+				value := state.opt_string(-1, "default")  # Returns "default"
+				[/codeblock]
+			</description>
+		</method>
+		<method name="enforce_string_name">
+			<return type="StringName" />
+			<param index="0" name="index" type="int" />
+			<description>
+				Converts the value at [param index] to a [StringName]. If the value is not a string, raises a type error. Unlike [method enforce_string_inplace], this does not convert numbers and will not modify the value on the stack.
+				[codeblock]
+				state.push_string("my_signal")
+				var name := state.enforce_string_name(-1)
+				[/codeblock]
+			</description>
+		</method>
+		<method name="opt_string_name">
+			<return type="StringName" />
+			<param index="0" name="index" type="int" />
+			<param index="1" name="default" type="StringName" />
+			<description>
+				Converts the value at [param index] to a [StringName]. If the value is not a string, returns [param default]. Unlike [method opt_string_inplace], this does not convert numbers and will not modify the value on the stack.
+				[codeblock]
+				state.push_string("my_signal")
+				var name := state.opt_string_name(-1, &amp;"default")
+				[/codeblock]
+			</description>
+		</method>
+		<method name="enforce_number">
+			<return type="float" />
+			<param index="0" name="index" type="int" />
+			<description>
+				Converts the value at [param index] to a number. Strings are parsed if possible. If the value is not a number or a string convertible to a number, raises a type error.
+				[codeblock]
+				state.push_string("3.14")
+				var value := state.enforce_number(-1)
+				[/codeblock]
+			</description>
+		</method>
+		<method name="opt_number">
+			<return type="float" />
+			<param index="0" name="index" type="int" />
+			<param index="1" name="default" type="float" />
+			<description>
+				Converts the value at [param index] to a number. Strings are parsed if possible. If the value is not a number or a string convertible to a number, returns [param default].
+				[codeblock]
+				state.push_number(3.14)
+				var value := state.opt_number(-1, 0.0)  # Returns 3.14
+				state.push_nil()
+				value := state.opt_number(-1, 0.0)  # Returns 0.0 (default)
+				[/codeblock]
+			</description>
+		</method>
+		<method name="enforce_boolean">
+			<return type="bool" />
+			<param index="0" name="index" type="int" />
+			<description>
+				Reads the value at [param index] as a boolean. If the value is not already a boolean, raises a type error. Unlike [method to_boolean], this does not perform any conversion of other types.
+				[codeblock]
+				state.push_boolean(true)
+				var value := state.enforce_boolean(-1)
+				[/codeblock]
+			</description>
+		</method>
+		<method name="opt_boolean">
+			<return type="bool" />
+			<param index="0" name="index" type="int" />
+			<param index="1" name="default" type="bool" />
+			<description>
+				Reads the value at [param index] as a boolean. If the value is not already a boolean, returns [param default]. Unlike [method to_boolean], this does not perform any conversion of other types.
+				[codeblock]
+				state.push_boolean(true)
+				var value := state.opt_boolean(-1, false)  # Returns true
+				state.push_nil()
+				value := state.opt_boolean(-1, true)  # Returns true (default)
+				[/codeblock]
+			</description>
+		</method>
+		<method name="enforce_integer">
+			<return type="int" />
+			<param index="0" name="index" type="int" />
+			<description>
+				Converts the value at [param index] to an integer. Numbers are truncated, strings are parsed. If the value is not a number or a string convertible to a number, raises a type error.
+				[codeblock]
+				state.push_number(42)
+				var value := state.enforce_integer(-1)
+				[/codeblock]
+			</description>
+		</method>
+		<method name="opt_integer">
+			<return type="int" />
+			<param index="0" name="index" type="int" />
+			<param index="1" name="default" type="int" />
+			<description>
+				Converts the value at [param index] to an integer. Numbers are truncated, strings are parsed. If the value is not a number or a string convertible to a number, returns [param default].
+				[codeblock]
+				state.push_number(42)
+				var value := state.opt_integer(-1, 0)  # Returns 42
+				state.push_nil()
+				value := state.opt_integer(-1, 0)  # Returns 0 (default)
+				[/codeblock]
+			</description>
+		</method>
+		<method name="enforce_vector3">
+			<return type="Vector3" />
+			<param index="0" name="index" type="int" />
+			<description>
+				Reads the value at [param index] as a [Vector3]. If the value is not a Luau vector, raises a type error.
+				[codeblock]
+				state.push_vector3(Vector3(1, 2, 3))
+				var vec := state.enforce_vector3(-1)
+				[/codeblock]
+			</description>
+		</method>
+		<method name="opt_vector3">
+			<return type="Vector3" />
+			<param index="0" name="index" type="int" />
+			<param index="1" name="default" type="Vector3" />
+			<description>
+				Reads the value at [param index] as a [Vector3]. If the value is not a Luau vector, returns [param default].
+				[codeblock]
+				state.push_vector3(Vector3(1, 2, 3))
+				var vec := state.opt_vector3(-1, Vector3.ZERO)  # Returns (1, 2, 3)
+				state.push_nil()
+				vec := state.opt_vector3(-1, Vector3.ZERO)  # Returns (0, 0, 0)
+				[/codeblock]
+			</description>
+		</method>
+		<method name="enforce_stack">
+			<return type="void" />
+			<param index="0" name="size" type="int" />
+			<param index="1" name="message" type="String" />
+			<description>
+				Ensures the stack has space for at least [param size] additional elements. If unable to grow the stack (e.g., because it has reached Luau's configured stack size limit), raises an error with the given [param message].
+				[codeblock]
+				state.enforce_stack(10, "need space for operation")
+				[/codeblock]
+			</description>
+		</method>
+		<method name="enforce_type">
+			<return type="void" />
+			<param index="0" name="index" type="int" />
+			<param index="1" name="expected_type" type="int" enum="lua_Type" />
+			<description>
+				Ensures the value at [param index] has the expected type. If the type doesn't match, raises a type error with a descriptive message.
+				[codeblock]
+				state.enforce_type(1, LuaState.LUA_TTABLE)  # Ensure arg 1 is a table
+				[/codeblock]
+			</description>
+		</method>
+		<method name="enforce_any">
+			<return type="void" />
+			<param index="0" name="index" type="int" />
+			<description>
+				Ensures that [param index] is a valid stack index (not none). Raises an error if the index is invalid.
+				[codeblock]
+				state.enforce_any(1)  # Ensure first argument exists
+				[/codeblock]
+			</description>
+		</method>
+		<method name="new_metatable_named">
+			<return type="bool" />
+			<param index="0" name="tname" type="StringName" />
+			<description>
+				Creates a new table to be used as a metatable and registers it in the registry with the name [param tname]. Returns [code]true[/code] if a new metatable was created, [code]false[/code] if a metatable with that name already exists.
+				The new or existing metatable is pushed onto the stack.
+				[codeblock]
+				if state.new_metatable_named("MyClass"):
+				    # Set up metatable for the first time
+				    state.push_callable(_lua_index)
+				    state.set_field(-2, "__index")
+				[/codeblock]
+			</description>
+		</method>
+		<method name="get_metatable_named">
+			<return type="int" enum="lua_Type" />
+			<param index="0" name="tname" type="StringName" />
+			<description>
+				Gets the metatable with the given name from the registry and pushes it onto the stack. Returns the type of the pushed value, which will be [constant Luau.LUA_TTABLE] if found and a table as expected.
+				[codeblock]
+				var type := state.get_metatable_named("MyClass")
+				if type == Luau.LUA_TTABLE:
+				    print("Metatable found")
+				[/codeblock]
+			</description>
+		</method>
+		<method name="enforce_userdata">
+			<return type="Object" />
+			<param index="0" name="index" type="int" />
+			<param index="1" name="tname" type="StringName" />
+			<description>
+				Checks that the value at [param index] is userdata with the metatable named [param tname]. If not, raises a type error. Returns the userdata as an [Object].
+				[codeblock]
+				var obj := state.enforce_userdata(1, "MyClass")
+				[/codeblock]
+			</description>
+		</method>
+		<method name="enforce_buffer">
+			<return type="PackedByteArray" />
+			<param index="0" name="index" type="int" />
+			<description>
+				Reads the value at [param index] as a [PackedByteArray]. If the value is not a Luau buffer, raises a type error.
+				[codeblock]
+				var data := state.enforce_buffer(1)
+				[/codeblock]
+			</description>
+		</method>
+		<method name="print_where">
+			<return type="void" />
+			<param index="0" name="level" type="int" />
+			<description>
+				Prints the current location in the source code at call stack [param level]. Used for error reporting and debugging.
+				[codeblock]
+				state.print_where(0)  # Prints current location
+				[/codeblock]
+			</description>
+		</method>
+		<method name="enforce_option">
+			<return type="int" />
+			<param index="0" name="index" type="int" />
+			<param index="1" name="options" type="PackedStringArray" />
+			<param index="2" name="default" type="String" default="&quot;&quot;" />
+			<description>
+				Converts the value at [param index] to a string and checks that it matches one of the provided [param options]. [b]This may modify the actual value on the stack.[/b] Returns the index of the matching option (0-based), or the index of [param default] if provided and no other match is found. If the value isn't convertible to a string or doesn't match any option, raises an error.
+				[b]Warning:[/b] Converting a numeric key to a string during iteration with [method next] will invalidate the iterator. Use [method push_as_string] instead if you need to preserve the original value.
+				[codeblock]
+				state.push_string("read")
+				var mode := state.enforce_option(-1, ["read", "write", "append"])
+				# mode will be 0 (for "read")
+				[/codeblock]
+			</description>
+		</method>
+		<method name="push_as_string">
+			<return type="String" />
+			<param index="0" name="index" type="int" />
+			<description>
+				Converts the value at [param index] to a string using [code]tostring()[/code] semantics and pushes the result onto the stack.  Unlike [method to_string_inplace], this always pushes a new string value and does not modify the original.
+				[codeblock]
+				state.push_number(42)
+				var str := state.push_as_string(-1)
+				# Stack now has number and string
+				[/codeblock]
+			</description>
+		</method>
+		<method name="type_name_for_value">
+			<return type="StringName" />
+			<param index="0" name="index" type="int" />
+			<description>
+				Returns the type name of the value at [param index] as a string.
+				[codeblock]
+				state.push_number(42)
+				print(state.type_name_for_value(-1))  # Prints "number"
+				[/codeblock]
 			</description>
 		</method>
 		<method name="open_libs">
@@ -393,599 +1931,263 @@
 				Opens Luau standard libraries. The [param libs] parameter is a bitfield of [enum LibraryFlags] values.
 				By default, all libraries are opened ([constant LIB_ALL]).
 				[codeblock]
-				var state = LuaState.new()
+				var state := LuaState.new()
 				state.open_libs()  # Open all libraries
+
 				# Or open specific libraries:
 				state.open_libs(LuaState.LIB_BASE | LuaState.LIB_MATH | LuaState.LIB_STRING)
 				[/codeblock]
 			</description>
 		</method>
-		<method name="pause">
-			<return type="void" />
-			<description>
-			</description>
-		</method>
-		<method name="pcall">
-			<return type="int" enum="lua_Status" />
-			<param index="0" name="nargs" type="int" />
-			<param index="1" name="nresults" type="int" />
-			<param index="2" name="errfunc" type="int" />
-			<description>
-			</description>
-		</method>
-		<method name="pop">
-			<return type="void" />
-			<param index="0" name="n" type="int" />
-			<description>
-			</description>
-		</method>
-		<method name="push_aabb">
-			<return type="void" />
-			<param index="0" name="value" type="AABB" />
-			<description>
-			</description>
-		</method>
-		<method name="push_array">
-			<return type="void" />
-			<param index="0" name="value" type="Array" />
-			<description>
-			</description>
-		</method>
-		<method name="push_basis">
-			<return type="void" />
-			<param index="0" name="value" type="Basis" />
-			<description>
-			</description>
-		</method>
-		<method name="push_boolean">
-			<return type="void" />
-			<param index="0" name="b" type="bool" />
-			<description>
-			</description>
-		</method>
-		<method name="push_callable">
-			<return type="void" />
-			<param index="0" name="value" type="Callable" />
-			<description>
-			</description>
-		</method>
-		<method name="push_color">
-			<return type="void" />
-			<param index="0" name="value" type="Color" />
-			<description>
-			</description>
-		</method>
-		<method name="push_dictionary">
-			<return type="void" />
-			<param index="0" name="value" type="Dictionary" />
-			<description>
-			</description>
-		</method>
-		<method name="push_integer">
-			<return type="void" />
-			<param index="0" name="n" type="int" />
-			<description>
-			</description>
-		</method>
-		<method name="push_nil">
-			<return type="void" />
-			<description>
-			</description>
-		</method>
-		<method name="push_number">
-			<return type="void" />
-			<param index="0" name="n" type="float" />
-			<description>
-			</description>
-		</method>
-		<method name="push_plane">
-			<return type="void" />
-			<param index="0" name="value" type="Plane" />
-			<description>
-			</description>
-		</method>
-		<method name="push_projection">
-			<return type="void" />
-			<param index="0" name="value" type="Projection" />
-			<description>
-			</description>
-		</method>
-		<method name="push_quaternion">
-			<return type="void" />
-			<param index="0" name="value" type="Quaternion" />
-			<description>
-			</description>
-		</method>
-		<method name="push_rect2">
-			<return type="void" />
-			<param index="0" name="value" type="Rect2" />
-			<description>
-			</description>
-		</method>
-		<method name="push_rect2i">
-			<return type="void" />
-			<param index="0" name="value" type="Rect2i" />
-			<description>
-			</description>
-		</method>
-		<method name="push_string">
-			<return type="void" />
-			<param index="0" name="s" type="String" />
-			<description>
-			</description>
-		</method>
-		<method name="push_thread">
-			<return type="bool" />
-			<description>
-			</description>
-		</method>
-		<method name="push_transform2d">
-			<return type="void" />
-			<param index="0" name="value" type="Transform2D" />
-			<description>
-			</description>
-		</method>
-		<method name="push_transform3d">
-			<return type="void" />
-			<param index="0" name="value" type="Transform3D" />
-			<description>
-			</description>
-		</method>
-		<method name="push_value">
-			<return type="void" />
-			<param index="0" name="index" type="int" />
-			<description>
-			</description>
-		</method>
-		<method name="push_variant">
-			<return type="void" />
-			<param index="0" name="value" type="Variant" />
-			<description>
-				Pushes a Godot [Variant] value onto the Lua stack. Automatically converts the value to the appropriate Lua type.
-				Supported types include: nil, bool, int, float, String, Vector2/3/4, Color, Array, Dictionary, Callable, and more.
-			</description>
-		</method>
-		<method name="push_vector2">
-			<return type="void" />
-			<param index="0" name="value" type="Vector2" />
-			<description>
-			</description>
-		</method>
-		<method name="push_vector2i">
-			<return type="void" />
-			<param index="0" name="value" type="Vector2i" />
-			<description>
-			</description>
-		</method>
-		<method name="push_vector3">
-			<return type="void" />
-			<param index="0" name="value" type="Vector3" />
-			<description>
-			</description>
-		</method>
-		<method name="push_vector3i">
-			<return type="void" />
-			<param index="0" name="value" type="Vector3i" />
-			<description>
-			</description>
-		</method>
-		<method name="push_vector4">
-			<return type="void" />
-			<param index="0" name="value" type="Vector4" />
-			<description>
-			</description>
-		</method>
-		<method name="push_vector4i">
-			<return type="void" />
-			<param index="0" name="value" type="Vector4i" />
-			<description>
-			</description>
-		</method>
-		<method name="raw_equal" qualifiers="const">
-			<return type="bool" />
-			<param index="0" name="index1" type="int" />
-			<param index="1" name="index2" type="int" />
-			<description>
-			</description>
-		</method>
-		<method name="raw_get" qualifiers="const">
-			<return type="void" />
-			<param index="0" name="index" type="int" />
-			<description>
-			</description>
-		</method>
-		<method name="raw_get_field" qualifiers="const">
-			<return type="void" />
-			<param index="0" name="index" type="int" />
-			<param index="1" name="key" type="String" />
-			<description>
-			</description>
-		</method>
-		<method name="raw_geti" qualifiers="const">
-			<return type="void" />
-			<param index="0" name="index" type="int" />
-			<param index="1" name="n" type="int" />
-			<description>
-			</description>
-		</method>
-		<method name="raw_set">
-			<return type="void" />
-			<param index="0" name="index" type="int" />
-			<description>
-			</description>
-		</method>
-		<method name="raw_set_field">
-			<return type="void" />
-			<param index="0" name="index" type="int" />
-			<param index="1" name="key" type="String" />
-			<description>
-			</description>
-		</method>
-		<method name="raw_seti">
-			<return type="void" />
-			<param index="0" name="index" type="int" />
-			<param index="1" name="n" type="int" />
-			<description>
-			</description>
-		</method>
-		<method name="ref">
-			<return type="int" />
-			<param index="0" name="index" type="int" />
-			<description>
-			</description>
-		</method>
-		<method name="remove">
-			<return type="void" />
-			<param index="0" name="index" type="int" />
-			<description>
-			</description>
-		</method>
-		<method name="replace">
-			<return type="void" />
-			<param index="0" name="index" type="int" />
-			<description>
-			</description>
-		</method>
-		<method name="reset_thread">
-			<return type="void" />
-			<description>
-			</description>
-		</method>
-		<method name="resume">
-			<return type="int" enum="lua_Status" />
-			<param index="0" name="narg" type="int" default="0" />
-			<description>
-			</description>
-		</method>
 		<method name="sandbox">
 			<return type="void" />
 			<description>
-				Applies sandboxing to the Lua state, restricting access to potentially dangerous functions.
-				This should be called after [method open_libs] but before executing untrusted code.
+				To enable many performance improvements, call this method to apply sandboxing to the main Lua state. This will protect builtin libraries from monkey-patching, and allow the Luau runtime to make optimizations based on read-only, isolated globals.
+				This should be called after [method open_libs] and after all code is loaded into the VM, but before executing the loaded code.
+				[b]Important:[/b]You must also call [method sandbox_thread] for each new thread created for script execution to ensure proper sandboxing.
+				[codeblock]
+				var state := LuaState.new()
+				state.open_libs()
+				state.load_bytecode(bytecode, "main")
+				state.sandbox()
+				state.pcall(0, 0)
+				[/codeblock]
 			</description>
 		</method>
 		<method name="sandbox_thread">
 			<return type="void" />
 			<description>
+				To enable many performance improvements, call this method to apply sandboxing to a child thread. This will allow the Luau runtime to make optimizations based on read-only, isolated globals.
+				This should be called after [method sandbox] has been called on the main thread, and after all code is loaded into the VM, but before executing the loaded code.
+				[codeblock]
+				var thread := state.new_thread()
+				thread.load_bytecode(bytecode, "thread_func")
+				thread.sandbox_thread()
+				thread.pcall(0, 0)
+				[/codeblock]
 			</description>
 		</method>
-		<method name="set_fenv">
+		<method name="is_array">
 			<return type="bool" />
 			<param index="0" name="index" type="int" />
 			<description>
-			</description>
-		</method>
-		<method name="set_field">
-			<return type="void" />
-			<param index="0" name="index" type="int" />
-			<param index="1" name="key" type="String" />
-			<description>
-			</description>
-		</method>
-		<method name="set_global">
-			<return type="void" />
-			<param index="0" name="key" type="String" />
-			<description>
-			</description>
-		</method>
-		<method name="set_metatable">
-			<return type="bool" />
-			<param index="0" name="index" type="int" />
-			<description>
-			</description>
-		</method>
-		<method name="set_read_only">
-			<return type="void" />
-			<param index="0" name="index" type="int" />
-			<param index="1" name="read_only" type="bool" />
-			<description>
-			</description>
-		</method>
-		<method name="set_table">
-			<return type="void" />
-			<param index="0" name="index" type="int" />
-			<description>
-			</description>
-		</method>
-		<method name="set_top">
-			<return type="void" />
-			<param index="0" name="index" type="int" />
-			<description>
-			</description>
-		</method>
-		<method name="single_step">
-			<return type="void" />
-			<param index="0" name="enable" type="bool" />
-			<description>
-			</description>
-		</method>
-		<method name="status" qualifiers="const">
-			<return type="int" enum="lua_Status" />
-			<description>
-			</description>
-		</method>
-		<method name="to_aabb">
-			<return type="AABB" />
-			<param index="0" name="index" type="int" />
-			<description>
+				Returns [code]true[/code] if the value at [param index] is a fully array-like Lua table, or [code]false[/code] otherwise. A table is considered an array if it has sequential integer keys starting from 1, with no gaps and no other keys.
+				There is no equivalent method to determine if a table is [Dictionary]-like, because all Lua tables can be represented as dictionaries.
+				[codeblock]
+				state.do_string("return {10, 20, 30}", "test")
+				print(state.is_array(-1))  # Prints true
+
+				state.do_string("return {a=1, b=2}", "test")
+				print(state.is_array(-1))  # Prints false (dictionary)
+				[/codeblock]
 			</description>
 		</method>
 		<method name="to_array">
 			<return type="Array" />
 			<param index="0" name="index" type="int" />
 			<description>
-			</description>
-		</method>
-		<method name="to_basis">
-			<return type="Basis" />
-			<param index="0" name="index" type="int" />
-			<description>
-			</description>
-		</method>
-		<method name="to_boolean" qualifiers="const">
-			<return type="bool" />
-			<param index="0" name="index" type="int" />
-			<description>
+				Converts the Lua table at [param index] to a Godot [Array]. All sequential integer keys starting from 1 are converted into array elements. Non-integer or non-sequential keys are ignored. Returns an empty array if the value is not a table or has no array-like elements.
+				[codeblock]
+				state.do_string("return {10, 20, 30, b=2}", "test")
+				var arr := state.to_array(-1)
+				print(arr)  # Prints [10, 20, 30]
+				[/codeblock]
 			</description>
 		</method>
 		<method name="to_callable">
 			<return type="Callable" />
 			<param index="0" name="index" type="int" />
 			<description>
-			</description>
-		</method>
-		<method name="to_color">
-			<return type="Color" />
-			<param index="0" name="index" type="int" />
-			<description>
+				Converts the function at [param index] to a Godot [Callable]. If the function is a Lua function, it will not be garbage collected until the [Callable] is destroyed. Functions with any number of arguments (including variadic/vararg functions) are supported, but any returned values other than the first will be discarded. Returns an invalid [Callable] if the value is not a function.
+				The [LuaState] will [i]not[/i] be automatically kept alive by the [Callable]. If the [LuaState] is freed while the [Callable] still exists, the [Callable] will become invalid and calling it will fail.
+				[b]Note:[/b] This currently does not support tables or userdata with a [code]__call[/code] metamethod. Only actual functions are supported.
+				[codeblock]
+				state.do_string("return function(x) return x * 2 end", "test")
+				var func := state.to_callable(-1)
+				print(func.call(5))  # Prints 10
+				[/codeblock]
 			</description>
 		</method>
 		<method name="to_dictionary">
 			<return type="Dictionary" />
 			<param index="0" name="index" type="int" />
 			<description>
-			</description>
-		</method>
-		<method name="to_integer" qualifiers="const">
-			<return type="int" />
-			<param index="0" name="index" type="int" />
-			<description>
-			</description>
-		</method>
-		<method name="to_number" qualifiers="const">
-			<return type="float" />
-			<param index="0" name="index" type="int" />
-			<description>
-			</description>
-		</method>
-		<method name="to_plane">
-			<return type="Plane" />
-			<param index="0" name="index" type="int" />
-			<description>
-			</description>
-		</method>
-		<method name="to_projection">
-			<return type="Projection" />
-			<param index="0" name="index" type="int" />
-			<description>
-			</description>
-		</method>
-		<method name="to_quaternion">
-			<return type="Quaternion" />
-			<param index="0" name="index" type="int" />
-			<description>
-			</description>
-		</method>
-		<method name="to_rect2">
-			<return type="Rect2" />
-			<param index="0" name="index" type="int" />
-			<description>
-			</description>
-		</method>
-		<method name="to_rect2i">
-			<return type="Rect2i" />
-			<param index="0" name="index" type="int" />
-			<description>
-			</description>
-		</method>
-		<method name="to_string" qualifiers="const">
-			<return type="String" />
-			<param index="0" name="index" type="int" />
-			<description>
-			</description>
-		</method>
-		<method name="to_thread">
-			<return type="LuaState" />
-			<param index="0" name="index" type="int" />
-			<description>
-			</description>
-		</method>
-		<method name="to_transform2d">
-			<return type="Transform2D" />
-			<param index="0" name="index" type="int" />
-			<description>
-			</description>
-		</method>
-		<method name="to_transform3d">
-			<return type="Transform3D" />
-			<param index="0" name="index" type="int" />
-			<description>
+				Converts the Lua table at [param index] to a Godot [Dictionary]. Returns an empty dictionary if the value is not a table.
+				[codeblock]
+				state.do_string("return {name='Player', health=100}", "test")
+				var dict := state.to_dictionary(-1)
+				print(dict["name"])  # Prints "Player"
+				[/codeblock]
 			</description>
 		</method>
 		<method name="to_variant">
 			<return type="Variant" />
 			<param index="0" name="index" type="int" />
 			<description>
-				Converts the Lua value at the given stack index to a Godot [Variant].
-				Lua tables are converted to [Array] or [Dictionary] depending on their structure.
+				Converts the Lua value at [param index] to a Godot [Variant]. All Lua types are supported.
+				Lua tables will be converted to [Array]s if they are fully array-like (only sequential integer keys starting from 1), or to [Dictionary]s otherwise.
+				Light userdata will be converted to [Object]s as described in [method to_light_userdata].
+				Full userdata will be converted to [Object]s, [Variant]s, or [Callable]s as described in [method to_full_userdata], [method to_variant], or [method to_callable] respectively. Full userdata that does not map to any Godot type will be returned as [code]null[/code].
+				[codeblock]
+				state.do_string("return {10, 20, 30}", "test")
+				var value := state.to_variant(-1)
+				print(value)  # Prints [10, 20, 30]
+				[/codeblock]
 			</description>
 		</method>
-		<method name="to_vector2">
-			<return type="Vector2" />
-			<param index="0" name="index" type="int" />
-			<description>
-			</description>
-		</method>
-		<method name="to_vector2i">
-			<return type="Vector2i" />
-			<param index="0" name="index" type="int" />
-			<description>
-			</description>
-		</method>
-		<method name="to_vector3">
-			<return type="Vector3" />
-			<param index="0" name="index" type="int" />
-			<description>
-			</description>
-		</method>
-		<method name="to_vector3i">
-			<return type="Vector3i" />
-			<param index="0" name="index" type="int" />
-			<description>
-			</description>
-		</method>
-		<method name="to_vector4">
-			<return type="Vector4" />
-			<param index="0" name="index" type="int" />
-			<description>
-			</description>
-		</method>
-		<method name="to_vector4i">
-			<return type="Vector4i" />
-			<param index="0" name="index" type="int" />
-			<description>
-			</description>
-		</method>
-		<method name="type" qualifiers="const">
-			<return type="int" enum="lua_Type" />
-			<param index="0" name="index" type="int" />
-			<description>
-			</description>
-		</method>
-		<method name="type_name" qualifiers="const">
-			<return type="String" />
-			<param index="0" name="type_id" type="int" />
-			<description>
-			</description>
-		</method>
-		<method name="unref">
+		<method name="push_array">
 			<return type="void" />
-			<param index="0" name="ref" type="int" />
+			<param index="0" name="value" type="Array" />
 			<description>
+				Pushes a Godot [Array] onto the stack as a Lua table, with sequential integer keys starting from 1.
+				[codeblock]
+				var arr := [10, 20, 30]
+				state.push_array(arr)
+				# In Lua: table = {10, 20, 30}
+				[/codeblock]
 			</description>
 		</method>
-		<method name="xmove">
+		<method name="push_callable">
 			<return type="void" />
-			<param index="0" name="to_state" type="LuaState" />
-			<param index="1" name="n" type="int" />
+			<param index="0" name="value" type="Callable" />
 			<description>
+				Pushes a Godot [Callable] onto the stack as full userdata with a [code]__call[/code] metamethod, allowing it to be called from Lua.
+				[codeblock]
+				var my_func := func(x): return x * 2
+				state.push_callable(my_func)
+				# In Lua: result = my_func(5)  -- returns 10
+				[/codeblock]
 			</description>
 		</method>
-		<method name="xpush">
+		<method name="push_dictionary">
 			<return type="void" />
-			<param index="0" name="to_state" type="LuaState" />
-			<param index="1" name="index" type="int" />
+			<param index="0" name="value" type="Dictionary" />
 			<description>
+				Pushes a Godot [Dictionary] onto the stack as a Lua table.
+				[codeblock]
+				var dict := {"name": "Player", "health": 100}
+				state.push_dictionary(dict)
+				# In Lua: table = {name = "Player", health = 100}
+				[/codeblock]
 			</description>
 		</method>
-		<method name="yield">
+		<method name="push_variant">
 			<return type="void" />
-			<param index="0" name="nresults" type="int" />
+			<param index="0" name="value" type="Variant" />
 			<description>
+				Pushes a Godot [Variant] value onto the Lua stack. All [Variant] types are supported, and will be automatically converted to the appropriate Lua type. Values will be wrapped in a full userdata (with appropriate metamethods) if no corresponding Lua type exists.
+				[codeblock]
+				state.push_variant(Vector3(1, 2, 3))
+				state.push_variant([10, 20, 30])
+				state.push_variant({"key": "value"})
+				[/codeblock]
 			</description>
 		</method>
-	</methods>
+		<method name="load_string">
+			<return type="bool" />
+			<param index="0" name="code" type="String" />
+			<param index="1" name="chunk_name" type="String" />
+			<param index="2" name="env" type="int" default="0" />
+			<description>
+				Compiles Luau source code and pushes it as a function onto the stack without executing it. Returns whether loading was successful. The [param chunk_name] is used to identify the function in error messages and debugging. [param env] can optionally specify the stack index of a custom environment table to use.
+				After loading, use [method call] or [method pcall] to execute the function.
+				[codeblock]
+				var result := state.load_string("return 1 + 2", "example")
+				if result:
+				    state.call(0, 1)  # Execute the loaded function
+				    print(state.to_number(-1))  # Prints 3
+				[/codeblock]
+			</description>
+		</method>
+		<method name="do_string">
+			<return type="int" enum="lua_Status" />
+			<param index="0" name="code" type="String" />
+			<param index="1" name="chunk_name" type="String" />
+			<param index="2" name="env" type="int" default="0" />
+			<param index="3" name="nargs" type="int" default="0" />
+			<param index="4" name="nresults" type="int" default="-1" />
+			<param index="5" name="errfunc" type="int" default="0" />
+			<description>
+				Compiles and executes Luau source code. Returns [constant Luau.LUA_OK] on success, or an error status code on failure. The [param chunk_name] is used to identify the function in error messages and debugging. [param env] can optionally specify the stack index of a custom environment table to use.
+				[param nargs] is the number of arguments already on the stack to pass to the loaded new function. [param nresults] is the number of expected return values (or [constant Luau.LUA_MULTRET] to receive all of them).
+				[b]Warning:[/b] This method is not compatible with [method sandbox] and [method sandbox_thread], and is offered only as a convenience for simple use cases. For the best performance and sandboxing support, it is recommended to use [method load_string], enable sandboxing, then use [method pcall] afterward.
+				[codeblock]
+				var result = state.do_string("return 1 + 2", "example")
+				if result == LuaState.LUA_OK:
+				    print(state.to_number(-1))  # Prints 3
+				else:
+				    print("Error:", state.to_string(-1))
+				[/codeblock]
+			</description>
+		</method>
+		</methods>
 	<signals>
-		<signal name="debugstep">
-			<param index="0" name="state" type="Object" />
+		<signal name="debugbreak">
+			<param index="0" name="state" type="LuaState" />
+			<param index="1" name="debug_info" type="LuaDebug" />
 			<description>
-				Emitted when single-step debugging is enabled and a Lua instruction is about to execute.
-				The [param state] parameter is the [LuaState] instance. Use [method resume] with [code]call_deferred()[/code] to continue execution.
+				Emitted when a Lua breakpoint is hit after being set with [method set_breakpoint]. [param debug_info] contains information about the current execution state.
+			</description>
+		</signal>
+		<signal name="debugstep">
+			<param index="0" name="state" type="LuaState" />
+			<description>
+				Emitted when single-step debugging is enabled (via [method set_single_step]) and a Lua instruction has just executed in [param state].
+				[codeblock]
+				state.debugstep.connect(func(s): print("Step"))
+				state.set_single_step(true)
+				state.do_string("for i = 1, 3 do print(i) end", "test")
+				[/codeblock]
 			</description>
 		</signal>
 		<signal name="interrupt">
 			<param index="0" name="state" type="Object" />
 			<param index="1" name="gc_state" type="int" />
 			<description>
-				Emitted when the Lua VM is interrupted (e.g., for garbage collection or debugging).
-				The [param state] parameter is the [LuaState] instance, and [param gc_state] indicates the GC state.
+				Emitted when the Lua VM has reached a "safepoint," like the end of a loop iteration, function call or return, or garbage collection step. [param gc_state], if non-negative, indicates Luau's internal garbage collection state.
+				This can be used as a hook to safely interrupt long-running scripts.
 			</description>
 		</signal>
 	</signals>
 	<constants>
-		<constant name="LUA_GCSTOP" value="0" enum="lua_GCOp">
-		</constant>
-		<constant name="LUA_GCRESTART" value="1" enum="lua_GCOp">
-		</constant>
-		<constant name="LUA_GCCOLLECT" value="2" enum="lua_GCOp">
-		</constant>
-		<constant name="LUA_GCCOUNT" value="3" enum="lua_GCOp">
-		</constant>
-		<constant name="LUA_GCCOUNTB" value="4" enum="lua_GCOp">
-		</constant>
-		<constant name="LUA_GCISRUNNING" value="5" enum="lua_GCOp">
-		</constant>
-		<constant name="LUA_GCSTEP" value="6" enum="lua_GCOp">
-		</constant>
-		<constant name="LUA_GCSETGOAL" value="7" enum="lua_GCOp">
-		</constant>
-		<constant name="LUA_GCSETSTEPMUL" value="8" enum="lua_GCOp">
-		</constant>
-		<constant name="LUA_GCSETSTEPSIZE" value="9" enum="lua_GCOp">
-		</constant>
-		<constant name="LIB_NONE" value="0" enum="LibraryFlags" is_bitfield="true">
-		</constant>
 		<constant name="LIB_BASE" value="1" enum="LibraryFlags" is_bitfield="true">
+			Base library providing [url=https://luau.org/library#global-functions]global built-in functions[/url] like [code]print()[/code], [code]type()[/code], [code]pcall()[/code], etc. Use with [method open_libs].
 		</constant>
 		<constant name="LIB_COROUTINE" value="2" enum="LibraryFlags" is_bitfield="true">
+			[url=https://luau.org/library#coroutine-library]Coroutine library[/url] providing [code]coroutine.create()[/code], [code]coroutine.yield()[/code], [code]coroutine.resume()[/code], etc. Use with [method open_libs].
 		</constant>
 		<constant name="LIB_TABLE" value="4" enum="LibraryFlags" is_bitfield="true">
+			[url=https://luau.org/library#table-library]Table manipulation library[/url] providing [code]table.insert()[/code], [code]table.remove()[/code], [code]table.sort()[/code], etc. Use with [method open_libs].
 		</constant>
 		<constant name="LIB_OS" value="8" enum="LibraryFlags" is_bitfield="true">
+			[url=https://luau.org/library#os-library]OS library[/url] providing [code]os.time()[/code], [code]os.date()[/code], [code]os.clock()[/code], etc. Use with [method open_libs].
 		</constant>
 		<constant name="LIB_STRING" value="16" enum="LibraryFlags" is_bitfield="true">
+			[url=https://luau.org/library#string-library]String manipulation library[/url] providing [code]string.sub()[/code], [code]string.find()[/code], [code]string.format()[/code], etc. Use with [method open_libs].
 		</constant>
 		<constant name="LIB_BIT32" value="32" enum="LibraryFlags" is_bitfield="true">
+			[url=https://luau.org/library#bit32-library]Bitwise manipulation library[/url] providing [code]bit32.band()[/code], [code]bit32.bor()[/code], [code]bit32.lshift()[/code], etc. Use with [method open_libs].
 		</constant>
 		<constant name="LIB_BUFFER" value="64" enum="LibraryFlags" is_bitfield="true">
+			[url=https://luau.org/library#buffer-library]Buffer library[/url] for efficient byte array manipulation. Use with [method open_libs].
 		</constant>
 		<constant name="LIB_UTF8" value="128" enum="LibraryFlags" is_bitfield="true">
+			[url=https://luau.org/library#utf8-library]UTF-8 string support library[/url] providing [code]utf8.char()[/code], [code]utf8.len()[/code], [code]utf8.codes()[/code], etc. Use with [method open_libs].
 		</constant>
 		<constant name="LIB_MATH" value="256" enum="LibraryFlags" is_bitfield="true">
+			[url=https://luau.org/library#math-library]Math library[/url] providing [code]math.sin()[/code], [code]math.sqrt()[/code], [code]math.pi[/code], etc. Use with [method open_libs].
 		</constant>
 		<constant name="LIB_DEBUG" value="512" enum="LibraryFlags" is_bitfield="true">
+			[url=https://luau.org/library#debug-library]Debug library[/url] providing [code]debug.traceback()[/code], [code]debug.info()[/code], etc. Use with [method open_libs].
 		</constant>
 		<constant name="LIB_VECTOR" value="1024" enum="LibraryFlags" is_bitfield="true">
+			Luau [url=https://luau.org/library#vector-library]vector library[/url] providing native vector operations. Use with [method open_libs].
 		</constant>
 		<constant name="LIB_GODOT" value="2048" enum="LibraryFlags" is_bitfield="true">
+			Custom Godot bridging library (part of luau-gdextension) providing utilities for Godot types (e.g., [code]Vector2()[/code], [code]Color()[/code] constructors). Use with [method open_libs].
 		</constant>
 		<constant name="LIB_ALL" value="4095" enum="LibraryFlags" is_bitfield="true">
-		</constant>
-		<constant name="LUA_REGISTRYINDEX" value="-10000">
-		</constant>
-		<constant name="LUA_ENVIRONINDEX" value="-10001">
-		</constant>
-		<constant name="LUA_GLOBALSINDEX" value="-10002">
+			All libraries combined. This is the default value for [method open_libs].
 		</constant>
 	</constants>
 </class>
