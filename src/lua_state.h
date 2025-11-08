@@ -129,7 +129,7 @@ namespace gdluau
 
         double to_number(int p_index);
         int to_integer(int p_index);
-        Vector3 to_vector(int p_index);
+        Vector3 to_vector3(int p_index);
         bool to_boolean(int p_index);
         String to_string_inplace(int p_index);
         StringName to_stringname(int p_index);

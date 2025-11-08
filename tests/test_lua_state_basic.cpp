@@ -257,7 +257,7 @@ TEST_SUITE("LuaState - Push Functions")
         state->push_vector3(v);
         CHECK(state->is_vector(-1));
 
-        Vector3 result = state->to_vector(-1);
+        Vector3 result = state->to_vector3(-1);
         CHECK(result.x == 1.5);
         CHECK(result.y == 2.5);
         CHECK(result.z == 3.5);

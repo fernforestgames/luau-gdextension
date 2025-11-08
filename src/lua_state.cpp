@@ -185,7 +185,7 @@ void LuaState::_bind_methods()
 
     ClassDB::bind_method(D_METHOD("to_number", "index"), &LuaState::to_number);
     ClassDB::bind_method(D_METHOD("to_integer", "index"), &LuaState::to_integer);
-    ClassDB::bind_method(D_METHOD("to_vector", "index"), &LuaState::to_vector);
+    ClassDB::bind_method(D_METHOD("to_vector3", "index"), &LuaState::to_vector3);
     ClassDB::bind_method(D_METHOD("to_boolean", "index"), &LuaState::to_boolean);
     ClassDB::bind_method(D_METHOD("to_string", "index"), &LuaState::to_string);
     ClassDB::bind_method(D_METHOD("to_string_inplace", "index"), &LuaState::to_string_inplace);
@@ -739,7 +739,7 @@ int LuaState::to_integer(int p_index)
     return lua_tointeger(L, p_index);
 }
 
-Vector3 LuaState::to_vector(int p_index)
+Vector3 LuaState::to_vector3(int p_index)
 {
     ERR_FAIL_COND_V_MSG(!is_valid(), Vector3(), "Lua state is invalid. Cannot convert to Vector3.");
 
