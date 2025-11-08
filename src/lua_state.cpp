@@ -136,6 +136,7 @@ static void coverage_wrapper(void *context, const char *function, int linedefine
 void LuaState::_bind_methods()
 {
     ClassDB::bind_method(D_METHOD("is_valid"), &LuaState::is_valid);
+    ClassDB::bind_method(D_METHOD("is_main_thread"), &LuaState::is_main_thread);
 
     // State manipulation
     ClassDB::bind_method(D_METHOD("close"), &LuaState::close);
