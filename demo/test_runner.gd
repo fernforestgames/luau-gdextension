@@ -11,7 +11,7 @@ func _ready():
 		run_runtime_tests()
 	else:
 		# Normal demo behavior - load main scene
-		get_tree().change_scene_to_file("res://main.tscn")
+		get_tree().change_scene_to_file.call_deferred("res://main.tscn")
 
 func run_runtime_tests():
 	var cpp_success = run_cpp_tests()
