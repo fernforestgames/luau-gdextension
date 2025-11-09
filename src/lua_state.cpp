@@ -374,9 +374,9 @@ void LuaState::_bind_methods()
     BIND_BITFIELD_FLAG(LIB_GODOT);
     BIND_BITFIELD_FLAG(LIB_ALL);
 
-    ADD_SIGNAL(MethodInfo("interrupt", PropertyInfo(Variant::OBJECT, "state"), PropertyInfo(Variant::INT, "gc_state")));
-    ADD_SIGNAL(MethodInfo("debugbreak", PropertyInfo(Variant::OBJECT, "state"), PropertyInfo(Variant::OBJECT, "debug_info")));
-    ADD_SIGNAL(MethodInfo("debugstep", PropertyInfo(Variant::OBJECT, "state")));
+    ADD_SIGNAL(MethodInfo("interrupt", PropertyInfo(Variant::OBJECT, "state", PROPERTY_HINT_NONE, "", PROPERTY_USAGE_DEFAULT, "LuaState"), PropertyInfo(Variant::INT, "gc_state")));
+    ADD_SIGNAL(MethodInfo("debugbreak", PropertyInfo(Variant::OBJECT, "state", PROPERTY_HINT_NONE, "", PROPERTY_USAGE_DEFAULT, "LuaState"), PropertyInfo(Variant::OBJECT, "debug_info", PROPERTY_HINT_NONE, "", PROPERTY_USAGE_DEFAULT, "LuaDebug")));
+    ADD_SIGNAL(MethodInfo("debugstep", PropertyInfo(Variant::OBJECT, "state", PROPERTY_HINT_NONE, "", PROPERTY_USAGE_DEFAULT, "LuaState")));
 }
 
 LuaState::LuaState() : LuaState(luaL_newstate())
