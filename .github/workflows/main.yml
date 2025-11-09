@@ -56,7 +56,7 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Setup CMake
         uses: lukka/get-cmake@4169813123dd72674c1697fc8f2554818db4c92b
@@ -132,12 +132,22 @@ jobs:
       contents: write
 
     steps:
+      - uses: actions/checkout@v5
+        with:
+          sparse-checkout: |
+            LICENSE
+            README.md
+
       - name: Download merged artifacts
         uses: actions/download-artifact@v5
         with:
           pattern: luau-gdextension-*
           merge-multiple: true
           path: addons/luau_gdextension/
+
+      - name: Copy documentation
+        run: |
+          cp LICENSE README.md addons/luau_gdextension/
 
       - name: Zip release
         run: |
