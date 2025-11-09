@@ -64,33 +64,38 @@ Tests are compiled into a separate library when `BUILD_TESTING=ON` (enabled in D
 
 **Build with tests:**
 ```bash
+# Debug build includes test library (BUILD_TESTING=ON by default)
 cmake --preset windows-x86_64-debug
 cmake --build --preset windows-x86_64-debug -j
 
+# Release build excludes tests (BUILD_TESTING=OFF by default)
 cmake --preset windows-x86_64-release
 cmake --build --preset windows-x86_64-release -j
 ```
 
 **Run tests:**
 ```bash
-# Method 1: Using CTest (recommended)
-cd build
-ctest --output-on-failure --verbose
+# Method 1: Using CTest (recommended - automatically runs both C++ and GDScript tests)
+ctest --preset windows-x86_64-debug --output-on-failure --verbose
 
-# Method 2: Directly via Godot
+# Or for other platforms:
+# ctest --preset linux-x86_64-debug --output-on-failure --verbose
+# ctest --preset macos-arm64-debug --output-on-failure --verbose
+
+# Method 2: Directly via Godot (manual)
 godot --headless --path demo/ -- --run-tests
 ```
 
 **How it works:**
-1. `demo/test_runner.gd` is the main scene
+1. `demo/test_runner.gd` is the main scene entry point
 2. It checks for `--run-tests` command-line flag
 3. If present:
-   - Checks if `LuauGDExtensionTests` class exists (test library loaded)
+   - Checks if `LuauGDExtensionTests` singleton class exists (test library loaded)
    - If exists: runs C++ tests via `LuauGDExtensionTests.run()`
-   - Runs GDScript tests via GUT
+   - Loads and runs GDScript integration tests via `test_loader.gd`
    - Exits with combined pass/fail status
 4. If not present: loads normal demo scene (`main.tscn`)
-5. CTest invokes Godot with `--run-tests` and captures the results
+5. CTest invokes Godot with `--run-tests` flag and captures exit code
 
 ### Output
 
@@ -201,25 +206,31 @@ Tests: 48 | Passed: 47 | Failed: 1
 
 ### Currently Implemented (Tested)
 
-- ✅ Vector2 (all features)
-- ✅ Vector2i (all features)
-- ✅ Vector3 (all features, native vector type)
-- ✅ Vector3i (all features)
-- ✅ Color (all features)
+**Math Types:**
+- ✅ Vector2, Vector2i (all operators and properties)
+- ✅ Vector3, Vector3i (native vector type optimization)
+- ✅ Vector4, Vector4i
+- ✅ Color (RGBA operations)
+- ✅ Rect2, Rect2i
+- ✅ AABB, Plane
+- ✅ Quaternion, Basis
+- ✅ Transform2D, Transform3D
+- ✅ Projection
+
+**Data Types:**
 - ✅ Array ↔ Lua table conversion
 - ✅ Dictionary ↔ Lua table conversion
 - ✅ Variant system (all supported types)
 - ✅ Nested structures (arrays in dicts, dicts in arrays, etc.)
-- ✅ Type detection (isarray, isdictionary)
+- ✅ Callable bridging (Lua functions ↔ Godot Callables)
+- ✅ Type detection (is_array)
 
-### Not Yet Implemented (Stubs Only)
-
-- ⏸ Vector4, Vector4i (stubs exist, not fully implemented)
-- ⏸ Rect2, Rect2i, AABB, Plane
-- ⏸ Quaternion, Basis
-- ⏸ Transform2D, Transform3D, Projection
-
-These will be tested once implemented.
+**Runtime Features:**
+- ✅ Lua threads (coroutines)
+- ✅ Thread lifecycle management
+- ✅ LuauScript resource loading and saving
+- ✅ Compilation options
+- ✅ Error handling and boundary checks
 
 ## Continuous Integration
 
@@ -249,58 +260,71 @@ All Debug tests must pass for the build to succeed.
 
 ### Adding C++ Tests
 
-1. **Edit `tests/tests_runtime.cpp`** to add new test cases
+1. **Create or edit a test file** in `tests/test_*.cpp`
 
-2. **Write a test case:**
+2. **Use test fixtures** for automatic setup/teardown:
    ```cpp
-   TEST_CASE("Description of what this tests") {
-       lua_State* L = create_test_state();
+   #include "doctest.h"
+   #include "test_fixtures.h"
 
-       // Test code here
-       CHECK(condition);
-       REQUIRE(critical_condition);
+   using namespace gdluau;
+   using namespace godot;
 
-       close_test_state(L);
+   TEST_SUITE("My Feature Tests")
+   {
+       // For raw lua_State* access (low-level C API)
+       TEST_CASE_FIXTURE(RawLuaStateFixture, "Test description") {
+           // L is available as lua_State*
+           lua_pushstring(L, "test");
+           CHECK(lua_isstring(L, -1));
+           lua_pop(L, 1);
+       }
+
+       // For LuaState wrapper (high-level GDExtension API)
+       TEST_CASE_FIXTURE(LuaStateFixture, "Test with LuaState wrapper") {
+           // state is available as Ref<LuaState>
+           // L is available as lua_State* for convenience
+           Array arr;
+           arr.push_back(1);
+           arr.push_back(2);
+
+           state->push_array(arr);
+           state->set_global("test");
+
+           state->get_global("test");
+           Array result = state->to_array(-1);
+
+           CHECK(result.size() == 2);
+           state->pop(1);
+       }
    }
    ```
 
 3. **Use SUBCASEs for related tests:**
    ```cpp
-   TEST_CASE("Vector2 operations") {
+   TEST_CASE_FIXTURE(RawLuaStateFixture, "Vector operations") {
        SUBCASE("Addition") {
-           // Test addition
+           exec_lua("local v = vector(1,2,3) + vector(4,5,6); return v.x, v.y, v.z");
+           CHECK(lua_tonumber(L, -3) == doctest::Approx(5.0));
+           lua_pop(L, 3);
        }
 
        SUBCASE("Subtraction") {
-           // Test subtraction
+           exec_lua("local v = vector(4,5,6) - vector(1,2,3); return v.x");
+           CHECK(lua_tonumber(L, -1) == doctest::Approx(3.0));
+           lua_pop(L, 1);
        }
    }
    ```
 
-4. **For runtime types, use the LuaState wrapper:**
-   ```cpp
-   TEST_CASE("Array round-trip") {
-       LuaState* wrapper = create_wrapper_state();
-
-       Array arr;
-       arr.push_back(1);
-       arr.push_back(2);
-
-       wrapper->pusharray(arr);
-       wrapper->setglobal("test");
-
-       wrapper->getglobal("test");
-       Array result = wrapper->toarray(-1);
-
-       CHECK(result.size() == 2);
-
-       close_wrapper_state(wrapper);
-   }
-   ```
+4. **Available fixtures:**
+   - `RawLuaStateFixture`: Provides `lua_State* L` and `exec_lua(code)` helper
+   - `LuaStateFixture`: Provides `Ref<LuaState> state`, `lua_State* L`, and `exec_lua(code, chunk_name)` helper
+   - Both fixtures automatically balance the stack and clean up after each test
 
 ### Adding GDScript Tests
 
-1. **Choose the appropriate file** or create a new one following the naming convention `test_*_integration.gd`
+1. **Choose the appropriate file** or create a new one in `demo/test/` following the naming convention `test_*_integration.gd`
 
 2. **Extend GutTest:**
    ```gdscript
@@ -308,22 +332,36 @@ All Debug tests must pass for the build to succeed.
 
    var L: LuaState
 
-   func before_each():
+   func before_each() -> void:
        L = LuaState.new()
-       L.openlibs(LuaState.LIB_ALL)
+       L.open_libs()  # Load all standard libraries
 
-   func after_each():
+   func after_each() -> void:
        if L:
+           L.close()
            L = null
 
-   func test_my_feature():
-       # Test code here
+   func test_my_feature() -> void:
+       # Compile and execute Luau code
+       var code := "return 1 + 2"
+       var bytecode := Luau.compile(code)
+       L.load_bytecode(bytecode, "test")
+       L.pcall(0, 1)
+
+       # Verify results
+       var result := L.to_number(-1)
+       assert_eq(result, 3.0, "Should calculate 1+2")
+       L.pop(1)
+
+       # Common assertions
        assert_eq(actual, expected, "Error message")
        assert_true(condition)
        assert_typeof(value, TYPE_VECTOR2)
    ```
 
 3. **Use descriptive test names** starting with `test_`
+
+4. **Note:** These tests use the GUT (Godot Unit Testing) framework. See the existing test files in `demo/test/` for more examples.
 
 ## Best Practices
 
