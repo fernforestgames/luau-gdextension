@@ -23,6 +23,7 @@ using namespace godot;
 struct StaticStrings
 {
     StringName interrupt;
+    StringName debugbreak;
     StringName debugstep;
 };
 
@@ -32,6 +33,7 @@ void LuaState::initialize_static_strings()
 {
     static_strings = memnew(StaticStrings);
     static_strings->interrupt = StringName("interrupt");
+    static_strings->debugbreak = StringName("debugbreak");
     static_strings->debugstep = StringName("debugstep");
 }
 
@@ -88,6 +90,18 @@ static void callback_userthread(lua_State *parent, lua_State *L)
     {
         state->close();
     }
+}
+
+static void callback_debugbreak(lua_State *L, lua_Debug *ar)
+{
+    LuaState *state = LuaState::find_lua_state(L);
+    if (!state)
+    {
+        return;
+    }
+
+    Ref<LuaDebug> debug_info(memnew(LuaDebug(*ar)));
+    state->emit_signal(static_strings->debugbreak, state, debug_info);
 }
 
 static void callback_debugstep(lua_State *L, lua_Debug *ar)
@@ -363,6 +377,7 @@ void LuaState::_bind_methods()
     BIND_BITFIELD_FLAG(LIB_ALL);
 
     ADD_SIGNAL(MethodInfo("interrupt", PropertyInfo(Variant::OBJECT, "state"), PropertyInfo(Variant::INT, "gc_state")));
+    ADD_SIGNAL(MethodInfo("debugbreak", PropertyInfo(Variant::OBJECT, "state"), PropertyInfo(Variant::OBJECT, "debug_info")));
     ADD_SIGNAL(MethodInfo("debugstep", PropertyInfo(Variant::OBJECT, "state")));
 }
 
@@ -405,6 +420,7 @@ void LuaState::setup_vm()
     callbacks->panic = callback_panic;
     callbacks->userthread = callback_userthread;
     callbacks->useratom = create_atom;
+    callbacks->debugbreak = callback_debugbreak;
     callbacks->debugstep = callback_debugstep;
 }
 
