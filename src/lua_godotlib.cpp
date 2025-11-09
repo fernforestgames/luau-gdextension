@@ -441,7 +441,7 @@ static int rid_constructor(lua_State *L)
 static int signal_constructor(lua_State *L)
 {
     Object *obj = to_object(L, 1);
-    StringName signal = to_stringname(L, 2);
+    StringName signal = to_string_name(L, 2);
     lua_pop(L, 2);
 
     push_variant(L, Signal(obj, signal));

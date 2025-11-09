@@ -132,7 +132,7 @@ namespace gdluau
         Vector3 to_vector3(int p_index);
         bool to_boolean(int p_index);
         String to_string_inplace(int p_index);
-        StringName to_stringname(int p_index);
+        StringName to_string_name(int p_index);
         StringName get_namecall();
         int obj_len(int p_index);
         Object *to_light_userdata(int p_index, int p_tag = -1);
@@ -249,8 +249,8 @@ namespace gdluau
         void type_error(int p_index, const StringName &p_expected); // [[noreturn]] unless state is invalid
         void arg_error(int p_index, const String &p_message);       // [[noreturn]] unless state is invalid
         String enforce_string_inplace(int p_index);
-        String opt_string(int p_index, const String &p_default);
-        StringName enforce_string_name_inplace(int p_index);
+        String opt_string_inplace(int p_index, const String &p_default);
+        StringName enforce_string_name(int p_index);
         StringName opt_string_name(int p_index, const StringName &p_default);
         double enforce_number(int p_index);
         double opt_number(int p_index, double p_default);

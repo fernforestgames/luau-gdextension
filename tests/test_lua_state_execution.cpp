@@ -322,7 +322,7 @@ TEST_SUITE("LuaState - lualib Functions")
 
         // opt_string with default
         state->push_nil();
-        result = state->opt_string(-1, "default");
+        result = state->opt_string_inplace(-1, "default");
         CHECK(result == "default");
         state->pop(1);
     }

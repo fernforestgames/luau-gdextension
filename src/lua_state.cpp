@@ -203,7 +203,7 @@ void LuaState::_bind_methods()
     ClassDB::bind_method(D_METHOD("to_boolean", "index"), &LuaState::to_boolean);
     ClassDB::bind_method(D_METHOD("to_string", "index"), &LuaState::to_string);
     ClassDB::bind_method(D_METHOD("to_string_inplace", "index"), &LuaState::to_string_inplace);
-    ClassDB::bind_method(D_METHOD("to_stringname", "index"), &LuaState::to_stringname);
+    ClassDB::bind_method(D_METHOD("to_string_name", "index"), &LuaState::to_string_name);
     ClassDB::bind_method(D_METHOD("get_namecall"), &LuaState::get_namecall);
     ClassDB::bind_method(D_METHOD("obj_len", "index"), &LuaState::obj_len);
     ClassDB::bind_method(D_METHOD("to_light_userdata", "index", "tag"), &LuaState::to_light_userdata, DEFVAL(-1));
@@ -320,8 +320,8 @@ void LuaState::_bind_methods()
     ClassDB::bind_method(D_METHOD("type_error", "index", "expected"), &LuaState::type_error);
     ClassDB::bind_method(D_METHOD("arg_error", "index", "message"), &LuaState::arg_error);
     ClassDB::bind_method(D_METHOD("enforce_string_inplace", "index"), &LuaState::enforce_string_inplace);
-    ClassDB::bind_method(D_METHOD("opt_string", "index", "default"), &LuaState::opt_string);
-    ClassDB::bind_method(D_METHOD("enforce_string_name_inplace", "index"), &LuaState::enforce_string_name_inplace);
+    ClassDB::bind_method(D_METHOD("opt_string_inplace", "index", "default"), &LuaState::opt_string_inplace);
+    ClassDB::bind_method(D_METHOD("enforce_string_name", "index"), &LuaState::enforce_string_name);
     ClassDB::bind_method(D_METHOD("opt_string_name", "index", "default"), &LuaState::opt_string_name);
     ClassDB::bind_method(D_METHOD("enforce_number", "index"), &LuaState::enforce_number);
     ClassDB::bind_method(D_METHOD("opt_number", "index", "default"), &LuaState::opt_number);
@@ -746,18 +746,23 @@ bool LuaState::less_than(int p_index1, int p_index2)
 double LuaState::to_number(int p_index)
 {
     ERR_FAIL_COND_V_MSG(!is_valid(), 0.0, "Lua state is invalid. Cannot convert to number.");
+    ERR_FAIL_COND_V_MSG(!is_valid_index(p_index), 0.0, vformat("LuaState.to_number(%d): Invalid stack index. Stack has %d elements.", p_index, lua_gettop(L)));
+
     return lua_tonumber(L, p_index);
 }
 
 int LuaState::to_integer(int p_index)
 {
     ERR_FAIL_COND_V_MSG(!is_valid(), 0, "Lua state is invalid. Cannot convert to integer.");
+    ERR_FAIL_COND_V_MSG(!is_valid_index(p_index), 0, vformat("LuaState.to_integer(%d): Invalid stack index. Stack has %d elements.", p_index, lua_gettop(L)));
+
     return lua_tointeger(L, p_index);
 }
 
 Vector3 LuaState::to_vector3(int p_index)
 {
     ERR_FAIL_COND_V_MSG(!is_valid(), Vector3(), "Lua state is invalid. Cannot convert to Vector3.");
+    ERR_FAIL_COND_V_MSG(!is_valid_index(p_index), Vector3(), vformat("LuaState.to_vector3(%d): Invalid stack index. Stack has %d elements.", p_index, lua_gettop(L)));
 
     const float *vec = lua_tovector(L, p_index);
     if (vec)
@@ -773,12 +778,15 @@ Vector3 LuaState::to_vector3(int p_index)
 bool LuaState::to_boolean(int p_index)
 {
     ERR_FAIL_COND_V_MSG(!is_valid(), false, "Lua state is invalid. Cannot convert to boolean.");
+    ERR_FAIL_COND_V_MSG(!is_valid_index(p_index), false, vformat("LuaState.to_boolean(%d): Invalid stack index. Stack has %d elements.", p_index, lua_gettop(L)));
+
     return lua_toboolean(L, p_index) != 0;
 }
 
 String LuaState::to_string_inplace(int p_index)
 {
     ERR_FAIL_COND_V_MSG(!is_valid(), String(), "Lua state is invalid. Cannot convert to string.");
+    ERR_FAIL_COND_V_MSG(!is_valid_index(p_index), String(), vformat("LuaState.to_string_inplace(%d): Invalid stack index. Stack has %d elements.", p_index, lua_gettop(L)));
 
     size_t len;
     const char *str = lua_tolstring(L, p_index, &len);
@@ -787,10 +795,9 @@ String LuaState::to_string_inplace(int p_index)
     return String::utf8(str, len);
 }
 
-StringName LuaState::to_stringname(int p_index)
+StringName LuaState::to_string_name(int p_index)
 {
-    ERR_FAIL_COND_V_MSG(!is_valid(), StringName(), "Lua state is invalid. Cannot convert to StringName.");
-    return gdluau::to_stringname(L, p_index);
+    return opt_string_name(p_index, StringName());
 }
 
 StringName LuaState::get_namecall()
@@ -1644,7 +1651,7 @@ String LuaState::enforce_string_inplace(int p_index)
     return String::utf8(str, len);
 }
 
-String LuaState::opt_string(int p_index, const String &p_default)
+String LuaState::opt_string_inplace(int p_index, const String &p_default)
 {
     ERR_FAIL_COND_V_MSG(!is_valid(), p_default, "Lua state is invalid. Cannot get optional string.");
     ERR_FAIL_COND_V_MSG(!is_valid_index(p_index), p_default, vformat("LuaState.opt_string(%d, \"%s\"): Invalid stack index. Stack has %d elements.", p_index, p_default, lua_gettop(L)));
@@ -1661,24 +1668,29 @@ String LuaState::opt_string(int p_index, const String &p_default)
     }
 }
 
-StringName LuaState::enforce_string_name_inplace(int p_index)
+StringName LuaState::enforce_string_name(int p_index)
 {
-    ERR_FAIL_COND_V_MSG(!is_valid(), StringName(), "Lua state is invalid. Cannot enforce string name.");
-    ERR_FAIL_COND_V_MSG(!is_valid_index(p_index), StringName(), vformat("LuaState.enforce_string_name_inplace(%d): Invalid stack index. Stack has %d elements.", p_index, lua_gettop(L)));
+    ERR_FAIL_COND_V_MSG(!is_valid(), StringName(), "Lua state is invalid. Cannot convert to StringName.");
+    ERR_FAIL_COND_V_MSG(!is_valid_index(p_index), StringName(), vformat("LuaState.to_string_name(%d): Invalid stack index. Stack has %d elements.", p_index, lua_gettop(L)));
 
-    const char *str = luaL_checkstring(L, p_index);
-    return StringName(str);
+    if (lua_type(L, p_index) == LUA_TSTRING)
+    {
+        return gdluau::to_string_name(L, p_index);
+    }
+    else
+    {
+        luaL_typeerror(L, p_index, "string");
+    }
 }
 
 StringName LuaState::opt_string_name(int p_index, const StringName &p_default)
 {
-    ERR_FAIL_COND_V_MSG(!is_valid(), p_default, "Lua state is invalid. Cannot get optional string name.");
-    ERR_FAIL_COND_V_MSG(!is_valid_index(p_index), p_default, vformat("LuaState.opt_string_name(%d, \"%s\"): Invalid stack index. Stack has %d elements.", p_index, p_default, lua_gettop(L)));
+    ERR_FAIL_COND_V_MSG(!is_valid(), StringName(), "Lua state is invalid. Cannot convert to StringName.");
+    ERR_FAIL_COND_V_MSG(!is_valid_index(p_index), StringName(), vformat("LuaState.to_string_name(%d): Invalid stack index. Stack has %d elements.", p_index, lua_gettop(L)));
 
-    const char *str = luaL_optstring(L, p_index, NULL);
-    if (str)
+    if (lua_type(L, p_index) == LUA_TSTRING)
     {
-        return StringName(str);
+        return gdluau::to_string_name(L, p_index);
     }
     else
     {
@@ -1831,7 +1843,7 @@ int LuaState::enforce_option(int p_index, const PackedStringArray &p_options, co
     ERR_FAIL_COND_V_MSG(!is_valid_index(p_index), -1, vformat("LuaState.enforce_option(%d, [...], \"%s\"): Invalid stack index. Stack has %d elements.", p_index, p_default, lua_gettop(L)));
 
     // More efficient to reimplement luaL_checkoption from scratch vs. bridging all p_options to C strings
-    const String &name = p_default.is_empty() ? enforce_string_inplace(p_index) : opt_string(p_index, p_default);
+    const String &name = p_default.is_empty() ? enforce_string_inplace(p_index) : opt_string_inplace(p_index, p_default);
     for (int i = 0; i < p_options.size(); i++)
     {
         if (p_options[i] == name)

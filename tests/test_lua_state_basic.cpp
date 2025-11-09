@@ -291,7 +291,7 @@ TEST_SUITE("LuaState - Push Functions")
     {
         state->push_string_name(StringName("test_name"));
         CHECK(state->is_string(-1));
-        CHECK(state->to_stringname(-1) == StringName("test_name"));
+        CHECK(state->to_string_name(-1) == StringName("test_name"));
 
         state->pop(1);
     }

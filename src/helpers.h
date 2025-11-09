@@ -35,5 +35,5 @@ namespace gdluau
     int generic_lua_concat(lua_State *p_L);
 
     bool is_valid_index(lua_State *p_L, int p_index);
-    StringName to_stringname(lua_State *p_L, int p_index);
+    StringName to_string_name(lua_State *p_L, int p_index);
 } // namespace gdluau
