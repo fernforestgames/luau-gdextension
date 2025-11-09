@@ -3,6 +3,20 @@
 This file provides guidance to Claude Code (claude.ai/code) when working with
 code in this repository.
 
+## Documentation
+
+**IMPORTANT: The authoritative API reference is in `doc_classes/*.xml`.** These
+XML files are the single source of truth for all exposed classes, methods,
+constants, and their parameters. They are compiled into the GDExtension and
+appear in Godot's built-in help system.
+
+When working with this codebase:
+1. **Always consult `doc_classes/` for accurate API signatures** - method names,
+   parameter types, default values, and return types
+2. Keep CLAUDE.md examples up-to-date with the doc_classes/ API
+3. Update doc_classes/ XML files when adding or modifying public APIs
+4. Use `godot --doctool` to regenerate documentation after API changes
+
 ## Project Overview
 
 A Godot 4.5+ GDExtension that integrates the Luau scripting language (Lua
@@ -212,7 +226,7 @@ func _on_step(state: LuaState) -> void:
 ```gdscript
 var state = LuaState.new()
 state.open_libs()
-state.do_string("function coro() coroutine.yield(1); return 2 end")
+state.do_string("function coro() coroutine.yield(1); return 2 end", "define_coro")
 
 # Create thread
 var thread = state.new_thread()  # Pushes thread to stack
@@ -220,11 +234,11 @@ state.pop(1)  # Clean up stack
 
 # Execute coroutine in thread
 thread.get_global("coro")
-assert(thread.resume(0) == LUA_YIELD)  # Yields 1
+assert(thread.resume(0) == Luau.LUA_YIELD)  # Yields 1
 print(thread.to_number(-1))  # Prints 1
 thread.pop(1)
 
-assert(thread.resume(0) == LUA_OK)  # Returns 2
+assert(thread.resume(0) == Luau.LUA_OK)  # Returns 2
 print(thread.to_number(-1))  # Prints 2
 ```
 
