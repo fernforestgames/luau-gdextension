@@ -362,55 +362,55 @@ TEST_SUITE("Bridging - Array")
         state->pop(1);
     }
 
-    // TEST_CASE("integration - Lua script manipulation")
-    // {
-    //     LuaStateFixture f;
+    TEST_CASE("integration - Lua script manipulation")
+    {
+        LuaStateFixture f;
 
-    //     f.exec_lua_ok(R"(
-    //         test_array = {10, 20, 30, 40, 50}
-    //         return test_array
-    //     )");
+        f.exec_lua_ok(R"(
+            test_array = {10, 20, 30, 40, 50}
+            return test_array
+        )");
 
-    //     Array result = f.state->to_array(-1);
+        Array result = f.state->to_array(-1);
 
-    //     CHECK(result.size() == 5);
-    //     CHECK(static_cast<int>(result[0]) == 10);
-    //     CHECK(static_cast<int>(result[1]) == 20);
-    //     CHECK(static_cast<int>(result[2]) == 30);
-    //     CHECK(static_cast<int>(result[3]) == 40);
-    //     CHECK(static_cast<int>(result[4]) == 50);
+        CHECK(result.size() == 5);
+        CHECK(static_cast<int>(result[0]) == 10);
+        CHECK(static_cast<int>(result[1]) == 20);
+        CHECK(static_cast<int>(result[2]) == 30);
+        CHECK(static_cast<int>(result[3]) == 40);
+        CHECK(static_cast<int>(result[4]) == 50);
 
-    //     f.state->pop(1);
-    // }
+        f.state->pop(1);
+    }
 
-    // TEST_CASE("integration - passing array to Lua function")
-    // {
-    //     LuaStateFixture f;
+    TEST_CASE("integration - passing array to Lua function")
+    {
+        LuaStateFixture f;
 
-    //     f.exec_lua_ok(R"(
-    //         function sum_array(arr)
-    //             local total = 0
-    //             for i = 1, #arr do
-    //                 total = total + arr[i]
-    //             end
-    //             return total
-    //         end
-    //     )");
+        f.exec_lua_ok(R"(
+            function sum_array(arr)
+                local total = 0
+                for i = 1, #arr do
+                    total = total + arr[i]
+                end
+                return total
+            end
+        )");
 
-    //     Array arr;
-    //     arr.push_back(1);
-    //     arr.push_back(2);
-    //     arr.push_back(3);
-    //     arr.push_back(4);
-    //     arr.push_back(5);
+        Array arr;
+        arr.push_back(1);
+        arr.push_back(2);
+        arr.push_back(3);
+        arr.push_back(4);
+        arr.push_back(5);
 
-    //     f.state->get_global("sum_array");
-    //     CHECK(f.state->type(-1) == LUA_TFUNCTION);
+        f.state->get_global("sum_array");
+        CHECK(f.state->type(-1) == LUA_TFUNCTION);
 
-    //     f.state->push_array(arr);
-    //     f.state->call(1, 1);
-    //     CHECK(f.state->to_number(-1) == 15.0);
+        f.state->push_array(arr);
+        f.state->call(1, 1);
+        CHECK(f.state->to_number(-1) == 15.0);
 
-    //     f.state->pop(1);
-    // }
+        f.state->pop(1);
+    }
 }
