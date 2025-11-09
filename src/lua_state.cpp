@@ -340,7 +340,6 @@ void LuaState::_bind_methods()
     ClassDB::bind_method(D_METHOD("enforce_option", "index", "options", "default"), &LuaState::enforce_option, DEFVAL(String()));
     ClassDB::bind_method(D_METHOD("push_as_string", "index"), &LuaState::push_as_string);
     ClassDB::bind_method(D_METHOD("type_name_for_value", "index"), &LuaState::type_name_for_value);
-    ClassDB::bind_method(D_METHOD("call_from_yieldable", "nargs", "nresults"), &LuaState::call_from_yieldable);
 
     ClassDB::bind_method(D_METHOD("open_libs", "libs"), &LuaState::open_libs, DEFVAL(LuaState::LIB_ALL));
     ClassDB::bind_method(D_METHOD("sandbox"), &LuaState::sandbox);
@@ -1881,19 +1880,6 @@ StringName LuaState::type_name_for_value(int p_index)
 
     const char *name = luaL_typename(L, p_index);
     return StringName(name);
-}
-
-int LuaState::call_from_yieldable(int p_nargs, int p_nresults)
-{
-    ERR_FAIL_COND_V_MSG(!is_valid(), LUA_ERRMEM, "Lua state is invalid. Cannot call from yieldable.");
-    ERR_FAIL_COND_V_MSG(p_nargs < 0, LUA_ERRMEM, vformat("LuaState.call_from_yieldable(%d, %d): nargs cannot be negative.", p_nargs, p_nresults));
-    ERR_FAIL_COND_V_MSG(p_nresults > p_nargs && !lua_checkstack(L, p_nresults - p_nargs), LUA_ERRMEM, vformat("LuaState.call_from_yieldable(%d, %d): Stack overflow. Cannot grow stack.", p_nargs, p_nresults));
-
-    int top = lua_gettop(L);
-    ERR_FAIL_COND_V_MSG(top < p_nargs + 1, LUA_ERRMEM, vformat("LuaState.call_from_yieldable(%d, %d): Need function + %d arguments on stack. Stack has %d elements.", p_nargs, p_nresults, p_nargs, top));
-
-    int status = luaL_callyieldable(L, p_nargs, p_nresults);
-    return static_cast<lua_Status>(status);
 }
 
 void LuaState::open_libs(BitField<LuaState::LibraryFlags> libs)

@@ -271,7 +271,6 @@ namespace gdluau
         int enforce_option(int p_index, const PackedStringArray &p_options, const String &p_default = String());
         String push_as_string(int p_index);
         StringName type_name_for_value(int p_index);
-        int call_from_yieldable(int p_nargs, int p_nresults);
         // Unsupported: luaL_Strbuf type and functions
         void open_libs(BitField<LibraryFlags> p_libs = LIB_ALL);
         void sandbox();
