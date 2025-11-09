@@ -192,7 +192,7 @@ TEST_SUITE("Bridging - Callable")
         state->get_global("apply");
         state->push_callable(double_callable);
         state->push_number(21.0);
-        state->call(2, 1);
+        state->pcall(2, 1);
 
         CHECK(state->to_number(-1) == 42.0);
 

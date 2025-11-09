@@ -255,7 +255,6 @@ void LuaState::_bind_methods()
 
     // Load and call functions (Luau bytecode)
     ClassDB::bind_method(D_METHOD("load_bytecode", "bytecode", "chunk_name", "env"), &LuaState::load_bytecode, DEFVAL(0));
-    ClassDB::bind_method(D_METHOD("call", "nargs", "nresults"), &LuaState::call);
     ClassDB::bind_method(D_METHOD("pcall", "nargs", "nresults", "errfunc"), &LuaState::pcall, DEFVAL(0));
     ClassDB::bind_method(D_METHOD("cpcall", "callable"), &LuaState::cpcall);
 
@@ -1200,18 +1199,6 @@ bool LuaState::load_bytecode(const PackedByteArray &p_bytecode, const StringName
     ERR_FAIL_COND_V_MSG(!lua_checkstack(L, 1), false, "LuaState.load_bytecode(): Stack overflow. Cannot grow stack.");
 
     return luau_load(L, char_string(p_chunk_name).get_data(), reinterpret_cast<const char *>(p_bytecode.ptr()), p_bytecode.size(), p_env) == 0;
-}
-
-void LuaState::call(int p_nargs, int p_nresults)
-{
-    ERR_FAIL_COND_MSG(!is_valid(), "Lua state is invalid. Cannot call function.");
-    ERR_FAIL_COND_MSG(p_nargs < 0, vformat("LuaState.call(%d, %d): nargs cannot be negative.", p_nargs, p_nresults));
-    ERR_FAIL_COND_MSG(p_nresults > p_nargs && !lua_checkstack(L, p_nresults - p_nargs), vformat("LuaState.call(%d, %d): Stack overflow. Cannot grow stack.", p_nargs, p_nresults));
-
-    int top = lua_gettop(L);
-    ERR_FAIL_COND_MSG(top < p_nargs + 1, vformat("LuaState.call(%d, %d): Need function + %d arguments on stack. Stack has %d elements.", p_nargs, p_nresults, p_nargs, top));
-
-    lua_call(L, p_nargs, p_nresults);
 }
 
 lua_Status LuaState::pcall(int p_nargs, int p_nresults, int p_errfunc)

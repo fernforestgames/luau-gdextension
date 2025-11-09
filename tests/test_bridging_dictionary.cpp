@@ -362,7 +362,7 @@ TEST_SUITE("Bridging - Dictionary")
 
         state->get_global("process_dict");
         state->push_dictionary(input);
-        state->call(1, 1);
+        state->pcall(1, 1);
 
         Dictionary result = state->to_dictionary(-1);
 

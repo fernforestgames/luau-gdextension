@@ -345,13 +345,13 @@ TEST_SUITE("Bridging - Variant - Integration")
         // Test different variant types
         state->get_global("process_variant");
         state->push_variant(42);
-        state->call(1, 1);
+        state->pcall(1, 1);
         CHECK(state->to_string_inplace(-1) == "number");
         state->pop(1);
 
         state->get_global("process_variant");
         state->push_variant("test");
-        state->call(1, 1);
+        state->pcall(1, 1);
         CHECK(state->to_string_inplace(-1) == "string");
         state->pop(1);
 
@@ -359,7 +359,7 @@ TEST_SUITE("Bridging - Variant - Integration")
         Array arr;
         arr.push_back(1);
         state->push_variant(arr);
-        state->call(1, 1);
+        state->pcall(1, 1);
         CHECK(state->to_string_inplace(-1) == "table");
         state->pop(1);
     }
@@ -398,7 +398,7 @@ TEST_SUITE("Bridging - Variant - Integration")
 
         state->get_global("double_value");
         state->push_variant(21);
-        state->call(1, 1);
+        state->pcall(1, 1);
 
         Variant result = state->to_variant(-1);
         CHECK(static_cast<double>(result) == 42.0);

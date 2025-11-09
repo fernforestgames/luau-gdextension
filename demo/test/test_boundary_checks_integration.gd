@@ -214,7 +214,7 @@ func test_call_without_function():
 	var state = LuaState.new()
 
 	# Empty stack, try to call
-	state.call(0, 0)
+	state.pcall(0, 0)
 	assert_engine_error("Need function")
 
 	# Should not crash
@@ -229,7 +229,7 @@ func test_call_without_enough_args():
 	var top = state.get_top()
 
 	# Function expects 3 args, but we claim to pass 5
-	state.call(5, 1)
+	state.pcall(5, 1)
 	assert_engine_error("Need function")
 
 	# Should not crash, operation rejected
@@ -244,7 +244,7 @@ func test_call_with_negative_nargs():
 	var top = state.get_top()
 
 	# Negative nargs is invalid
-	state.call(-1, 1)
+	state.pcall(-1, 1)
 	assert_engine_error("nargs")
 
 	# Should not crash
@@ -303,7 +303,7 @@ func test_valid_operations_still_work():
 	state.get_global("add")
 	state.push_integer(10)
 	state.push_integer(20)
-	state.call(2, 1)
+	state.pcall(2, 1)
 	assert_eq(state.to_integer(-1), 30, "Function should return correct result")
 
 func test_complex_scenario_no_crash():

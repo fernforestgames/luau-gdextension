@@ -183,7 +183,6 @@ namespace gdluau
 
         // Load and call functions (Luau bytecode)
         bool load_bytecode(const PackedByteArray &p_bytecode, const StringName &p_chunk_name, int p_env = 0);
-        void call(int p_nargs, int p_nresults);
         lua_Status pcall(int p_nargs, int p_nresults, int p_errfunc = 0);
         lua_Status cpcall(Callable p_callable);
 

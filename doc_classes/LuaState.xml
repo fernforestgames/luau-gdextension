@@ -1072,22 +1072,6 @@
 				[/codeblock]
 			</description>
 		</method>
-		<method name="call">
-			<return type="void" />
-			<param index="0" name="nargs" type="int" />
-			<param index="1" name="nresults" type="int" />
-			<description>
-				Calls a Lua function without error handling. The function and its arguments must already be on the stack. [param nargs] is the number of arguments, and [param nresults] is the number of expected return values. Use [constant Luau.LUA_MULTRET] for [param nresults] to return all values.
-				[b]Warning:[/b] If an error occurs, the Lua VM will panic and the state becomes invalid. Use [method pcall] for protected calls with error handling.
-				[codeblock]
-				state.get_global("math")
-				state.get_field(-1, "sqrt")
-				state.push_number(16)
-				state.call(1, 1)  # Call math.sqrt(16)
-				print(state.to_number(-1))  # Prints 4
-				[/codeblock]
-			</description>
-		</method>
 		<method name="pcall">
 			<return type="int" enum="lua_Status" />
 			<param index="0" name="nargs" type="int" />

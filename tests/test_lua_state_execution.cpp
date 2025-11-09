@@ -1,5 +1,5 @@
 // Tests for LuaState class - Code execution
-// load_bytecode, load_string, do_string, call, pcall, resume
+// load_bytecode, load_string, do_string, pcall, resume
 
 #include "doctest.h"
 #include "test_fixtures.h"
@@ -113,7 +113,7 @@ TEST_SUITE("LuaState - Function Calls")
         state->get_global("add");
         state->push_number(10.0);
         state->push_number(20.0);
-        state->call(2, 1); // 2 args, 1 result
+        state->pcall(2, 1); // 2 args, 1 result
 
         CHECK(state->to_number(-1) == 30.0);
 
@@ -125,7 +125,7 @@ TEST_SUITE("LuaState - Function Calls")
         exec_lua_ok("function multi() return 1, 2, 3 end");
 
         state->get_global("multi");
-        state->call(0, 3); // 0 args, 3 results
+        state->pcall(0, 3); // 0 args, 3 results
 
         CHECK(state->to_number(-3) == 1.0);
         CHECK(state->to_number(-2) == 2.0);
@@ -139,7 +139,7 @@ TEST_SUITE("LuaState - Function Calls")
         exec_lua_ok("function multi() return 1, 2, 3 end");
 
         state->get_global("multi");
-        state->call(0, LUA_MULTRET); // Accept all results
+        state->pcall(0, LUA_MULTRET); // Accept all results
 
         CHECK(state->get_top() == 3);
         CHECK(state->to_number(-3) == 1.0);

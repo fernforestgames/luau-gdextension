@@ -408,7 +408,7 @@ TEST_SUITE("Bridging - Array")
         CHECK(f.state->type(-1) == LUA_TFUNCTION);
 
         f.state->push_array(arr);
-        f.state->call(1, 1);
+        f.state->pcall(1, 1);
         CHECK(f.state->to_number(-1) == 15.0);
 
         f.state->pop(1);
