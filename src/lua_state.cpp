@@ -1581,11 +1581,14 @@ void LuaState::register_library(const StringName &p_lib_name, const Dictionary &
 
     // We need to partially reimplement luaL_register, since bridging Callables to lua_CFunctions without userdata is not really possible
 
-    // First, reuse the annoying bits of logic around table creation and registration
-    luaL_Reg reg[] = {
-        {NULL, NULL} // sentinel
-    };
-    luaL_register(L, char_string(p_lib_name).get_data(), reg);
+    if (!p_lib_name.is_empty())
+    {
+        // First, reuse the annoying bits of logic around table creation and registration
+        luaL_Reg reg[] = {
+            {NULL, NULL} // sentinel
+        };
+        luaL_register(L, char_string(p_lib_name).get_data(), reg);
+    }
 
     // Table is now at the top of the stack; populate it with the provided functions
     for (const Variant &key : p_functions.keys())
