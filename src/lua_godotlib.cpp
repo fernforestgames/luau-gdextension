@@ -618,9 +618,12 @@ static int packed_vector4_array_constructor(lua_State *L)
     return 1;
 }
 
-static void register_constructors(lua_State *L)
+int luaopen_godot(lua_State *L)
 {
-    luaL_Reg constructors[] = {
+    luaL_checkstack(L, 3, "luaopen_godot(): Stack overflow. Cannot grow stack.");
+
+    // Register constructors into globals, not the `godot` table
+    luaL_Reg globals[] = {
         {"Vector2", vector2_constructor},
         {"Vector2i", vector2i_constructor},
         {"Rect2", rect2_constructor},
@@ -652,23 +655,14 @@ static void register_constructors(lua_State *L)
         {NULL, NULL} // sentinel
     };
 
-    for (const luaL_Reg *reg = constructors; reg->name != NULL; ++reg)
-    {
-        lua_pushcfunction(L, reg->func, reg->name);
-        lua_setglobal(L, reg->name);
-    }
-}
+    lua_pushvalue(L, LUA_GLOBALSINDEX);
+    luaL_register(L, NULL, globals);
+    lua_pop(L, 1);
 
-int luaopen_godot(lua_State *L)
-{
-    luaL_checkstack(L, 3, "luaopen_godot(): Stack overflow. Cannot grow stack.");
-
-    // Register constructors into globals, not the `godot` table
-    register_constructors(L);
-
-    luaL_Reg reg[] = {
+    // Even if we have no namespaced functions (for now), create the `godot` table and package.loaded entry
+    luaL_Reg namespaced[] = {
         {NULL, NULL} // sentinel
     };
-    luaL_register(L, "godot", reg);
+    luaL_register(L, "godot", namespaced);
     return 1;
 }
