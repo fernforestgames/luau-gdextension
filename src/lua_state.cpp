@@ -360,7 +360,6 @@ void LuaState::_bind_methods()
     ClassDB::bind_method(D_METHOD("load_string", "code", "chunk_name", "env"), &LuaState::load_string, DEFVAL(0));
     ClassDB::bind_method(D_METHOD("do_string", "code", "chunk_name", "env", "nargs", "nresults", "errfunc"), &LuaState::do_string, DEFVAL(0), DEFVAL(0), DEFVAL(LUA_MULTRET), DEFVAL(0));
 
-    BIND_BITFIELD_FLAG(LIB_NONE);
     BIND_BITFIELD_FLAG(LIB_BASE);
     BIND_BITFIELD_FLAG(LIB_COROUTINE);
     BIND_BITFIELD_FLAG(LIB_TABLE);

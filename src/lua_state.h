@@ -36,7 +36,6 @@ namespace gdluau
         // Library selection flags for open_libs()
         enum LibraryFlags
         {
-            LIB_NONE = 0,
             LIB_BASE = 1 << 0,      // Basic functions (_G, print, etc.)
             LIB_COROUTINE = 1 << 1, // Coroutine library
             LIB_TABLE = 1 << 2,     // Table manipulation
