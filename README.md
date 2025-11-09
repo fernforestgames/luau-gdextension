@@ -3,6 +3,8 @@
 Godot 4.5+ GDExtension to integrate the [Luau](https://luau.org/) scripting
 language (a high-performance Lua derivative) into Godot Engine.
 
+**📖 Documentation:** Full API reference is available in Godot's built-in help system (Godot 4.3+). Search for `LuaState`, `Luau`, or `LuauScript` in the editor, or browse the XML files in [`doc_classes/`](doc_classes/).
+
 ## Why Luau?
 
 [Luau](https://luau.org/) is a high-performance scripting language derived from
@@ -20,13 +22,13 @@ integration into games:
 
 ```gdscript
 # Create a Lua state and load libraries
-var L = LuaState.new()
-L.open_libs()
+var state := LuaState.new()
+state.open_libs()
 
 # Compile and execute Luau code
-var bytecode = Luau.compile("print('Hello from Luau!')")
-L.load_bytecode(bytecode, "hello")
-L.resume()
+var bytecode := Luau.compile("print('Hello from Luau!')")
+if state.load_bytecode(bytecode, "hello"):
+    state.pcall(0, 0)  # Execute with 0 arguments, 0 return values
 ```
 
 ### Math Type Integration
@@ -52,19 +54,21 @@ local tinted = color * 0.8
 
 ```gdscript
 # Pass Godot data to Luau
-var player_data = {"name": "Player", "health": 100.0, "level": 5.0}
-L.push_variant(player_data)
-L.set_global("player")
+var player_data := {"name": "Player", "health": 100.0, "level": 5.0}
+var state := LuaState.new()
+state.open_libs()
+state.push_variant(player_data)
+state.set_global("player")
 
 # Execute Luau code that modifies the data
-L.do_string("""
+state.do_string("""
     player.health = player.health - 10
     player.level = player.level + 1
-""")
+""", "modify_player")
 
 # Retrieve modified data back to Godot
-L.get_global("player")
-var updated_data = L.to_dictionary(-1)
+state.get_global("player")
+var updated_data := state.to_dictionary(-1)
 print(updated_data)  # {"name": "Player", "health": 90.0, "level": 6.0}
 ```
 
@@ -72,38 +76,89 @@ print(updated_data)  # {"name": "Player", "health": 90.0, "level": 6.0}
 
 ```gdscript
 # Pass Godot Callables to Luau
-L.push_variant(func(x): return x * 2)
-L.set_global("double")
+var state := LuaState.new()
+state.open_libs()
+state.push_variant(func(x): return x * 2)
+state.set_global("double")
 
-L.do_string("print(double(21))")  # Prints: 42
+state.do_string("print(double(21))", "test_callable")  # Prints: 42
 
 # Get Lua functions as Godot Callables
-L.do_string("function add(a, b) return a + b end")
-L.get_global("add")
-var lua_add = L.to_variant(-1)  # Returns a Callable
+state.do_string("function add(a, b) return a + b end", "define_add")
+state.get_global("add")
+var lua_add := state.to_callable(-1)  # Returns a Callable
 print(lua_add.call(10, 32))  # Prints: 42
+```
+
+### Sandboxing
+
+Sandboxing protects builtin libraries and enables runtime optimizations:
+
+```gdscript
+var state := LuaState.new()
+state.open_libs()
+
+# Set up any globals you want to expose
+state.push_variant({"max_health": 100})
+state.set_global("config")
+
+# Load untrusted code
+var untrusted_code := """
+    -- This code cannot modify builtin libraries
+    -- string.byte = nil  -- This would fail
+    print("Player max health: " .. config.max_health)
+"""
+var bytecode := Luau.compile(untrusted_code)
+state.load_bytecode(bytecode, "untrusted")
+
+# Apply sandbox AFTER loading code, BEFORE executing
+state.sandbox()
+
+# Now safe to execute
+state.pcall(0, 0)
+```
+
+For threads, use `sandbox_thread()` after the main state is sandboxed:
+
+```gdscript
+# Main state already sandboxed
+var thread := state.new_thread()
+state.pop(1)
+
+# Load code into thread
+thread.load_bytecode(bytecode, "thread_func")
+
+# Sandbox the thread before execution
+thread.sandbox_thread()
+
+# Now safe to execute
+thread.pcall(0, 0)
 ```
 
 ### Coroutines
 
 ```gdscript
 # Create a Lua thread (coroutine)
-L.do_string("""
+var state := LuaState.new()
+state.open_libs()
+state.do_string("""
     function counter()
         for i = 1, 3 do
             coroutine.yield(i)
         end
     end
-""")
+""", "define_counter")
 
-var thread = L.new_thread()
+var thread := state.new_thread()
+state.pop(1)  # Clean up the thread from main stack
 thread.get_global("counter")
-thread.resume()
+var status := thread.resume(0)  # Call the function with 0 arguments
 
 # Resume the coroutine multiple times
-while thread.resume() == Luau.LUA_YIELD:
+while status == Luau.LUA_YIELD:
     print(thread.to_number(-1))  # Prints: 1, 2, 3
     thread.pop(1)
+    status = thread.resume(0)
 ```
 
 ## Building
