@@ -206,10 +206,6 @@ Test coverage includes:
 - ✅ Variant conversions
 - ✅ Edge cases and error handling
 
-**Note:** C++ tests are embedded in the Debug build of the GDExtension library
-and run inside the Godot runtime. This allows testing of both POD types
-(Vector2, Color) and runtime-dependent types (Array, Dictionary, Variant).
-
 ## Supported Types
 
 ### Math Types
