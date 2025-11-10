@@ -206,11 +206,6 @@ Test coverage includes:
 - ✅ Variant conversions
 - ✅ Edge cases and error handling
 
-**Note:** C++ tests are built as a separate library (`gdluau_tests`) when
-`BUILD_TESTING=ON` (enabled in Debug presets) and run inside the Godot runtime.
-This allows testing of both POD types (Vector2, Color) and runtime-dependent
-types (Array, Dictionary, Variant). The main library never contains test code.
-
 ## Supported Types
 
 ### Math Types
