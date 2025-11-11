@@ -109,6 +109,35 @@ void gdluau::push_object_metatable(lua_State *L)
     lua_setfield(L, -2, "__le");
 }
 
+static bool has_object_metatable(lua_State *L, int p_index)
+{
+    ERR_FAIL_COND_V_MSG(!lua_checkstack(L, 3), false, vformat("has_variant_metatable(%d): Stack overflow. Cannot grow stack.", p_index));
+
+    luaL_getmetatable(L, OBJECT_METATABLE_NAME);
+    if (!lua_getmetatable(L, p_index))
+    {
+        lua_pop(L, 1); // Pop Object metatable
+        return false;
+    }
+
+    while (!lua_rawequal(L, -1, -2))
+    {
+        // Look for "inherited" metatable
+        lua_rawgetfield(L, -1, "__index");
+        lua_remove(L, -2); // Remove previous metatable
+
+        if (lua_isnil(L, -1))
+        {
+            lua_pop(L, 2); // Pop nil and Object metatable
+            return false;
+        }
+    }
+
+    // Found Object metatable
+    lua_pop(L, 2); // Pop both metatables
+    return true;
+}
+
 Object *gdluau::to_full_object(lua_State *L, int p_index, int p_tag)
 {
     ERR_FAIL_COND_V_MSG(!is_valid_index(L, p_index), nullptr, vformat("to_object(%d): Invalid stack index. Stack has %d elements.", p_index, lua_gettop(L)));
@@ -130,7 +159,7 @@ Object *gdluau::to_full_object(lua_State *L, int p_index, int p_tag)
         // Tag was expected but not found
         return nullptr;
     }
-    else if (lua_type(L, p_index) == LUA_TUSERDATA && metatable_matches(L, p_index, OBJECT_METATABLE_NAME))
+    else if (lua_type(L, p_index) == LUA_TUSERDATA && has_object_metatable(L, p_index))
     {
         return get_userdata_instance(lua_touserdata(L, p_index));
     }
