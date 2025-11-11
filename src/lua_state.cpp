@@ -1978,7 +1978,7 @@ void LuaState::push_variant(const Variant &p_value)
 void LuaState::push_default_object_metatable()
 {
     ERR_FAIL_COND_MSG(!is_valid(), "Lua state is invalid. Cannot push object metatable.");
-    gdluau::push_default_object_metatable(L);
+    push_object_metatable(L);
 }
 
 // Additional convenience functions
