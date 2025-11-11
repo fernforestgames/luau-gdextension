@@ -198,4 +198,50 @@ TEST_SUITE("Bridging - Callable")
 
         state->pop(1);
     }
+
+    TEST_CASE_FIXTURE(LuaStateFixture, "to_callable - Lua function with varargs")
+    {
+        exec_lua_ok(R"(
+            function sum(...)
+                local total = 0
+                local args = {...}
+                for i = 1, #args do
+                    total = total + args[i]
+                end
+                return total
+            end
+        )");
+
+        state->get_global("sum");
+        Callable callable = state->to_callable(-1);
+        state->pop(1);
+
+        CHECK(callable.is_valid());
+
+        // Call with varying numbers of arguments
+        Array args0;
+        Variant result0 = callable.callv(args0);
+        CHECK(static_cast<int>(result0) == 0);
+
+        Array args1;
+        args1.push_back(5);
+        Variant result1 = callable.callv(args1);
+        CHECK(static_cast<int>(result1) == 5);
+
+        Array args3;
+        args3.push_back(10);
+        args3.push_back(20);
+        args3.push_back(30);
+        Variant result3 = callable.callv(args3);
+        CHECK(static_cast<int>(result3) == 60);
+
+        Array args5;
+        args5.push_back(1);
+        args5.push_back(2);
+        args5.push_back(3);
+        args5.push_back(4);
+        args5.push_back(5);
+        Variant result5 = callable.callv(args5);
+        CHECK(static_cast<int>(result5) == 15);
+    }
 }
