@@ -284,6 +284,7 @@ namespace gdluau
         void push_callable(const Callable &p_callable);
         void push_dictionary(const Dictionary &p_dict);
         void push_variant(const Variant &p_value);
+        void push_default_object_metatable();
 
         // Additional convenience functions
         bool load_string(const String &p_code, const StringName &p_chunk_name, int p_env = 0);

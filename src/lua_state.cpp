@@ -354,6 +354,7 @@ void LuaState::_bind_methods()
     ClassDB::bind_method(D_METHOD("push_callable", "value"), &LuaState::push_callable);
     ClassDB::bind_method(D_METHOD("push_dictionary", "value"), &LuaState::push_dictionary);
     ClassDB::bind_method(D_METHOD("push_variant", "value"), &LuaState::push_variant);
+    ClassDB::bind_method(D_METHOD("push_default_object_metatable", "value"), &LuaState::push_default_object_metatable);
 
     // Additional convenience functions
     ClassDB::bind_method(D_METHOD("load_string", "code", "chunk_name", "env"), &LuaState::load_string, DEFVAL(0));
@@ -1972,6 +1973,12 @@ void LuaState::push_variant(const Variant &p_value)
 {
     ERR_FAIL_COND_MSG(!is_valid(), "Lua state is invalid. Cannot push Variant.");
     gdluau::push_variant(L, p_value);
+}
+
+void LuaState::push_default_object_metatable()
+{
+    ERR_FAIL_COND_MSG(!is_valid(), "Lua state is invalid. Cannot push object metatable.");
+    gdluau::push_default_object_metatable(L);
 }
 
 // Additional convenience functions

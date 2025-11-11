@@ -18,6 +18,11 @@ static Object *get_userdata_instance(void *ud)
     return ObjectDB::get_instance(instance_id);
 }
 
+static void set_userdata_instance(void *ud, Object *p_obj)
+{
+    *static_cast<uint64_t *>(ud) = p_obj->get_instance_id();
+}
+
 static void refcounted_dtor(void *ud)
 {
     RefCounted *rc = static_cast<RefCounted *>(get_userdata_instance(ud));
@@ -93,7 +98,7 @@ static int object_le(lua_State *L)
     return 1;
 }
 
-static void push_object_metatable(lua_State *L)
+void gdluau::push_object_metatable(lua_State *L)
 {
     if (!luaL_newmetatable(L, OBJECT_METATABLE_NAME))
     {
@@ -163,44 +168,85 @@ Object *gdluau::to_object(lua_State *L, int p_index, int p_tag)
     }
 }
 
+static void push_refcounted_object(lua_State *L, RefCounted *p_obj)
+{
+    if (!p_obj->init_ref())
+    {
+        lua_pushnil(L);
+        return;
+    }
+
+    // Simple, inline RefCounted destructor
+    void *ud = lua_newuserdatadtor(L, sizeof(uint64_t), refcounted_dtor);
+    set_userdata_instance(ud, p_obj);
+
+    // Attach normal bridged object metatable
+    push_object_metatable(L);
+    lua_setmetatable(L, -2);
+}
+
+static void push_refcounted_object_custom(lua_State *L, RefCounted *p_obj, int p_tag)
+{
+    if (!p_obj->init_ref())
+    {
+        lua_pushnil(L);
+        return;
+    }
+
+    void *ud = lua_newuserdatatagged(L, sizeof(uint64_t), p_tag);
+    set_userdata_instance(ud, p_obj);
+
+    // We can't guarantee this tag will only be applied to RefCounted, so need to set a destructor that works with any Object
+    lua_setuserdatadtor(L, p_tag, object_dtor);
+
+    // Attach custom metatable
+    lua_getuserdatametatable(L, p_tag);
+    lua_setmetatable(L, -2);
+}
+
+static void push_weak_object(lua_State *L, Object *p_obj)
+{
+    // We'll just hold a weak reference, with no destructor
+    void *ud = lua_newuserdata(L, sizeof(uint64_t));
+    set_userdata_instance(ud, p_obj);
+
+    // Attach normal bridged object metatable
+    push_object_metatable(L);
+    lua_setmetatable(L, -2);
+}
+
+static void push_weak_object_custom(lua_State *L, Object *p_obj, int p_tag)
+{
+    // We'll just hold a weak reference, with no destructor
+    void *ud = lua_newuserdatatagged(L, sizeof(uint64_t), p_tag);
+    set_userdata_instance(ud, p_obj);
+
+    // Attach custom metatable
+    lua_getuserdatametatable(L, p_tag);
+    lua_setmetatable(L, -2);
+}
+
 void gdluau::push_full_object(lua_State *L, Object *p_obj, int p_tag)
 {
     ERR_FAIL_COND_MSG(!lua_checkstack(L, 2), "push_full_object(): Stack overflow. Cannot grow stack."); // Object + metatable
 
-    void *ptr = nullptr;
     RefCounted *rc = Object::cast_to<RefCounted>(p_obj);
-    if (rc && rc->init_ref())
+    if (rc && p_tag == -1)
     {
-        if (p_tag == -1)
-        {
-            ptr = lua_newuserdatadtor(L, sizeof(uint64_t), refcounted_dtor);
-        }
-        else
-        {
-            ptr = lua_newuserdatatagged(L, sizeof(uint64_t), p_tag);
-
-            // We can't guarantee this tag will only be applied to RefCounted objects, so set a destructor that works with any Object
-            lua_setuserdatadtor(L, p_tag, object_dtor);
-        }
+        push_refcounted_object(L, rc);
     }
-
-    if (!ptr)
+    else if (rc && p_tag != -1)
     {
-        if (p_tag == -1)
-        {
-            ptr = lua_newuserdata(L, sizeof(uint64_t));
-        }
-        else
-        {
-            ptr = lua_newuserdatatagged(L, sizeof(uint64_t), p_tag);
-        }
+        push_refcounted_object_custom(L, rc, p_tag);
     }
-
-    *static_cast<uint64_t *>(ptr) = p_obj->get_instance_id();
-
-    // Attach metatable that allows us to identify this as a bridged object
-    push_object_metatable(L);
-    lua_setmetatable(L, -2);
+    else if (p_tag == -1)
+    {
+        push_weak_object(L, p_obj);
+    }
+    else
+    {
+        push_weak_object_custom(L, p_obj, p_tag);
+    }
 }
 
 void gdluau::push_light_object(lua_State *L, Object *p_obj, int p_tag)
