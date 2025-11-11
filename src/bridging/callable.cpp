@@ -56,9 +56,9 @@ static int callable_call(lua_State *L)
 
     int arg_count = lua_gettop(L) - 1; // Subtract 1 for self
     int expected_args = callable.get_argument_count();
-    if (expected_args >= 0 && arg_count != expected_args) [[unlikely]]
+    if (expected_args >= 0 && arg_count < expected_args) [[unlikely]]
     {
-        luaL_error(L, "Callable expects %d arguments, got %d", expected_args, arg_count);
+        luaL_error(L, "Too few arguments for Callable (expected at least %d, got %d)", expected_args, arg_count);
     }
 
     Array args;

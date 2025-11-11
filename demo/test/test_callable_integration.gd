@@ -507,3 +507,43 @@ func test_callable_in_table_operations_stress() -> void:
 	assert_eq(result, 10100, "Callable results stored in table should maintain integrity")
 	L.pop(1)
 	assert_stack_balanced()
+
+# ============================================================================
+# Varargs Tests
+# ============================================================================
+
+func test_godot_callable_with_varargs_from_lua() -> void:
+	# Create a Callable to a GDScript method with optional parameters
+	# This simulates varargs behavior by accepting 0-5 string arguments
+	L.push_callable(self._concat_varargs)
+	L.set_global("concat")
+
+	# Test with 0 arguments
+	L.do_string('return concat()', "test0")
+	assert_eq(L.to_string_inplace(-1), "", "Varargs callable with 0 args should return empty string")
+	L.pop(1)
+
+	# Test with 1 argument
+	L.do_string('return concat("A")', "test1")
+	assert_eq(L.to_string_inplace(-1), "A", "Varargs callable with 1 arg should return single value")
+	L.pop(1)
+
+	# Test with 3 arguments
+	L.do_string('return concat("Hello", " ", "World")', "test3")
+	assert_eq(L.to_string_inplace(-1), "Hello World", "Varargs callable with 3 args should concatenate all")
+	L.pop(1)
+
+	# Test with 5 arguments
+	L.do_string('return concat("A", "B", "C", "D", "E")', "test5")
+	assert_eq(L.to_string_inplace(-1), "ABCDE", "Varargs callable with 5 args should concatenate all")
+	L.pop(1)
+
+	assert_stack_balanced()
+
+# Helper function that accepts varargs using Godot's ... syntax
+# When called from C++ via Callable, Godot passes all arguments into the Array
+func _concat_varargs(...values: Array) -> String:
+	var result: String = ""
+	for val in values:
+		result += val
+	return result
