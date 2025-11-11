@@ -49,14 +49,14 @@ static int callable_call(lua_State *L)
 {
     // First argument on the stack is the object being called
     Callable callable = *static_cast<Callable *>(lua_touserdata(L, 1));
-    if (!callable.is_valid())
+    if (!callable.is_valid()) [[unlikely]]
     {
         luaL_argerror(L, 1, "Callable is not valid");
     }
 
     int arg_count = lua_gettop(L) - 1; // Subtract 1 for self
     int expected_args = callable.get_argument_count();
-    if (expected_args >= 0 && arg_count != expected_args)
+    if (expected_args >= 0 && arg_count != expected_args) [[unlikely]]
     {
         luaL_error(L, "Callable expects %d arguments, got %d", expected_args, arg_count);
     }
@@ -80,7 +80,7 @@ static int callable_call(lua_State *L)
 
 static void push_callable_metatable(lua_State *L)
 {
-    if (!luaL_newmetatable(L, CALLABLE_METATABLE_NAME))
+    if (!luaL_newmetatable(L, CALLABLE_METATABLE_NAME)) [[likely]]
     {
         // Metatable already exists
         return;
@@ -118,7 +118,7 @@ Callable gdluau::to_callable(lua_State *L, int p_index)
 {
     ERR_FAIL_COND_V_MSG(!is_valid_index(L, p_index), Callable(), vformat("to_callable(%d): Invalid stack index. Stack has %d elements.", p_index, lua_gettop(L)));
 
-    if (!lua_isfunction(L, p_index))
+    if (!lua_isfunction(L, p_index)) [[unlikely]]
     {
         return Callable();
     }
@@ -132,11 +132,11 @@ Callable gdluau::to_callable(lua_State *L, int p_index)
     LuaState *state = LuaState::find_lua_state(L);
     String func_name = lua_function_name(L, negative_index);
     LuaCallable *lc;
-    if (state)
+    if (state) [[likely]]
     {
         lc = memnew(LuaCallable(state, true, func_name, func_ref));
     }
-    else
+    else [[unlikely]]
     {
         Ref<LuaState> created_state = LuaState::find_or_create_lua_state(L);
         lc = memnew(LuaCallable(created_state.ptr(), false, func_name, func_ref));
@@ -231,13 +231,13 @@ void LuaCallable::call(const Variant **p_arguments, int p_argcount, Variant &r_r
     r_return_value = Variant(); // Default to nil
 
     LuaState *state = get_lua_state();
-    if (!state)
+    if (!state) [[unlikely]]
     {
         ERR_PRINT("LuaCallable.call(): LuaState is null");
         r_call_error.error = GDEXTENSION_CALL_ERROR_INSTANCE_IS_NULL;
         return;
     }
-    else if (!state->is_valid())
+    else if (!state->is_valid()) [[unlikely]]
     {
         ERR_PRINT("LuaCallable.call(): LuaState is not valid");
         r_call_error.error = GDEXTENSION_CALL_ERROR_INSTANCE_IS_NULL;
@@ -245,7 +245,7 @@ void LuaCallable::call(const Variant **p_arguments, int p_argcount, Variant &r_r
     }
 
     lua_State *L = state->get_lua_state();
-    if (!L)
+    if (!L) [[unlikely]]
     {
         ERR_PRINT("LuaCallable.call(): lua_State is null");
         r_call_error.error = GDEXTENSION_CALL_ERROR_INSTANCE_IS_NULL;
@@ -253,7 +253,7 @@ void LuaCallable::call(const Variant **p_arguments, int p_argcount, Variant &r_r
     }
 
     // Function + all arguments
-    if (!lua_checkstack(L, 1 + p_argcount))
+    if (!lua_checkstack(L, 1 + p_argcount)) [[unlikely]]
     {
         ERR_PRINT(vformat("LuaCallable.call(): Stack overflow. Cannot grow stack for %d arguments.", p_argcount));
         r_call_error.error = GDEXTENSION_CALL_ERROR_TOO_MANY_ARGUMENTS;
@@ -261,7 +261,7 @@ void LuaCallable::call(const Variant **p_arguments, int p_argcount, Variant &r_r
     }
 
     lua_getref(L, func_ref);
-    if (!lua_isLfunction(L, -1))
+    if (!lua_isLfunction(L, -1)) [[unlikely]]
     {
         ERR_PRINT("LuaCallable.call(): function reference is not valid");
         lua_pop(L, 1);

@@ -14,7 +14,7 @@ bool gdluau::is_array(lua_State *L, int p_index)
 {
     ERR_FAIL_COND_V_MSG(!is_valid_index(L, p_index), false, vformat("is_array(%d): Invalid stack index. Stack has %d elements.", p_index, lua_gettop(L)));
 
-    if (!lua_istable(L, p_index))
+    if (!lua_istable(L, p_index)) [[unlikely]]
     {
         // Not a table
         return false;
@@ -54,7 +54,7 @@ Array gdluau::to_array(lua_State *L, int p_index, bool *r_is_array)
 
     ERR_FAIL_COND_V_MSG(!is_valid_index(L, p_index), Array(), vformat("to_array(%d): Invalid stack index. Stack has %d elements.", p_index, lua_gettop(L)));
 
-    if (!lua_istable(L, p_index))
+    if (!lua_istable(L, p_index)) [[unlikely]]
     {
         // Not a table
         return Array();

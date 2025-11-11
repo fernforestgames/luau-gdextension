@@ -18,7 +18,7 @@ Dictionary gdluau::to_dictionary(lua_State *L, int p_index, bool *r_success)
 
     ERR_FAIL_COND_V_MSG(!is_valid_index(L, p_index), Dictionary(), vformat("to_dictionary(%d): Invalid stack index. Stack has %d elements.", p_index, lua_gettop(L)));
 
-    if (!lua_istable(L, p_index))
+    if (!lua_istable(L, p_index)) [[unlikely]]
     {
         // Not a table
         return Dictionary();

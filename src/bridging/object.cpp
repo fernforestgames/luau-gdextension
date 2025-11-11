@@ -87,7 +87,7 @@ static int object_le(lua_State *L)
 
 void gdluau::push_object_metatable(lua_State *L)
 {
-    if (!luaL_newmetatable(L, OBJECT_METATABLE_NAME))
+    if (!luaL_newmetatable(L, OBJECT_METATABLE_NAME)) [[likely]]
     {
         // Metatable already configured
         return;
@@ -114,7 +114,7 @@ static bool has_object_metatable(lua_State *L, int p_index)
     ERR_FAIL_COND_V_MSG(!lua_checkstack(L, 3), false, vformat("has_variant_metatable(%d): Stack overflow. Cannot grow stack.", p_index));
 
     luaL_getmetatable(L, OBJECT_METATABLE_NAME);
-    if (!lua_getmetatable(L, p_index))
+    if (!lua_getmetatable(L, p_index)) [[unlikely]]
     {
         lua_pop(L, 1); // Pop Object metatable
         return false;
@@ -145,7 +145,7 @@ Object *gdluau::to_full_object(lua_State *L, int p_index, int p_tag)
     int actual_tag = lua_userdatatag(L, p_index);
     if (actual_tag != -1)
     {
-        if (p_tag != -1 && actual_tag != p_tag)
+        if (p_tag != -1 && actual_tag != p_tag) [[unlikely]]
         {
             // Does not match expected tag
             return nullptr;
@@ -154,7 +154,7 @@ Object *gdluau::to_full_object(lua_State *L, int p_index, int p_tag)
         // Skip metatable check for tagged userdata
         return get_userdata_instance(lua_touserdata(L, p_index));
     }
-    else if (p_tag != -1)
+    else if (p_tag != -1) [[unlikely]]
     {
         // Tag was expected but not found
         return nullptr;
@@ -173,7 +173,7 @@ Object *gdluau::to_light_object(lua_State *L, int p_index, int p_tag)
 {
     ERR_FAIL_COND_V_MSG(!is_valid_index(L, p_index), nullptr, vformat("to_light_object(%d): Invalid stack index. Stack has %d elements.", p_index, lua_gettop(L)));
 
-    if (lua_islightuserdata(L, p_index))
+    if (lua_islightuserdata(L, p_index)) [[likely]]
     {
         void *ud = p_tag == -1 ? lua_tolightuserdata(L, p_index) : lua_tolightuserdatatagged(L, p_index, p_tag);
         return static_cast<Object *>(ud);
@@ -203,7 +203,7 @@ Object *gdluau::to_object(lua_State *L, int p_index, int p_tag)
 
 static void push_refcounted_object(lua_State *L, RefCounted *p_obj)
 {
-    if (!p_obj->init_ref())
+    if (!p_obj->init_ref()) [[unlikely]]
     {
         lua_pushnil(L);
         return;
@@ -220,7 +220,7 @@ static void push_refcounted_object(lua_State *L, RefCounted *p_obj)
 
 static void push_refcounted_object_custom(lua_State *L, RefCounted *p_obj, int p_tag)
 {
-    if (!p_obj->init_ref())
+    if (!p_obj->init_ref()) [[unlikely]]
     {
         lua_pushnil(L);
         return;
