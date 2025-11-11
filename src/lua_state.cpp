@@ -354,7 +354,7 @@ void LuaState::_bind_methods()
     ClassDB::bind_method(D_METHOD("push_callable", "value"), &LuaState::push_callable);
     ClassDB::bind_method(D_METHOD("push_dictionary", "value"), &LuaState::push_dictionary);
     ClassDB::bind_method(D_METHOD("push_variant", "value"), &LuaState::push_variant);
-    ClassDB::bind_method(D_METHOD("push_default_object_metatable", "value"), &LuaState::push_default_object_metatable);
+    ClassDB::bind_method(D_METHOD("push_default_object_metatable"), &LuaState::push_default_object_metatable);
 
     // Additional convenience functions
     ClassDB::bind_method(D_METHOD("load_string", "code", "chunk_name", "env"), &LuaState::load_string, DEFVAL(0));
