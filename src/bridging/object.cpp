@@ -113,16 +113,22 @@ Object *gdluau::to_full_object(lua_State *L, int p_index, int p_tag)
 {
     ERR_FAIL_COND_V_MSG(!is_valid_index(L, p_index), nullptr, vformat("to_object(%d): Invalid stack index. Stack has %d elements.", p_index, lua_gettop(L)));
 
-    if (p_tag != -1)
+    int actual_tag = lua_userdatatag(L, p_index);
+    if (actual_tag != -1)
     {
-        // Skip metatable check for tagged userdata
-        void *ud = lua_touserdatatagged(L, p_index, p_tag);
-        if (!ud)
+        if (p_tag != -1 && actual_tag != p_tag)
         {
+            // Does not match expected tag
             return nullptr;
         }
 
-        return get_userdata_instance(ud);
+        // Skip metatable check for tagged userdata
+        return get_userdata_instance(lua_touserdata(L, p_index));
+    }
+    else if (p_tag != -1)
+    {
+        // Tag was expected but not found
+        return nullptr;
     }
     else if (lua_type(L, p_index) == LUA_TUSERDATA && metatable_matches(L, p_index, OBJECT_METATABLE_NAME))
     {
