@@ -107,6 +107,9 @@ void gdluau::push_object_metatable(lua_State *L)
 
     lua_pushcfunction(L, object_le, "Object.__le");
     lua_setfield(L, -2, "__le");
+
+    // Freeze metatable
+    lua_setreadonly(L, -1, 1);
 }
 
 static bool has_object_metatable(lua_State *L, int p_index)

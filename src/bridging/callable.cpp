@@ -97,6 +97,9 @@ static void push_callable_metatable(lua_State *L)
 
     lua_pushcfunction(L, callable_call, "Callable.__call");
     lua_setfield(L, -2, "__call");
+
+    // Freeze metatable
+    lua_setreadonly(L, -1, 1);
 }
 
 static String lua_function_name(lua_State *L, int p_index)

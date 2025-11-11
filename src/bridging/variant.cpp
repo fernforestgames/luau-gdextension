@@ -238,6 +238,9 @@ static void push_variant_metatable(lua_State *L)
 
     lua_pushcfunction(L, variant_iter, "Variant.__iter");
     lua_setfield(L, -2, "__iter");
+
+    // Freeze metatable
+    lua_setreadonly(L, -1, 1);
 }
 
 static bool has_variant_metatable(lua_State *L, int p_index)
