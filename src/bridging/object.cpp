@@ -38,13 +38,14 @@ static void object_dtor(lua_State *L, void *ud)
 
 static Object *to_userdata(lua_State *L, int p_index, int p_tag)
 {
-    if (p_tag == -1)
+    void *ud = p_tag == -1 ? lua_touserdata(L, p_index) : lua_touserdatatagged(L, p_index, p_tag);
+    if (ud)
     {
-        return get_userdata_instance(lua_touserdata(L, p_index));
+        return get_userdata_instance(ud);
     }
     else
     {
-        return get_userdata_instance(lua_touserdatatagged(L, p_index, p_tag));
+        return nullptr;
     }
 }
 
