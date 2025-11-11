@@ -18,6 +18,11 @@ static Object *get_userdata_instance(void *ud)
     return ObjectDB::get_instance(instance_id);
 }
 
+static void set_userdata_instance(void *ud, Object *p_obj)
+{
+    *static_cast<uint64_t *>(ud) = p_obj->get_instance_id();
+}
+
 static void refcounted_dtor(void *ud)
 {
     RefCounted *rc = static_cast<RefCounted *>(get_userdata_instance(ud));
@@ -36,22 +41,10 @@ static void object_dtor(lua_State *L, void *ud)
     }
 }
 
-static Object *to_userdata(lua_State *L, int p_index, int p_tag)
-{
-    if (p_tag == -1)
-    {
-        return get_userdata_instance(lua_touserdata(L, p_index));
-    }
-    else
-    {
-        return get_userdata_instance(lua_touserdatatagged(L, p_index, p_tag));
-    }
-}
-
 // Object.__tostring metamethod
 static int object_tostring(lua_State *L)
 {
-    Object *obj = to_userdata(L, 1, -1);
+    Object *obj = get_userdata_instance(lua_touserdata(L, 1));
     lua_pop(L, 1);
 
     CharString utf8 = obj->to_string().utf8();
@@ -92,9 +85,9 @@ static int object_le(lua_State *L)
     return 1;
 }
 
-static void push_object_metatable(lua_State *L)
+void gdluau::push_object_metatable(lua_State *L)
 {
-    if (!luaL_newmetatable(L, OBJECT_METATABLE_NAME))
+    if (!luaL_newmetatable(L, OBJECT_METATABLE_NAME)) [[likely]]
     {
         // Metatable already configured
         return;
@@ -114,15 +107,64 @@ static void push_object_metatable(lua_State *L)
 
     lua_pushcfunction(L, object_le, "Object.__le");
     lua_setfield(L, -2, "__le");
+
+    // Freeze metatable
+    lua_setreadonly(L, -1, 1);
+}
+
+static bool has_object_metatable(lua_State *L, int p_index)
+{
+    ERR_FAIL_COND_V_MSG(!lua_checkstack(L, 3), false, vformat("has_variant_metatable(%d): Stack overflow. Cannot grow stack.", p_index));
+
+    luaL_getmetatable(L, OBJECT_METATABLE_NAME);
+    if (!lua_getmetatable(L, p_index)) [[unlikely]]
+    {
+        lua_pop(L, 1); // Pop Object metatable
+        return false;
+    }
+
+    while (!lua_rawequal(L, -1, -2))
+    {
+        // Look for "inherited" metatable
+        lua_rawgetfield(L, -1, "__index");
+        lua_remove(L, -2); // Remove previous metatable
+
+        if (lua_isnil(L, -1))
+        {
+            lua_pop(L, 2); // Pop nil and Object metatable
+            return false;
+        }
+    }
+
+    // Found Object metatable
+    lua_pop(L, 2); // Pop both metatables
+    return true;
 }
 
 Object *gdluau::to_full_object(lua_State *L, int p_index, int p_tag)
 {
     ERR_FAIL_COND_V_MSG(!is_valid_index(L, p_index), nullptr, vformat("to_object(%d): Invalid stack index. Stack has %d elements.", p_index, lua_gettop(L)));
 
-    if (lua_type(L, p_index) == LUA_TUSERDATA && metatable_matches(L, p_index, OBJECT_METATABLE_NAME))
+    int actual_tag = lua_userdatatag(L, p_index);
+    if (actual_tag != -1)
     {
-        return to_userdata(L, p_index, p_tag);
+        if (p_tag != -1 && actual_tag != p_tag) [[unlikely]]
+        {
+            // Does not match expected tag
+            return nullptr;
+        }
+
+        // Skip metatable check for tagged userdata
+        return get_userdata_instance(lua_touserdata(L, p_index));
+    }
+    else if (p_tag != -1) [[unlikely]]
+    {
+        // Tag was expected but not found
+        return nullptr;
+    }
+    else if (lua_type(L, p_index) == LUA_TUSERDATA && has_object_metatable(L, p_index))
+    {
+        return get_userdata_instance(lua_touserdata(L, p_index));
     }
     else
     {
@@ -134,7 +176,7 @@ Object *gdluau::to_light_object(lua_State *L, int p_index, int p_tag)
 {
     ERR_FAIL_COND_V_MSG(!is_valid_index(L, p_index), nullptr, vformat("to_light_object(%d): Invalid stack index. Stack has %d elements.", p_index, lua_gettop(L)));
 
-    if (lua_islightuserdata(L, p_index))
+    if (lua_islightuserdata(L, p_index)) [[likely]]
     {
         void *ud = p_tag == -1 ? lua_tolightuserdata(L, p_index) : lua_tolightuserdatatagged(L, p_index, p_tag);
         return static_cast<Object *>(ud);
@@ -162,44 +204,85 @@ Object *gdluau::to_object(lua_State *L, int p_index, int p_tag)
     }
 }
 
+static void push_refcounted_object(lua_State *L, RefCounted *p_obj)
+{
+    if (!p_obj->init_ref()) [[unlikely]]
+    {
+        lua_pushnil(L);
+        return;
+    }
+
+    // Simple, inline RefCounted destructor
+    void *ud = lua_newuserdatadtor(L, sizeof(uint64_t), refcounted_dtor);
+    set_userdata_instance(ud, p_obj);
+
+    // Attach normal bridged object metatable
+    push_object_metatable(L);
+    lua_setmetatable(L, -2);
+}
+
+static void push_refcounted_object_custom(lua_State *L, RefCounted *p_obj, int p_tag)
+{
+    if (!p_obj->init_ref()) [[unlikely]]
+    {
+        lua_pushnil(L);
+        return;
+    }
+
+    void *ud = lua_newuserdatatagged(L, sizeof(uint64_t), p_tag);
+    set_userdata_instance(ud, p_obj);
+
+    // We can't guarantee this tag will only be applied to RefCounted, so need to set a destructor that works with any Object
+    lua_setuserdatadtor(L, p_tag, object_dtor);
+
+    // Attach custom metatable
+    lua_getuserdatametatable(L, p_tag);
+    lua_setmetatable(L, -2);
+}
+
+static void push_weak_object(lua_State *L, Object *p_obj)
+{
+    // We'll just hold a weak reference, with no destructor
+    void *ud = lua_newuserdata(L, sizeof(uint64_t));
+    set_userdata_instance(ud, p_obj);
+
+    // Attach normal bridged object metatable
+    push_object_metatable(L);
+    lua_setmetatable(L, -2);
+}
+
+static void push_weak_object_custom(lua_State *L, Object *p_obj, int p_tag)
+{
+    // We'll just hold a weak reference, with no destructor
+    void *ud = lua_newuserdatatagged(L, sizeof(uint64_t), p_tag);
+    set_userdata_instance(ud, p_obj);
+
+    // Attach custom metatable
+    lua_getuserdatametatable(L, p_tag);
+    lua_setmetatable(L, -2);
+}
+
 void gdluau::push_full_object(lua_State *L, Object *p_obj, int p_tag)
 {
     ERR_FAIL_COND_MSG(!lua_checkstack(L, 2), "push_full_object(): Stack overflow. Cannot grow stack."); // Object + metatable
 
-    void *ptr = nullptr;
     RefCounted *rc = Object::cast_to<RefCounted>(p_obj);
-    if (rc && rc->init_ref())
+    if (rc && p_tag == -1)
     {
-        if (p_tag == -1)
-        {
-            ptr = lua_newuserdatadtor(L, sizeof(uint64_t), refcounted_dtor);
-        }
-        else
-        {
-            ptr = lua_newuserdatatagged(L, sizeof(uint64_t), p_tag);
-
-            // We can't guarantee this tag will only be applied to RefCounted objects, so set a destructor that works with any Object
-            lua_setuserdatadtor(L, p_tag, object_dtor);
-        }
+        push_refcounted_object(L, rc);
     }
-
-    if (!ptr)
+    else if (rc && p_tag != -1)
     {
-        if (p_tag == -1)
-        {
-            ptr = lua_newuserdata(L, sizeof(uint64_t));
-        }
-        else
-        {
-            ptr = lua_newuserdatatagged(L, sizeof(uint64_t), p_tag);
-        }
+        push_refcounted_object_custom(L, rc, p_tag);
     }
-
-    *static_cast<uint64_t *>(ptr) = p_obj->get_instance_id();
-
-    // Attach metatable that allows us to identify this as a bridged object
-    push_object_metatable(L);
-    lua_setmetatable(L, -2);
+    else if (p_tag == -1)
+    {
+        push_weak_object(L, p_obj);
+    }
+    else
+    {
+        push_weak_object_custom(L, p_obj, p_tag);
+    }
 }
 
 void gdluau::push_light_object(lua_State *L, Object *p_obj, int p_tag)

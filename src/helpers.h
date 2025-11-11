@@ -29,8 +29,6 @@ namespace gdluau
         }
     }
 
-    bool metatable_matches(lua_State *p_L, int p_index, const char *p_metatable_name);
-
     // Generic __concat metamethod that converts values to strings
     int generic_lua_concat(lua_State *p_L);
 

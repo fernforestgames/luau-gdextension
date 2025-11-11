@@ -9,29 +9,6 @@ using namespace godot;
 
 TEST_SUITE("Helpers")
 {
-    TEST_CASE_FIXTURE(RawLuaStateFixture, "metatable_matches - checks metatable name")
-    {
-        // Create a table with a specific metatable
-        lua_createtable(L, 0, 0);
-
-        luaL_newmetatable(L, "TestMetatable");
-        lua_setmetatable(L, -2);
-
-        CHECK(metatable_matches(L, -1, "TestMetatable"));
-        CHECK_FALSE(metatable_matches(L, -1, "OtherMetatable"));
-
-        lua_pop(L, 1);
-    }
-
-    TEST_CASE_FIXTURE(RawLuaStateFixture, "metatable_matches - no metatable")
-    {
-        lua_createtable(L, 0, 0);
-
-        CHECK_FALSE(metatable_matches(L, -1, "AnyMetatable"));
-
-        lua_pop(L, 1);
-    }
-
     TEST_CASE_FIXTURE(RawLuaStateFixture, "generic_lua_concat - concatenates values")
     {
         lua_pushcfunction(L, generic_lua_concat, "test_concat");

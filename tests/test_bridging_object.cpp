@@ -144,4 +144,192 @@ TEST_SUITE("Bridging - Object")
         CHECK(ptr2 != 0);
         state->pop(1);
     }
+
+    TEST_CASE_FIXTURE(LuaStateFixture, "push_default_object_metatable - exposes default metatable")
+    {
+        state->push_default_object_metatable();
+        CHECK(state->is_table(-1));
+
+        // Verify it has expected metamethods
+        state->get_field(-1, "__tostring");
+        CHECK(state->is_function(-1));
+        state->pop(1);
+
+        state->get_field(-1, "__eq");
+        CHECK(state->is_function(-1));
+        state->pop(1);
+
+        state->get_field(-1, "__lt");
+        CHECK(state->is_function(-1));
+        state->pop(1);
+
+        state->get_field(-1, "__le");
+        CHECK(state->is_function(-1));
+        state->pop(1);
+
+        state->pop(1); // Pop metatable
+    }
+
+    TEST_CASE_FIXTURE(LuaStateFixture, "custom metatable with __index inheritance")
+    {
+        Object *obj = state.ptr();
+
+        // Push object
+        state->push_userdata(obj);
+
+        // Create custom metatable that inherits from default
+        CHECK(state->new_metatable_named("CustomObject"));
+        state->push_default_object_metatable();
+        state->set_field(-2, "__index");
+
+        // Set the custom metatable
+        state->set_metatable(-2);
+
+        // Should still be able to convert to object (inherits from Object metatable)
+        Object *result = state->to_userdata(-1);
+        CHECK(result == obj);
+
+        state->pop(1);
+    }
+
+    TEST_CASE_FIXTURE(LuaStateFixture, "custom metatable multiple levels of inheritance")
+    {
+        Object *obj = state.ptr();
+
+        // Push object
+        state->push_userdata(obj);
+
+        // Create first level: inherits from default
+        CHECK(state->new_metatable_named("Level1"));
+        state->push_default_object_metatable();
+        state->set_field(-2, "__index");
+        state->set_metatable(-2);
+
+        // Replace with second level: inherits from Level1
+        CHECK(state->get_metatable(-1));
+        state->create_table(); // Create Level2 metatable
+        state->push_value(-2); // Push Level1 metatable
+        state->set_field(-2, "__index");
+        state->set_metatable(-3);
+        state->pop(1); // Pop Level1 metatable
+
+        // Should still be able to convert (walks inheritance chain)
+        Object *result = state->to_userdata(-1);
+        CHECK(result == obj);
+
+        state->pop(1);
+    }
+
+
+    TEST_CASE_FIXTURE(LuaStateFixture, "tagged userdata without custom metatable still works")
+    {
+        Object *obj = state.ptr();
+        int tag = 60;
+
+        // Don't create custom metatable for this tag
+
+        // Push tagged object
+        state->push_userdata(obj, tag);
+
+        // Should be able to convert
+        Object *result = state->to_userdata(-1, tag);
+        CHECK(result == obj);
+
+        state->pop(1);
+    }
+
+    TEST_CASE_FIXTURE(LuaStateFixture, "tag mismatch returns null")
+    {
+        Object *obj = state.ptr();
+        int tag1 = 70;
+        int tag2 = 71;
+
+        // Push with tag1
+        state->push_userdata(obj, tag1);
+
+        // Try to read with tag2
+        Object *result = state->to_userdata(-1, tag2);
+        CHECK(result == nullptr);
+
+        // Reading with tag1 should work
+        result = state->to_userdata(-1, tag1);
+        CHECK(result == obj);
+
+        state->pop(1);
+    }
+
+    TEST_CASE_FIXTURE(LuaStateFixture, "untagged userdata requires object metatable")
+    {
+        // Create a RefCounted object to test
+        Ref<RefCounted> ref = memnew(RefCounted);
+
+        // Push it normally (should have Object metatable)
+        state->push_userdata(ref.ptr());
+
+        // Should be able to convert
+        Object *result = state->to_userdata(-1);
+        CHECK(result == ref.ptr());
+
+        state->pop(1);
+    }
+
+    TEST_CASE_FIXTURE(LuaStateFixture, "default object metatable has basic metamethods")
+    {
+        Object *obj = state.ptr();
+
+        // Test __tostring
+        exec_lua_ok(R"(
+            function test_tostring(o)
+                return tostring(o)
+            end
+        )");
+        state->get_global("test_tostring");
+        state->push_userdata(obj);
+        state->pcall(1, 1);
+        CHECK(state->is_string(-1));
+        state->pop(1);
+
+        // Test __eq
+        exec_lua_ok(R"(
+            function test_eq(a, b)
+                return a == b
+            end
+        )");
+        state->get_global("test_eq");
+        state->push_userdata(obj);
+        state->push_userdata(obj);
+        state->pcall(2, 1);
+        CHECK(state->to_boolean(-1));
+        state->pop(1);
+
+        // Test __lt with different objects
+        Ref<RefCounted> obj1 = memnew(RefCounted);
+        Ref<RefCounted> obj2 = memnew(RefCounted);
+
+        exec_lua_ok(R"(
+            function test_lt(a, b)
+                return a < b
+            end
+        )");
+        state->get_global("test_lt");
+        state->push_userdata(obj1.ptr());
+        state->push_userdata(obj2.ptr());
+        state->pcall(2, 1);
+        // Result depends on object IDs, just verify it returns a boolean
+        CHECK(state->is_boolean(-1));
+        state->pop(1);
+
+        // Test __le with different objects
+        exec_lua_ok(R"(
+            function test_le(a, b)
+                return a <= b
+            end
+        )");
+        state->get_global("test_le");
+        state->push_userdata(obj1.ptr());
+        state->push_userdata(obj2.ptr());
+        state->pcall(2, 1);
+        CHECK(state->is_boolean(-1));
+        state->pop(1);
+    }
 }

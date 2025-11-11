@@ -47,7 +47,7 @@ static int variant_op(lua_State *L)
     bool is_valid = false;
     Variant::evaluate(op, a, b, result, is_valid);
 
-    if (!is_valid)
+    if (!is_valid) [[unlikely]]
     {
         String error_msg = vformat("Cannot use operator %d on Variant types %s and %s", op, Variant::get_type_name(a.get_type()), Variant::get_type_name(b.get_type()));
         lua_pushstring(L, error_msg.utf8().get_data());
@@ -68,7 +68,7 @@ static int variant_negate(lua_State *L)
     bool is_valid = false;
     Variant::evaluate(Variant::OP_NEGATE, var, Variant(), result, is_valid);
 
-    if (!is_valid)
+    if (!is_valid) [[unlikely]]
     {
         String error_msg = vformat("Cannot use negation operator on Variant type %s", Variant::OP_NEGATE, Variant::get_type_name(var.get_type()));
         lua_pushstring(L, error_msg.utf8().get_data());
@@ -89,7 +89,7 @@ static int variant_index(lua_State *L)
     bool is_valid = false;
     Variant result = var.get(key, &is_valid);
 
-    if (!is_valid)
+    if (!is_valid) [[unlikely]]
     {
         String error_msg = vformat("Cannot index Variant type %s with key of type %s", Variant::get_type_name(var.get_type()), Variant::get_type_name(key.get_type()));
         lua_pushstring(L, error_msg.utf8().get_data());
@@ -113,7 +113,7 @@ static int variant_newindex(lua_State *L)
     bool is_valid = false;
     var->set(key, value, &is_valid);
 
-    if (!is_valid)
+    if (!is_valid) [[unlikely]]
     {
         String error_msg = vformat("Cannot index Variant type %s with key of type %s", Variant::get_type_name(var->get_type()), Variant::get_type_name(key.get_type()));
         lua_pushstring(L, error_msg.utf8().get_data());
@@ -133,7 +133,7 @@ static int variant_iter_closure(lua_State *L)
 
     Variant *var = static_cast<Variant *>(lua_touserdata(L, lua_upvalueindex(1)));
     Variant iter = to_variant(L, lua_upvalueindex(2));
-    if (iter.get_type() == Variant::NIL)
+    if (iter.get_type() == Variant::NIL) [[unlikely]]
     {
         // Iterator was exhausted
         lua_pushnil(L);
@@ -147,13 +147,13 @@ static int variant_iter_closure(lua_State *L)
     push_variant(L, iter);
     push_variant(L, current);
 
-    if (var->iter_next(iter, valid))
+    if (var->iter_next(iter, valid)) [[likely]]
     {
         // Update iterator
         push_variant(L, iter);
         lua_replace(L, lua_upvalueindex(2));
     }
-    else
+    else [[unlikely]]
     {
         // Iterator is exhausted; we'll finish on next call
         lua_pushnil(L);
@@ -170,7 +170,7 @@ static int variant_iter(lua_State *L)
 
     Variant iter;
     bool valid;
-    if (!var->iter_init(iter, valid))
+    if (!var->iter_init(iter, valid)) [[unlikely]]
     {
         String error_msg = vformat("Variant type %s is not iterable", Variant::get_type_name(var->get_type()));
         lua_pushstring(L, error_msg.utf8().get_data());
@@ -188,7 +188,7 @@ static int variant_iter(lua_State *L)
 
 static void push_variant_metatable(lua_State *L)
 {
-    if (!luaL_newmetatable(L, VARIANT_METATABLE_NAME))
+    if (!luaL_newmetatable(L, VARIANT_METATABLE_NAME)) [[likely]]
     {
         // Metatable already configured
         return;
@@ -238,6 +238,25 @@ static void push_variant_metatable(lua_State *L)
 
     lua_pushcfunction(L, variant_iter, "Variant.__iter");
     lua_setfield(L, -2, "__iter");
+
+    // Freeze metatable
+    lua_setreadonly(L, -1, 1);
+}
+
+static bool has_variant_metatable(lua_State *L, int p_index)
+{
+    ERR_FAIL_COND_V_MSG(!lua_checkstack(L, 2), false, vformat("has_variant_metatable(%d): Stack overflow. Cannot grow stack.", p_index));
+
+    if (!lua_getmetatable(L, p_index)) [[unlikely]]
+    {
+        return false;
+    }
+
+    luaL_getmetatable(L, VARIANT_METATABLE_NAME);
+    bool mt_equal = lua_rawequal(L, -1, -2);
+    lua_pop(L, 2); // Pop both metatables
+
+    return mt_equal;
 }
 
 Variant gdluau::to_variant(lua_State *L, int p_index)
@@ -295,7 +314,7 @@ Variant gdluau::to_variant(lua_State *L, int p_index)
 
     case LUA_TUSERDATA:
     {
-        if (metatable_matches(L, p_index, VARIANT_METATABLE_NAME))
+        if (has_variant_metatable(L, p_index))
         {
             return *static_cast<Variant *>(lua_touserdata(L, p_index));
         }
@@ -401,7 +420,7 @@ void gdluau::push_variant(lua_State *L, const Variant &p_variant)
     {
         Object *obj = p_variant;
         LuaState *state = Object::cast_to<LuaState>(obj);
-        if (state)
+        if (state) [[unlikely]]
         {
             ERR_FAIL_COND_MSG(state->get_lua_state() != L, "push_variant(): Cannot push LuaState into a different Lua thread or VM.");
             lua_pushthread(L);
