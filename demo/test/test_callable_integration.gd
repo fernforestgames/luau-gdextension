@@ -547,3 +547,119 @@ func _concat_varargs(...values: Array) -> String:
 	for val in values:
 		result += val
 	return result
+
+# ============================================================================
+# bind_callable_weakly Tests
+# ============================================================================
+
+func test_bind_callable_weakly_state_alive() -> void:
+	# Create a callable that expects LuaState as first argument
+	var weakly_bound: Callable = L.bind_callable_weakly(self._test_func_with_state)
+
+	assert_true(weakly_bound.is_valid(), "Weakly bound callable should be valid")
+
+	# Call the weakly bound callable (LuaState is automatically passed as first arg)
+	var result: int = weakly_bound.call(21)
+	assert_eq(result, 42, "Weakly bound callable should work with LuaState alive")
+
+	assert_stack_balanced()
+
+func test_bind_callable_weakly_with_varargs_state_alive() -> void:
+	# Create a weakly bound callable with varargs
+	var weakly_bound: Callable = L.bind_callable_weakly(self._concat_with_state)
+
+	assert_true(weakly_bound.is_valid(), "Weakly bound callable should be valid")
+
+	# Test with 0 arguments
+	var result0: String = weakly_bound.call()
+	assert_eq(result0, "", "Varargs with 0 args should return empty string")
+
+	# Test with 1 argument
+	var result1: String = weakly_bound.call("A")
+	assert_eq(result1, "A", "Varargs with 1 arg should return single value")
+
+	# Test with 3 arguments
+	var result3: String = weakly_bound.call("Hello", " ", "World")
+	assert_eq(result3, "Hello World", "Varargs with 3 args should concatenate all")
+
+	# Test with 5 arguments
+	var result5: String = weakly_bound.call("A", "B", "C", "D", "E")
+	assert_eq(result5, "ABCDE", "Varargs with 5 args should concatenate all")
+
+	assert_stack_balanced()
+
+func test_bind_callable_weakly_state_freed() -> void:
+	var weakly_bound: Callable
+
+	# Create a nested scope where the LuaState will be freed
+	var inner_state: LuaState = LuaState.new()
+	inner_state.open_libs()
+
+	weakly_bound = inner_state.bind_callable_weakly(self._test_func_with_state)
+	assert_true(weakly_bound.is_valid(), "Weakly bound callable should be valid")
+
+	# Verify it works while state is alive
+	var result_alive: int = weakly_bound.call(5)
+	assert_eq(result_alive, 10, "Callable should work while state is alive")
+
+	# Close the state to free it
+	inner_state.close()
+	inner_state = null
+
+	# The callable should still be valid as a Callable object
+	assert_true(weakly_bound.is_valid(), "Callable object should still be valid after state freed")
+
+	# But when called, it should receive null as first argument
+	var result_freed: int = weakly_bound.call(5)
+	assert_eq(result_freed, -1, "Callable should return -1 when state is freed (null passed)")
+
+	assert_stack_balanced()
+
+func test_bind_callable_weakly_with_varargs_state_freed() -> void:
+	var weakly_bound: Callable
+
+	# Create a nested scope where the LuaState will be freed
+	var inner_state: LuaState = LuaState.new()
+	inner_state.open_libs()
+
+	weakly_bound = inner_state.bind_callable_weakly(self._concat_with_state)
+	assert_true(weakly_bound.is_valid(), "Weakly bound callable should be valid")
+
+	# Verify it works while state is alive
+	var result_alive: String = weakly_bound.call("Hello", " ", "World")
+	assert_eq(result_alive, "Hello World", "Callable should work while state is alive")
+
+	# Close the state to free it
+	inner_state.close()
+	inner_state = null
+
+	# But callable should still be valid as a Callable object
+	assert_true(weakly_bound.is_valid(), "Callable object should still be valid after state freed")
+
+	# But when called, it should indicate the state was freed
+	var result_freed: String = weakly_bound.call("Test")
+	assert_eq(result_freed, "State was freed", "Callable should return error message when state is freed")
+
+	assert_stack_balanced()
+
+# Helper function for bind_callable_weakly tests
+# Expects LuaState as first argument, then an integer value
+func _test_func_with_state(state: LuaState, value: int) -> int:
+	if state == null:
+		return -1 # State was freed
+	if not state.is_valid():
+		return -1 # State is invalid
+	# Return value doubled to prove the callable works
+	return value * 2
+
+# Helper function for bind_callable_weakly varargs tests
+# Expects LuaState as first argument, then varargs
+func _concat_with_state(state: LuaState, ...values: Array) -> String:
+	if state == null:
+		return "State was freed"
+
+	# Concatenate all values
+	var result: String = ""
+	for val in values:
+		result += val
+	return result

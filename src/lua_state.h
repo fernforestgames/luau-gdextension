@@ -289,6 +289,7 @@ namespace gdluau
         // Additional convenience functions
         bool load_string(const String &p_code, const StringName &p_chunk_name, int p_env = 0);
         lua_Status do_string(const String &p_code, const StringName &p_chunk_name, int p_env = 0, int p_nargs = 0, int p_nresults = LUA_MULTRET, int p_errfunc = 0);
+        Callable bind_callable_weakly(const Callable &p_callable);
 
         // C++ only helpers
         lua_State *get_lua_state()

@@ -244,4 +244,36 @@ TEST_SUITE("Bridging - Callable")
         Variant result5 = callable.callv(args5);
         CHECK(static_cast<int>(result5) == 15);
     }
+
+    TEST_CASE_FIXTURE(LuaStateFixture, "bind_callable_weakly")
+    {
+        // Create a Lua function that checks if first arg is a valid LuaState
+        // and doubles the second arg
+        exec_lua_ok(R"(
+            function test_with_state(state, value)
+                if state == nil then
+                    return -1
+                end
+                -- In Lua, we can't directly check if it's a LuaState,
+                -- but if it's passed and not nil, we can return the doubled value
+                return value * 2
+            end
+        )");
+
+        state->get_global("test_with_state");
+        Callable original = state->to_callable(-1);
+        state->pop(1);
+
+        Callable weakly_bound = state->bind_callable_weakly(original);
+
+        CHECK(weakly_bound.is_valid());
+
+        // Call the weakly bound callable
+        // The LuaState should be passed as the first argument automatically
+        Array args;
+        args.push_back(21); // This becomes the second argument after the auto-inserted LuaState
+        Variant result = weakly_bound.callv(args);
+
+        CHECK(static_cast<int>(result) == 42);
+    }
 }

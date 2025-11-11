@@ -10,6 +10,7 @@
 #include "lua_godotlib.h"
 #include "luau.h"
 #include "string_cache.h"
+#include "weakly_bound_callable.h"
 
 #include <godot_cpp/core/class_db.hpp>
 #include <godot_cpp/core/error_macros.hpp>
@@ -359,6 +360,7 @@ void LuaState::_bind_methods()
     // Additional convenience functions
     ClassDB::bind_method(D_METHOD("load_string", "code", "chunk_name", "env"), &LuaState::load_string, DEFVAL(0));
     ClassDB::bind_method(D_METHOD("do_string", "code", "chunk_name", "env", "nargs", "nresults", "errfunc"), &LuaState::do_string, DEFVAL(0), DEFVAL(0), DEFVAL(LUA_MULTRET), DEFVAL(0));
+    ClassDB::bind_method(D_METHOD("bind_callable_weakly", "callable"), &LuaState::bind_callable_weakly);
 
     BIND_BITFIELD_FLAG(LIB_BASE);
     BIND_BITFIELD_FLAG(LIB_COROUTINE);
@@ -2000,6 +2002,15 @@ lua_Status LuaState::do_string(const String &p_code, const StringName &p_chunk_n
         ERR_PRINT(vformat("Failed to load Lua chunk \"%s\": %s", p_chunk_name, err_msg));
         return LUA_ERRSYNTAX;
     }
+}
+
+Callable LuaState::bind_callable_weakly(const Callable &p_callable)
+{
+    ERR_FAIL_COND_V_MSG(!is_valid(), Callable(), "Lua state is invalid. Cannot bind Callable weakly.");
+    ERR_FAIL_COND_V_MSG(!p_callable.is_valid(), Callable(), "LuaState.bind_callable_weakly(): Callable is invalid.");
+
+    WeaklyBoundCallable *weakly_bound = memnew(WeaklyBoundCallable(p_callable, ObjectID(get_instance_id())));
+    return Callable(weakly_bound);
 }
 
 Ref<LuaState> LuaState::find_or_create_lua_state(lua_State *p_L)

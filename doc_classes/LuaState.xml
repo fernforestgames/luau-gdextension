@@ -2128,6 +2128,29 @@
 				[/codeblock]
 			</description>
 		</method>
+		<method name="bind_callable_weakly">
+			<return type="Callable" />
+			<param index="0" name="callable" type="Callable" />
+			<description>
+				Binds this [LuaState] instance as the [i]first[/i] argument of [param callable], similar to [method Callable.bind] (with reversed binding order), but using a weak reference to the [LuaState]. This allows the [LuaState] to be freed even if the returned [Callable] still exists, preventing reference cycles.
+				If the [LuaState] has been freed when the returned [Callable] is invoked, the first argument will be [code]null[/code].
+				[codeblock]
+				func _push_metatable() -&gt; void:
+					if not state.new_metatable_named("MyObject"):
+						return
+
+					state.push_callable(state.bind_callable_weakly(_lua_namecall))
+					state.set_field(-2, "__namecall")
+
+				func _lua_namecall(state: LuaState, obj: MyObject, ...args: Array) -&gt; Variant:
+					if not state:
+						return null
+
+					var method_name := state.get_namecall()
+					return obj.callv(method_name, args)
+				[/codeblock]
+			</description>
+		</method>
 		</methods>
 	<signals>
 		<signal name="debugbreak">
