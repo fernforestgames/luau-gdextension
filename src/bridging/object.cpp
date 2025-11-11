@@ -41,23 +41,10 @@ static void object_dtor(lua_State *L, void *ud)
     }
 }
 
-static Object *to_userdata(lua_State *L, int p_index, int p_tag)
-{
-    void *ud = p_tag == -1 ? lua_touserdata(L, p_index) : lua_touserdatatagged(L, p_index, p_tag);
-    if (ud)
-    {
-        return get_userdata_instance(ud);
-    }
-    else
-    {
-        return nullptr;
-    }
-}
-
 // Object.__tostring metamethod
 static int object_tostring(lua_State *L)
 {
-    Object *obj = to_userdata(L, 1, -1);
+    Object *obj = get_userdata_instance(lua_touserdata(L, 1));
     lua_pop(L, 1);
 
     CharString utf8 = obj->to_string().utf8();
@@ -126,9 +113,20 @@ Object *gdluau::to_full_object(lua_State *L, int p_index, int p_tag)
 {
     ERR_FAIL_COND_V_MSG(!is_valid_index(L, p_index), nullptr, vformat("to_object(%d): Invalid stack index. Stack has %d elements.", p_index, lua_gettop(L)));
 
-    if (lua_type(L, p_index) == LUA_TUSERDATA && metatable_matches(L, p_index, OBJECT_METATABLE_NAME))
+    if (p_tag != -1)
     {
-        return to_userdata(L, p_index, p_tag);
+        // Skip metatable check for tagged userdata
+        void *ud = lua_touserdatatagged(L, p_index, p_tag);
+        if (!ud)
+        {
+            return nullptr;
+        }
+
+        return get_userdata_instance(ud);
+    }
+    else if (lua_type(L, p_index) == LUA_TUSERDATA && metatable_matches(L, p_index, OBJECT_METATABLE_NAME))
+    {
+        return get_userdata_instance(lua_touserdata(L, p_index));
     }
     else
     {
