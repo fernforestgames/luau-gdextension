@@ -74,8 +74,12 @@ static int callable_call(lua_State *L)
     lua_pop(L, arg_count + 1);
 
     Variant result = callable.callv(args);
+
+    // The Callable can return additional values by pushing them on the stack
+    int additional_returns = lua_gettop(L);
+
     push_variant(L, result);
-    return 1;
+    return 1 + additional_returns;
 }
 
 static void push_callable_metatable(lua_State *L)

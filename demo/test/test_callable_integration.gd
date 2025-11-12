@@ -663,3 +663,97 @@ func _concat_with_state(state: LuaState, ...values: Array) -> String:
 	for val in values:
 		result += val
 	return result
+
+# ============================================================================
+# Multiple Return Values from Godot Callable Tests
+# ============================================================================
+
+func test_godot_callable_void_with_stack_pushes() -> void:
+	# Test a void-returning Callable that pushes multiple values to the stack
+	# Expected behavior: Lua should receive all 3 pushed values
+	# Current behavior: This test will likely fail because callable_call only returns 1 value
+	var weakly_bound: Callable = L.bind_callable_weakly(self._void_callable_with_stack_pushes)
+
+	L.push_callable(weakly_bound)
+	L.set_global("multi_push")
+
+	var code: String = """
+	-- Call the function and try to capture multiple return values
+	local a, b, c = multi_push()
+	return a, b, c
+	"""
+	var bytecode: PackedByteArray = Luau.compile(code, null)
+	L.load_bytecode(bytecode, "test")
+	L.resume()
+
+	# We expect 3 return values on the stack
+	assert_eq(L.get_top(), 3, "Should have 3 values on stack from multiple returns")
+
+	# Verify the values
+	var val_a: int = L.to_integer(-3)
+	var val_b: String = L.to_string_inplace(-2)
+	var val_c: float = L.to_number(-1)
+
+	assert_eq(val_a, 42, "First pushed value should be 42")
+	assert_eq(val_b, "hello", "Second pushed value should be 'hello'")
+	assert_almost_eq(val_c, 3.14, 0.001, "Third pushed value should be 3.14")
+
+	L.pop(3)
+	assert_stack_balanced()
+
+func test_godot_callable_value_with_stack_pushes() -> void:
+	# Test a Callable that returns a value AND pushes additional values to the stack
+	var weakly_bound: Callable = L.bind_callable_weakly(self._value_callable_with_stack_pushes)
+
+	L.push_callable(weakly_bound)
+	L.set_global("multi_return")
+
+	var code: String = """
+	-- Call the function and try to capture multiple return values
+	local a, b, c, status = multi_return()
+	return a, b, c, status
+	"""
+	var bytecode: PackedByteArray = Luau.compile(code, null)
+	L.load_bytecode(bytecode, "test")
+	L.resume()
+
+	# We expect 4 return values on the stack (return value + 3 pushed values)
+	assert_eq(L.get_top(), 4, "Should have 4 values on stack (return value + 3 pushed values)")
+
+	# Verify the values
+	var val_a: int = L.to_integer(-4)
+	var val_b: String = L.to_string_inplace(-3)
+	var val_c: bool = L.to_boolean(-2)
+	var status: String = L.to_string_inplace(-1)
+
+	assert_eq(val_a, 100, "First pushed value should be 100")
+	assert_eq(val_b, "world", "Second pushed value should be 'world'")
+	assert_eq(val_c, true, "Third pushed value should be true")
+	assert_eq(status, "success", "Return value should be 'success'")
+
+	L.pop(4)
+	assert_stack_balanced()
+
+# Helper function that returns void but pushes multiple values to the stack
+func _void_callable_with_stack_pushes(state: LuaState) -> void:
+	if state == null or not state.is_valid():
+		return
+
+	# Push 3 values onto the stack
+	state.push_integer(42)
+	state.push_string("hello")
+	state.push_number(3.14)
+	# Note: We return void (null), expecting the 3 pushed values to be returned to Lua
+
+# Helper function that returns a value AND pushes additional values to the stack
+func _value_callable_with_stack_pushes(state: LuaState) -> String:
+	if state == null or not state.is_valid():
+		return "error"
+
+	# Push 3 additional values onto the stack
+	state.push_integer(100)
+	state.push_string("world")
+	state.push_boolean(true)
+
+	# Return a value (this should be the first return value)
+	return "success"

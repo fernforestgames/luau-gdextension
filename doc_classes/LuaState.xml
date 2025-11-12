@@ -2054,6 +2054,7 @@
 			<param index="0" name="value" type="Callable" />
 			<description>
 				Pushes a Godot [Callable] onto the stack as full userdata with a [code]__call[/code] metamethod, allowing it to be called from Lua.
+				If the [Callable] pushes any values onto the Lua stack, those will be treated as additional values to return to Lua [i]before[/i] the return value of the [Callable].
 				[codeblock]
 				var my_func := func(x): return x * 2
 				state.push_callable(my_func)
