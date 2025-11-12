@@ -795,7 +795,8 @@
 				state.push_userdata(some_object)
 				[/codeblock]
 
-				If untagged, luau-gdextension attaches a default metatable (see [method push_default_object_metatable]) to the userdata that implements basic metamethods like [code]__tostring[/code], [code]__eq[/code], etc., but does not expose the rest of the [Object]'s methods or properties to Lua. To attach a custom metatable, make sure the metatable points at the default metatable as its [code]__index[/code], then use [method set_metatable]:
+				If the [Object] implements a [code]push_to_lua[/code] method, that method is called with the [LuaState] and [param tag] as arguments. This can be used to push an arbitrary representation of the object (e.g., a table) onto the stack, instead of the default userdata behavior (below). Implementations of [code]push_to_lua[/code] may manipulate the stack as needed, but must leave exactly one value on the stack, representing the object pushed.
+				Otherwise, if untagged, luau-gdextension attaches a default metatable (see [method push_default_object_metatable]) to the userdata that implements basic metamethods like [code]__tostring[/code], [code]__eq[/code], etc., but does not expose the rest of the [Object]'s methods or properties to Lua. To attach a custom metatable, make sure the metatable points at the default metatable as its [code]__index[/code], then use [method set_metatable]:
 				[codeblock]
 				state.push_userdata(some_object)
 

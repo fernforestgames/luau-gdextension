@@ -11,6 +11,7 @@ namespace gdluau
         StringName interrupt;
         StringName debugbreak;
         StringName debugstep;
+        StringName push_to_lua;
     };
 
     extern StaticStrings *static_strings;

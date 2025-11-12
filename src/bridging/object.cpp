@@ -1,5 +1,7 @@
 #include "bridging/object.h"
 #include "helpers.h"
+#include "lua_state.h"
+#include "static_strings.h"
 
 #include <godot_cpp/classes/ref_counted.hpp>
 #include <godot_cpp/core/error_macros.hpp>
@@ -264,6 +266,13 @@ static void push_weak_object_custom(lua_State *L, Object *p_obj, int p_tag)
 
 void gdluau::push_full_object(lua_State *L, Object *p_obj, int p_tag)
 {
+    if (p_obj->has_method(static_strings->push_to_lua))
+    {
+        // Object has custom push_to_lua method; use that instead
+        p_obj->call(static_strings->push_to_lua, LuaState::find_or_create_lua_state(L), p_tag);
+        return;
+    }
+
     ERR_FAIL_COND_MSG(!lua_checkstack(L, 2), "push_full_object(): Stack overflow. Cannot grow stack."); // Object + metatable
 
     RefCounted *rc = Object::cast_to<RefCounted>(p_obj);
