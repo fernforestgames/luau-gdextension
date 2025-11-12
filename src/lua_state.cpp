@@ -961,7 +961,7 @@ void LuaState::push_full_userdata(Object *p_obj, int p_tag)
 void LuaState::push_object(Object *p_obj, int p_tag)
 {
     ERR_FAIL_COND_MSG(!is_valid(), "Lua state is invalid. Cannot push userdata.");
-    push_full_object(L, p_obj, p_tag);
+    gdluau::push_object(L, p_obj, p_tag);
 }
 
 // Get functions (Lua -> stack)
