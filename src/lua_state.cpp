@@ -186,7 +186,7 @@ void LuaState::_bind_methods()
     ClassDB::bind_method(D_METHOD("to_full_userdata", "index", "tag"), &LuaState::to_full_userdata, DEFVAL(-1));
     ClassDB::bind_method(D_METHOD("to_object", "index", "tag"), &LuaState::to_object, DEFVAL(-1));
     ClassDB::bind_method(D_METHOD("light_userdata_tag", "index"), &LuaState::light_userdata_tag);
-    ClassDB::bind_method(D_METHOD("userdata_tag", "index"), &LuaState::userdata_tag);
+    ClassDB::bind_method(D_METHOD("full_userdata_tag", "index"), &LuaState::full_userdata_tag);
     ClassDB::bind_method(D_METHOD("to_thread", "index"), &LuaState::to_thread);
     ClassDB::bind_method(D_METHOD("to_buffer", "index"), &LuaState::to_buffer);
     ClassDB::bind_method(D_METHOD("to_pointer", "index"), &LuaState::to_pointer);
@@ -258,9 +258,9 @@ void LuaState::_bind_methods()
 
     ClassDB::bind_method(D_METHOD("concat", "count"), &LuaState::concat);
 
-    ClassDB::bind_method(D_METHOD("set_userdata_tag", "index", "tag"), &LuaState::set_userdata_tag);
-    ClassDB::bind_method(D_METHOD("set_userdata_metatable", "tag"), &LuaState::set_userdata_metatable);
-    ClassDB::bind_method(D_METHOD("get_userdata_metatable", "tag"), &LuaState::get_userdata_metatable);
+    ClassDB::bind_method(D_METHOD("set_full_userdata_tag", "index", "tag"), &LuaState::set_full_userdata_tag);
+    ClassDB::bind_method(D_METHOD("set_full_userdata_metatable", "tag"), &LuaState::set_full_userdata_metatable);
+    ClassDB::bind_method(D_METHOD("get_full_userdata_metatable", "tag"), &LuaState::get_full_userdata_metatable);
 
     ClassDB::bind_method(D_METHOD("set_light_userdata_name", "tag", "name"), &LuaState::set_light_userdata_name);
     ClassDB::bind_method(D_METHOD("get_light_userdata_name", "tag"), &LuaState::get_light_userdata_name);
@@ -309,7 +309,7 @@ void LuaState::_bind_methods()
     ClassDB::bind_method(D_METHOD("enforce_any", "index"), &LuaState::enforce_any);
     ClassDB::bind_method(D_METHOD("new_metatable_named", "tname"), &LuaState::new_metatable_named);
     ClassDB::bind_method(D_METHOD("get_metatable_named", "tname"), &LuaState::get_metatable_named);
-    ClassDB::bind_method(D_METHOD("enforce_userdata", "index", "tname"), &LuaState::enforce_userdata);
+    ClassDB::bind_method(D_METHOD("enforce_full_userdata", "index", "tname"), &LuaState::enforce_full_userdata);
     ClassDB::bind_method(D_METHOD("enforce_buffer", "index"), &LuaState::enforce_buffer);
     ClassDB::bind_method(D_METHOD("print_where", "level"), &LuaState::print_where);
     ClassDB::bind_method(D_METHOD("enforce_option", "index", "options", "default"), &LuaState::enforce_option, DEFVAL(String()));
@@ -827,10 +827,10 @@ int LuaState::light_userdata_tag(int p_index)
     return lua_lightuserdatatag(L, p_index);
 }
 
-int LuaState::userdata_tag(int p_index)
+int LuaState::full_userdata_tag(int p_index)
 {
-    ERR_FAIL_COND_V_MSG(!is_valid(), -1, "Lua state is invalid. Cannot get userdata tag.");
-    ERR_FAIL_COND_V_MSG(!is_valid_index(p_index), -1, vformat("LuaState.userdata_tag(%d): Invalid stack index. Stack has %d elements.", p_index, lua_gettop(L)));
+    ERR_FAIL_COND_V_MSG(!is_valid(), -1, "Lua state is invalid. Cannot get full userdata tag.");
+    ERR_FAIL_COND_V_MSG(!is_valid_index(p_index), -1, vformat("LuaState.full_userdata_tag(%d): Invalid stack index. Stack has %d elements.", p_index, lua_gettop(L)));
 
     return lua_userdatatag(L, p_index);
 }
@@ -1320,28 +1320,28 @@ void LuaState::concat(int p_count)
     lua_concat(L, p_count);
 }
 
-void LuaState::set_userdata_tag(int p_index, int p_tag)
+void LuaState::set_full_userdata_tag(int p_index, int p_tag)
 {
-    ERR_FAIL_COND_MSG(!is_valid(), "Lua state is invalid. Cannot set userdata tag.");
-    ERR_FAIL_COND_MSG(!is_valid_index(p_index), vformat("LuaState.set_userdata_tag(%d, %d): Invalid stack index. Stack has %d elements.", p_index, p_tag, lua_gettop(L)));
+    ERR_FAIL_COND_MSG(!is_valid(), "Lua state is invalid. Cannot set full userdata tag.");
+    ERR_FAIL_COND_MSG(!is_valid_index(p_index), vformat("LuaState.set_full_userdata_tag(%d, %d): Invalid stack index. Stack has %d elements.", p_index, p_tag, lua_gettop(L)));
 
     lua_setuserdatatag(L, p_index, p_tag);
 }
 
-void LuaState::set_userdata_metatable(int p_tag)
+void LuaState::set_full_userdata_metatable(int p_tag)
 {
-    ERR_FAIL_COND_MSG(!is_valid(), "Lua state is invalid. Cannot set userdata metatable.");
+    ERR_FAIL_COND_MSG(!is_valid(), "Lua state is invalid. Cannot set full userdata metatable.");
 
     int top = lua_gettop(L);
-    ERR_FAIL_COND_MSG(top < 1, vformat("LuaState.set_userdata_metatable(%d): Expected metatable at top of stack. Stack has %d elements.", p_tag, top));
+    ERR_FAIL_COND_MSG(top < 1, vformat("LuaState.set_full_userdata_metatable(%d): Expected metatable at top of stack. Stack has %d elements.", p_tag, top));
 
     lua_setuserdatametatable(L, p_tag);
 }
 
-void LuaState::get_userdata_metatable(int p_tag)
+void LuaState::get_full_userdata_metatable(int p_tag)
 {
-    ERR_FAIL_COND_MSG(!is_valid(), "Lua state is invalid. Cannot get userdata metatable.");
-    ERR_FAIL_COND_MSG(!lua_checkstack(L, 1), vformat("LuaState.get_userdata_metatable(%d): Stack overflow. Cannot grow stack.", p_tag));
+    ERR_FAIL_COND_MSG(!is_valid(), "Lua state is invalid. Cannot get full userdata metatable.");
+    ERR_FAIL_COND_MSG(!lua_checkstack(L, 1), vformat("LuaState.get_full_userdata_metatable(%d): Stack overflow. Cannot grow stack.", p_tag));
 
     lua_getuserdatametatable(L, p_tag);
 }
@@ -1770,7 +1770,7 @@ lua_Type LuaState::get_metatable_named(const StringName &p_name)
     return static_cast<lua_Type>(luaL_getmetatable(L, char_string(p_name).get_data()));
 }
 
-Object *LuaState::enforce_userdata(int p_index, const StringName &p_name)
+Object *LuaState::enforce_full_userdata(int p_index, const StringName &p_name)
 {
     ERR_FAIL_COND_V_MSG(!is_valid(), nullptr, "Lua state is invalid. Cannot enforce userdata.");
     ERR_FAIL_COND_V_MSG(!is_valid_index(p_index), nullptr, vformat("LuaState.enforce_userdata(%d, \"%s\"): Invalid stack index. Stack has %d elements.", p_index, p_name, lua_gettop(L)));

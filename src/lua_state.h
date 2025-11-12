@@ -138,7 +138,7 @@ namespace gdluau
         Object *to_full_userdata(int p_index, int p_tag = -1);
         Object *to_object(int p_index, int p_tag = -1);
         int light_userdata_tag(int p_index);
-        int userdata_tag(int p_index);
+        int full_userdata_tag(int p_index);
         Ref<LuaState> to_thread(int p_index);
         PackedByteArray to_buffer(int p_index);
         uint64_t to_pointer(int p_index);
@@ -210,9 +210,9 @@ namespace gdluau
 
         void concat(int p_count);
 
-        void set_userdata_tag(int p_index, int p_tag);
-        void set_userdata_metatable(int p_tag);
-        void get_userdata_metatable(int p_tag);
+        void set_full_userdata_tag(int p_index, int p_tag);
+        void set_full_userdata_metatable(int p_tag);
+        void get_full_userdata_metatable(int p_tag);
 
         void set_light_userdata_name(int p_tag, const StringName &p_name);
         StringName get_light_userdata_name(int p_tag);
@@ -263,7 +263,7 @@ namespace gdluau
         void enforce_any(int p_index);
         bool new_metatable_named(const StringName &p_tname);
         lua_Type get_metatable_named(const StringName &p_tname);
-        Object *enforce_userdata(int p_index, const StringName &p_tname);
+        Object *enforce_full_userdata(int p_index, const StringName &p_tname);
         PackedByteArray enforce_buffer(int p_index);
         void print_where(int p_level);
         int enforce_option(int p_index, const PackedStringArray &p_options, const String &p_default = String());

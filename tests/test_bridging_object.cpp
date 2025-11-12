@@ -62,7 +62,7 @@ TEST_SUITE("Bridging - Object")
 
         state->push_object(obj, tag);
 
-        int result_tag = state->userdata_tag(-1);
+        int result_tag = state->full_userdata_tag(-1);
         CHECK(result_tag == tag);
 
         Object *result = state->to_full_userdata(-1, tag);
@@ -107,11 +107,11 @@ TEST_SUITE("Bridging - Object")
 
         // Push with tag1
         state->push_object(obj1, tag1);
-        CHECK(state->userdata_tag(-1) == tag1);
+        CHECK(state->full_userdata_tag(-1) == tag1);
 
         // Change tag
-        state->set_userdata_tag(-1, tag2);
-        CHECK(state->userdata_tag(-1) == tag2);
+        state->set_full_userdata_tag(-1, tag2);
+        CHECK(state->full_userdata_tag(-1) == tag2);
 
         state->pop(1);
     }
