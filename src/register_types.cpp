@@ -5,6 +5,7 @@
 #include "lua_state.h"
 #include "luau.h"
 #include "luau_script.h"
+#include "static_strings.h"
 #include "string_cache.h"
 
 #include <gdextension_interface.h>
@@ -34,8 +35,8 @@ void initialize_gdluau(ModuleInitializationLevel p_level)
     }
 
     // Initialize statics (must be done after Godot is initialized, not during DLL static init)
+    initialize_static_strings();
     initialize_string_cache();
-    LuaState::initialize_static_strings();
 
     // We generally try to avoid using the Luau C++ API (in favor of the C API),
     // for maximum compatibility with base Lua, but this appears to be the only
@@ -74,8 +75,8 @@ void uninitialize_gdluau(ModuleInitializationLevel p_level)
     resource_saver_luau.unref();
 
     // Cleanup statics
-    LuaState::uninitialize_static_strings();
     uninitialize_string_cache();
+    uninitialize_static_strings();
 }
 
 extern "C"

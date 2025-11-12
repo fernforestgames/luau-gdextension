@@ -9,6 +9,7 @@
 #include "lua_debug.h"
 #include "lua_godotlib.h"
 #include "luau.h"
+#include "static_strings.h"
 #include "string_cache.h"
 #include "weakly_bound_callable.h"
 
@@ -20,32 +21,6 @@
 
 using namespace gdluau;
 using namespace godot;
-
-struct StaticStrings
-{
-    StringName interrupt;
-    StringName debugbreak;
-    StringName debugstep;
-};
-
-static StaticStrings *static_strings = nullptr;
-
-void LuaState::initialize_static_strings()
-{
-    static_strings = memnew(StaticStrings);
-    static_strings->interrupt = StringName("interrupt");
-    static_strings->debugbreak = StringName("debugbreak");
-    static_strings->debugstep = StringName("debugstep");
-}
-
-void LuaState::uninitialize_static_strings()
-{
-    if (static_strings)
-    {
-        memdelete(static_strings);
-        static_strings = nullptr;
-    }
-}
 
 static void callback_interrupt(lua_State *L, int gc)
 {
