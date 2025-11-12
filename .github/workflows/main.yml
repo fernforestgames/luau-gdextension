@@ -61,6 +61,11 @@ jobs:
             build-options: -j 2
 
     steps:
+      - name: Capture workflow telemetry
+        uses: catchpoint/workflow-telemetry-action@v2
+        with:
+          comment_on_pr: false
+
       - name: Checkout repository
         uses: actions/checkout@v5
 
