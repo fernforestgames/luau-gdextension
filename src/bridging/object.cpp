@@ -277,13 +277,6 @@ static void push_weak_object_custom(lua_State *L, Object *p_obj, int p_tag)
 
 void gdluau::push_full_object(lua_State *L, Object *p_obj, int p_tag)
 {
-    if (p_obj->has_method(static_strings->push_to_lua))
-    {
-        // Object has custom push_to_lua method; use that instead
-        p_obj->call(static_strings->push_to_lua, LuaState::find_or_create_lua_state(L), p_tag);
-        return;
-    }
-
     ERR_FAIL_COND_MSG(!lua_checkstack(L, 2), "push_full_object(): Stack overflow. Cannot grow stack."); // Object + metatable
 
     RefCounted *rc = Object::cast_to<RefCounted>(p_obj);
@@ -316,5 +309,19 @@ void gdluau::push_light_object(lua_State *L, Object *p_obj, int p_tag)
     else
     {
         lua_pushlightuserdatatagged(L, static_cast<void *>(p_obj), p_tag);
+    }
+}
+
+void gdluau::push_object(lua_State *L, Object *p_obj, int p_tag)
+{
+    if (p_obj->has_method(static_strings->push_to_lua))
+    {
+        // Object has custom push_to_lua method; use that instead
+        p_obj->call(static_strings->push_to_lua, LuaState::find_or_create_lua_state(L), p_tag);
+        return;
+    }
+    else
+    {
+        push_full_object(L, p_obj, p_tag);
     }
 }

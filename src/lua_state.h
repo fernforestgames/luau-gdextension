@@ -153,6 +153,7 @@ namespace gdluau
         void push_boolean(bool p_b);
         bool push_thread();
         void push_light_userdata(Object *p_obj, int p_tag = -1);
+        void push_full_userdata(Object *p_obj, int p_tag = -1);
         void push_object(Object *p_obj, int p_tag = -1);
 
         // Get functions (Lua -> stack)

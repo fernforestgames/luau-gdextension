@@ -201,6 +201,7 @@ void LuaState::_bind_methods()
     ClassDB::bind_method(D_METHOD("push_boolean", "b"), &LuaState::push_boolean);
     ClassDB::bind_method(D_METHOD("push_thread"), &LuaState::push_thread);
     ClassDB::bind_method(D_METHOD("push_light_userdata", "obj", "tag"), &LuaState::push_light_userdata, DEFVAL(-1));
+    ClassDB::bind_method(D_METHOD("push_full_userdata", "obj", "tag"), &LuaState::push_full_userdata, DEFVAL(-1));
     ClassDB::bind_method(D_METHOD("push_object", "obj", "tag"), &LuaState::push_object, DEFVAL(-1));
 
     // Get functions (Lua -> stack)
@@ -949,6 +950,12 @@ void LuaState::push_light_userdata(Object *p_obj, int p_tag)
 {
     ERR_FAIL_COND_MSG(!is_valid(), "Lua state is invalid. Cannot push light userdata.");
     push_light_object(L, p_obj, p_tag);
+}
+
+void LuaState::push_full_userdata(Object *p_obj, int p_tag)
+{
+    ERR_FAIL_COND_MSG(!is_valid(), "Lua state is invalid. Cannot push full userdata.");
+    push_full_object(L, p_obj, p_tag);
 }
 
 void LuaState::push_object(Object *p_obj, int p_tag)

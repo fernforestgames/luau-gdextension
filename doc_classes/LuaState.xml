@@ -604,7 +604,7 @@
 			<param index="0" name="index" type="int" />
 			<param index="1" name="tag" type="int" default="-1" />
 			<description>
-				Converts the light userdata at [param index] to an [Object]. If [param tag] is provided, only returns the object if the tag matches. Returns null if the value is not light userdata or the tag doesn't match.
+				Converts the light userdata at [param index] to an [Object]. If [param tag] is provided, only returns the object if the tag matches. Returns [code]null[/code] if the value is not light userdata or the tag doesn't match.
 				[b]Warning:[/b] Because light userdata is not memory managed by Luau, you must ensure that the pushed Godot object remains valid as long as it is used as light userdata.
 				[codeblock]
 				state.push_light_userdata(some_object)
@@ -618,11 +618,11 @@
 			<param index="1" name="tag" type="int" default="-1" />
 			<description>
 				Converts the full userdata at [param index] to an [Object]. If [param tag] is provided, only returns the object if the tag matches.
-				If untagged, the userdata must have the default object metatable (see [method push_default_object_metatable]), or a metatable inheriting from it, to be successfully converted to an [Object]. See [method push_object] for more information.
+				If untagged, the userdata must have the default object metatable (see [method push_default_object_metatable]), or a metatable inheriting from it, to be successfully converted to an [Object]. See [method push_full_userdata] for more information.
 				Returns null if the value is not full userdata, could not be read as an [Object], or if the tag doesn't match.
-				[b]Note:[/b] [Object]s with a custom [code]push_to_lua[/code] method (see [method push_object]) may not push full userdata, in which case this method will return null.
+				[b]Note:[/b] [Object]s with a custom [code]push_to_lua[/code] method (see [method push_object]) may not be represented as full userdata. Calling this method on such objects will return [code]null[/code].
 				[codeblock]
-				state.push_object(some_object)
+				state.push_full_userdata(some_object)
 				var obj := state.to_full_userdata(-1)
 				[/codeblock]
 			</description>
@@ -634,7 +634,7 @@
 			<description>
 				Converts the value at [param index] to an [Object].
 				If the value has a metatable with a [code]__togodot[/code] metamethod, that method is called with arguments [LuaState], [param index], and [param tag], and its return value is used as the result. [b]Important:[/b] The metamethod must be implemented in Godot (not Luau), and set using [method push_callable].
-				Otherwise, the value is converted with either [method to_light_userdata] or [method to_full_userdata], based on the value's type. If [param tag] is provided, only returns the object if the tag matches. Returns null if the value could not be read as an [Object] or if the tag doesn't match.
+				Otherwise, the value is converted with either [method to_light_userdata] or [method to_full_userdata], based on the value's type. If [param tag] is provided, only returns the object if the tag matches. Returns [code]null[/code] if the value could not be read as an [Object] or if the tag doesn't match.
 				[codeblock]
 				state.push_object(some_object)
 				var obj := state.to_object(-1)
@@ -788,20 +788,19 @@
 				[/codeblock]
 			</description>
 		</method>
-		<method name="push_object">
+		<method name="push_full_userdata">
 			<return type="void" />
 			<param index="0" name="obj" type="Object" />
 			<param index="1" name="tag" type="int" default="-1" />
 			<description>
-				Pushes an [Object] onto the stack, either as a full userdata or with a custom representation. The optional [param tag], an integer between 0 and 128, can be associated with different types of userdata to easily identify them later.
+				Pushes an [Object] as full userdata onto the stack. The optional [param tag], an integer between 0 and 128, can be associated with different types of userdata to easily identify them later.
 				[codeblock]
-				state.push_object(some_object)
+				state.push_full_userdata(some_object)
 				[/codeblock]
 
-				If the [Object] implements a [code]push_to_lua[/code] method, that method is called with the [LuaState] and [param tag] as arguments. This can be used to push an arbitrary representation of the object (e.g., a table) onto the stack, instead of the default userdata behavior (below). Implementations of [code]push_to_lua[/code] may manipulate the stack as needed, but must leave exactly one value on the stack, representing the object pushed.
-				Otherwise, the [Object] is pushed as full userdata. If untagged, luau-gdextension attaches a default metatable (see [method push_default_object_metatable]) to the userdata that implements basic metamethods like [code]__tostring[/code], [code]__eq[/code], etc., but does not expose the rest of the [Object]'s methods or properties to Lua. To attach a custom metatable, make sure the metatable points at the default metatable as its [code]__index[/code], then use [method set_metatable]:
+				If untagged, luau-gdextension attaches a default metatable (see [method push_default_object_metatable]) to the userdata that implements basic metamethods like [code]__tostring[/code], [code]__eq[/code], etc., but does not expose the rest of the [Object]'s methods or properties to Lua. To attach a custom metatable, make sure the metatable points at the default metatable as its [code]__index[/code], then use [method set_metatable]:
 				[codeblock]
-				state.push_object(some_object)
+				state.push_full_userdata(some_object)
 
 				# Create custom metatable
 				if state.new_metatable_named("MyObject"):
@@ -815,6 +814,20 @@
 
 				If a tag is provided, the default metatable is not attached to the userdata. You can use [method set_metatable] to assign a one-off metatable, or [method set_userdata_metatable] to assign a shared metatable for all userdata with that tag. Tagged userdata does not need to inherit from the default metatable. [b]Important:[/b] [method set_userdata_metatable] must be called [i]before[/i] pushing any userdata with that tag.
 				[b]Note:[/b][RefCounted] and its subclasses are automatically memory managed by Luau when pushed as full userdata. [Object] instances that do not subclass [RefCounted] will be stored as weak references.
+			</description>
+		</method>
+		<method name="push_object">
+			<return type="void" />
+			<param index="0" name="obj" type="Object" />
+			<param index="1" name="tag" type="int" default="-1" />
+			<description>
+				Pushes an [Object] onto the stack, either as a full userdata or with a custom representation. The optional [param tag], an integer between 0 and 128, can be associated with different types of userdata to easily identify them later.
+				[codeblock]
+				state.push_object(some_object)
+				[/codeblock]
+
+				If the [Object] implements a [code]push_to_lua[/code] method, that method is called with the [LuaState] and [param tag] as arguments. This can be used to push an arbitrary representation of the object (e.g., a table) onto the stack, instead of the default userdata behavior (see [method push_full_userdata]). Implementations of [code]push_to_lua[/code] may manipulate the stack as needed, but must leave exactly one value on the stack, representing the object pushed.
+				Otherwise, the object is pushed as full userdata using [method push_full_userdata].
 			</description>
 		</method>
 		<method name="get_table">
