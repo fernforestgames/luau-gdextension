@@ -41,7 +41,7 @@ func test_push_default_object_metatable() -> void:
 func test_custom_metatable_with_inheritance() -> void:
 	# Create an object and give it a custom metatable that inherits from default
 	var test_obj = RefCounted.new()
-	L.push_userdata(test_obj)
+	L.push_object(test_obj)
 
 	# Create custom metatable
 	var is_new = L.new_metatable_named("CustomObject")
@@ -64,7 +64,7 @@ func test_custom_metatable_with_inheritance() -> void:
 	L.set_metatable(-2)
 
 	# Should still be able to convert to Object (inherits from Object metatable)
-	var result_obj = L.to_userdata(-1)
+	var result_obj = L.to_full_userdata(-1)
 	assert_eq(result_obj, test_obj, "Object with inherited metatable should be convertible")
 
 	L.pop(1)
@@ -73,7 +73,7 @@ func test_custom_metatable_with_inheritance() -> void:
 func test_multiple_levels_of_inheritance() -> void:
 	# Create an object with multiple levels of metatable inheritance
 	var test_obj = RefCounted.new()
-	L.push_userdata(test_obj)
+	L.push_object(test_obj)
 
 	# Create first level: inherits from default
 	var is_new = L.new_metatable_named("Level1")
@@ -91,7 +91,7 @@ func test_multiple_levels_of_inheritance() -> void:
 	L.pop(1) # Pop Level1 metatable
 
 	# Should still be able to convert (walks inheritance chain)
-	var result_obj = L.to_userdata(-1)
+	var result_obj = L.to_full_userdata(-1)
 	assert_eq(result_obj, test_obj, "Object with multi-level inherited metatable should be convertible")
 
 	L.pop(1)
@@ -106,14 +106,14 @@ func test_tagged_userdata_basic() -> void:
 	var test_obj = RefCounted.new()
 
 	# Push tagged object
-	L.push_userdata(test_obj, tag)
+	L.push_object(test_obj, tag)
 
 	# Should be able to convert with tag
-	var result_obj = L.to_userdata(-1, tag)
+	var result_obj = L.to_full_userdata(-1, tag)
 	assert_eq(result_obj, test_obj, "Tagged object should be convertible with correct tag")
 
 	# Should also work without specifying tag
-	result_obj = L.to_userdata(-1)
+	result_obj = L.to_full_userdata(-1)
 	assert_eq(result_obj, test_obj, "Tagged object should be convertible without specifying tag")
 
 	L.pop(1)
@@ -125,14 +125,14 @@ func test_tagged_userdata_tag_mismatch() -> void:
 	var test_obj = RefCounted.new()
 
 	# Push with tag1
-	L.push_userdata(test_obj, tag1)
+	L.push_object(test_obj, tag1)
 
 	# Try to read with tag2 (should fail)
-	var result_obj = L.to_userdata(-1, tag2)
+	var result_obj = L.to_full_userdata(-1, tag2)
 	assert_eq(result_obj, null, "Tag mismatch should return null")
 
 	# Reading with tag1 should work
-	result_obj = L.to_userdata(-1, tag1)
+	result_obj = L.to_full_userdata(-1, tag1)
 	assert_eq(result_obj, test_obj, "Correct tag should return object")
 
 	L.pop(1)
@@ -151,7 +151,7 @@ func test_object_tostring_metamethod() -> void:
 	L.load_bytecode(bytecode, "test")
 
 	var test_obj = RefCounted.new()
-	L.push_userdata(test_obj)
+	L.push_object(test_obj)
 	L.resume(1)
 
 	var result = L.to_variant(-1)
@@ -171,8 +171,8 @@ func test_object_eq_metamethod() -> void:
 	L.load_bytecode(bytecode, "test")
 
 	var test_obj = RefCounted.new()
-	L.push_userdata(test_obj)
-	L.push_userdata(test_obj)
+	L.push_object(test_obj)
+	L.push_object(test_obj)
 	L.resume(2)
 
 	var result = L.to_variant(-1)
@@ -192,8 +192,8 @@ func test_object_lt_metamethod() -> void:
 
 	var obj1 = RefCounted.new()
 	var obj2 = RefCounted.new()
-	L.push_userdata(obj1)
-	L.push_userdata(obj2)
+	L.push_object(obj1)
+	L.push_object(obj2)
 	L.resume(2)
 
 	var result = L.to_variant(-1)
@@ -213,8 +213,8 @@ func test_object_le_metamethod() -> void:
 
 	var obj1 = RefCounted.new()
 	var obj2 = RefCounted.new()
-	L.push_userdata(obj1)
-	L.push_userdata(obj2)
+	L.push_object(obj1)
+	L.push_object(obj2)
 	L.resume(2)
 
 	var result = L.to_variant(-1)
@@ -247,7 +247,7 @@ func test_push_to_lua_basic() -> void:
 	var obj = CustomPushObject.new(42)
 
 	# Push the object - should call push_to_lua
-	L.push_userdata(obj)
+	L.push_object(obj)
 
 	# Should have pushed a table, not userdata
 	assert_true(L.is_table(-1), "push_to_lua should have pushed a table")
@@ -267,7 +267,7 @@ func test_push_to_lua_with_tag() -> void:
 	var custom_tag: int = 999
 
 	# Push with custom tag
-	L.push_userdata(obj, custom_tag)
+	L.push_object(obj, custom_tag)
 
 	assert_true(L.is_table(-1), "push_to_lua should have pushed a table")
 
@@ -283,16 +283,16 @@ func test_push_to_lua_multiple_times() -> void:
 	var obj = CustomPushObject.new(7)
 
 	# Push the same object multiple times
-	L.push_userdata(obj)
-	L.push_userdata(obj)
-	L.push_userdata(obj)
+	L.push_object(obj)
+	L.push_object(obj)
+	L.push_object(obj)
 
 	# Each push should call push_to_lua and create a new table
 	assert_eq(L.get_top(), 3, "Should have 3 items on stack")
 
 	# Verify all three are tables with the same value
 	for i in range(3):
-		var result = L.to_variant(-(3 - i))
+		var result = L.to_variant(- (3 - i))
 		assert_typeof(result, TYPE_DICTIONARY, "All items should be dictionaries")
 		assert_eq(result["value"], 7, "All tables should have value 7")
 
@@ -314,7 +314,7 @@ func test_push_to_lua_can_push_any_type() -> void:
 	var obj = NumberPushObject.new(3.14159)
 
 	# Push the object
-	L.push_userdata(obj)
+	L.push_object(obj)
 
 	# Should have pushed a number, not userdata
 	assert_true(L.is_number(-1), "push_to_lua can push any Lua type")
@@ -331,8 +331,8 @@ class StackManipulationObject extends RefCounted:
 		lua_state.push_string("second")
 		lua_state.push_string("final")
 		# Pop the first two, leaving only "final"
-		lua_state.remove(-3)  # Remove "first"
-		lua_state.remove(-2)  # Remove "second"
+		lua_state.remove(-3) # Remove "first"
+		lua_state.remove(-2) # Remove "second"
 
 func test_push_to_lua_stack_manipulation() -> void:
 	var obj = StackManipulationObject.new()
@@ -340,7 +340,7 @@ func test_push_to_lua_stack_manipulation() -> void:
 	var initial_top = L.get_top()
 
 	# Push the object
-	L.push_userdata(obj)
+	L.push_object(obj)
 
 	# Should have exactly one item on stack (net +1)
 	assert_eq(L.get_top(), initial_top + 1, "push_to_lua must leave exactly one value on stack")
@@ -358,8 +358,8 @@ func test_push_to_lua_vs_normal_object() -> void:
 	var normal_obj = RefCounted.new()
 
 	# Push both
-	L.push_userdata(custom_obj)
-	L.push_userdata(normal_obj)
+	L.push_object(custom_obj)
+	L.push_object(normal_obj)
 
 	# Custom object should be a table
 	assert_true(L.is_userdata(-1), "Normal object should be userdata")
@@ -410,7 +410,7 @@ func test_push_to_lua_complex_structure() -> void:
 	}
 	var obj = ComplexPushObject.new("TestObject", nested)
 
-	L.push_userdata(obj, 777)
+	L.push_object(obj, 777)
 
 	assert_true(L.is_table(-1), "Should have pushed a table")
 
@@ -440,7 +440,7 @@ func test_push_to_lua_from_lua_code() -> void:
 	L.load_bytecode(bytecode, "test")
 
 	# Push the object as argument - should trigger push_to_lua
-	L.push_userdata(obj)
+	L.push_object(obj)
 	L.resume(1)
 
 	# Should return the value from the table

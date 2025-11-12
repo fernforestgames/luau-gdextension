@@ -135,7 +135,7 @@ namespace gdluau
         StringName get_namecall();
         int obj_len(int p_index);
         Object *to_light_userdata(int p_index, int p_tag = -1);
-        Object *to_userdata(int p_index, int p_tag = -1);
+        Object *to_full_userdata(int p_index, int p_tag = -1);
         Object *to_object(int p_index, int p_tag = -1);
         int light_userdata_tag(int p_index);
         int userdata_tag(int p_index);
@@ -153,7 +153,7 @@ namespace gdluau
         void push_boolean(bool p_b);
         bool push_thread();
         void push_light_userdata(Object *p_obj, int p_tag = -1);
-        void push_userdata(Object *p_obj, int p_tag = -1);
+        void push_object(Object *p_obj, int p_tag = -1);
 
         // Get functions (Lua -> stack)
         lua_Type get_table(int p_index);

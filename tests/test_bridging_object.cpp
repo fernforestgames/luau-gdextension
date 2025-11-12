@@ -41,31 +41,31 @@ TEST_SUITE("Bridging - Object")
         state->pop(1);
     }
 
-    TEST_CASE_FIXTURE(LuaStateFixture, "push_userdata and to_userdata - basic round-trip")
+    TEST_CASE_FIXTURE(LuaStateFixture, "push_object and to_full_userdata - basic round-trip")
     {
         Object *obj = state.ptr();
 
-        state->push_userdata(obj);
+        state->push_object(obj);
         CHECK(state->is_userdata(-1));
         CHECK(state->is_full_userdata(-1));
 
-        Object *result = state->to_userdata(-1);
+        Object *result = state->to_full_userdata(-1);
         CHECK(result == obj);
 
         state->pop(1);
     }
 
-    TEST_CASE_FIXTURE(LuaStateFixture, "push_userdata - with tag")
+    TEST_CASE_FIXTURE(LuaStateFixture, "push_object - with tag")
     {
         Object *obj = state.ptr();
         int tag = 99;
 
-        state->push_userdata(obj, tag);
+        state->push_object(obj, tag);
 
         int result_tag = state->userdata_tag(-1);
         CHECK(result_tag == tag);
 
-        Object *result = state->to_userdata(-1, tag);
+        Object *result = state->to_full_userdata(-1, tag);
         CHECK(result == obj);
 
         state->pop(1);
@@ -82,7 +82,7 @@ TEST_SUITE("Bridging - Object")
         state->pop(1);
 
         // Test with full userdata
-        state->push_userdata(obj);
+        state->push_object(obj);
         result = state->to_object(-1);
         CHECK(result == obj);
         state->pop(1);
@@ -106,7 +106,7 @@ TEST_SUITE("Bridging - Object")
         int tag2 = 20;
 
         // Push with tag1
-        state->push_userdata(obj1, tag1);
+        state->push_object(obj1, tag1);
         CHECK(state->userdata_tag(-1) == tag1);
 
         // Change tag
@@ -138,7 +138,7 @@ TEST_SUITE("Bridging - Object")
         state->pop(1);
 
         // Test with full userdata
-        state->push_userdata(obj);
+        state->push_object(obj);
         uintptr_t ptr2 = state->to_pointer(-1);
         // Note: for full userdata, to_pointer returns address of the userdata block
         CHECK(ptr2 != 0);
@@ -175,7 +175,7 @@ TEST_SUITE("Bridging - Object")
         Object *obj = state.ptr();
 
         // Push object
-        state->push_userdata(obj);
+        state->push_object(obj);
 
         // Create custom metatable that inherits from default
         CHECK(state->new_metatable_named("CustomObject"));
@@ -186,7 +186,7 @@ TEST_SUITE("Bridging - Object")
         state->set_metatable(-2);
 
         // Should still be able to convert to object (inherits from Object metatable)
-        Object *result = state->to_userdata(-1);
+        Object *result = state->to_full_userdata(-1);
         CHECK(result == obj);
 
         state->pop(1);
@@ -197,7 +197,7 @@ TEST_SUITE("Bridging - Object")
         Object *obj = state.ptr();
 
         // Push object
-        state->push_userdata(obj);
+        state->push_object(obj);
 
         // Create first level: inherits from default
         CHECK(state->new_metatable_named("Level1"));
@@ -214,12 +214,11 @@ TEST_SUITE("Bridging - Object")
         state->pop(1); // Pop Level1 metatable
 
         // Should still be able to convert (walks inheritance chain)
-        Object *result = state->to_userdata(-1);
+        Object *result = state->to_full_userdata(-1);
         CHECK(result == obj);
 
         state->pop(1);
     }
-
 
     TEST_CASE_FIXTURE(LuaStateFixture, "tagged userdata without custom metatable still works")
     {
@@ -229,10 +228,10 @@ TEST_SUITE("Bridging - Object")
         // Don't create custom metatable for this tag
 
         // Push tagged object
-        state->push_userdata(obj, tag);
+        state->push_object(obj, tag);
 
         // Should be able to convert
-        Object *result = state->to_userdata(-1, tag);
+        Object *result = state->to_full_userdata(-1, tag);
         CHECK(result == obj);
 
         state->pop(1);
@@ -245,14 +244,14 @@ TEST_SUITE("Bridging - Object")
         int tag2 = 71;
 
         // Push with tag1
-        state->push_userdata(obj, tag1);
+        state->push_object(obj, tag1);
 
         // Try to read with tag2
-        Object *result = state->to_userdata(-1, tag2);
+        Object *result = state->to_full_userdata(-1, tag2);
         CHECK(result == nullptr);
 
         // Reading with tag1 should work
-        result = state->to_userdata(-1, tag1);
+        result = state->to_full_userdata(-1, tag1);
         CHECK(result == obj);
 
         state->pop(1);
@@ -264,10 +263,10 @@ TEST_SUITE("Bridging - Object")
         Ref<RefCounted> ref = memnew(RefCounted);
 
         // Push it normally (should have Object metatable)
-        state->push_userdata(ref.ptr());
+        state->push_object(ref.ptr());
 
         // Should be able to convert
-        Object *result = state->to_userdata(-1);
+        Object *result = state->to_full_userdata(-1);
         CHECK(result == ref.ptr());
 
         state->pop(1);
@@ -284,7 +283,7 @@ TEST_SUITE("Bridging - Object")
             end
         )");
         state->get_global("test_tostring");
-        state->push_userdata(obj);
+        state->push_object(obj);
         state->pcall(1, 1);
         CHECK(state->is_string(-1));
         state->pop(1);
@@ -296,8 +295,8 @@ TEST_SUITE("Bridging - Object")
             end
         )");
         state->get_global("test_eq");
-        state->push_userdata(obj);
-        state->push_userdata(obj);
+        state->push_object(obj);
+        state->push_object(obj);
         state->pcall(2, 1);
         CHECK(state->to_boolean(-1));
         state->pop(1);
@@ -312,8 +311,8 @@ TEST_SUITE("Bridging - Object")
             end
         )");
         state->get_global("test_lt");
-        state->push_userdata(obj1.ptr());
-        state->push_userdata(obj2.ptr());
+        state->push_object(obj1.ptr());
+        state->push_object(obj2.ptr());
         state->pcall(2, 1);
         // Result depends on object IDs, just verify it returns a boolean
         CHECK(state->is_boolean(-1));
@@ -326,8 +325,8 @@ TEST_SUITE("Bridging - Object")
             end
         )");
         state->get_global("test_le");
-        state->push_userdata(obj1.ptr());
-        state->push_userdata(obj2.ptr());
+        state->push_object(obj1.ptr());
+        state->push_object(obj2.ptr());
         state->pcall(2, 1);
         CHECK(state->is_boolean(-1));
         state->pop(1);

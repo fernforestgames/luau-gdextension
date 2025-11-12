@@ -183,7 +183,7 @@ void LuaState::_bind_methods()
     ClassDB::bind_method(D_METHOD("get_namecall"), &LuaState::get_namecall);
     ClassDB::bind_method(D_METHOD("obj_len", "index"), &LuaState::obj_len);
     ClassDB::bind_method(D_METHOD("to_light_userdata", "index", "tag"), &LuaState::to_light_userdata, DEFVAL(-1));
-    ClassDB::bind_method(D_METHOD("to_userdata", "index", "tag"), &LuaState::to_userdata, DEFVAL(-1));
+    ClassDB::bind_method(D_METHOD("to_full_userdata", "index", "tag"), &LuaState::to_full_userdata, DEFVAL(-1));
     ClassDB::bind_method(D_METHOD("to_object", "index", "tag"), &LuaState::to_object, DEFVAL(-1));
     ClassDB::bind_method(D_METHOD("light_userdata_tag", "index"), &LuaState::light_userdata_tag);
     ClassDB::bind_method(D_METHOD("userdata_tag", "index"), &LuaState::userdata_tag);
@@ -201,7 +201,7 @@ void LuaState::_bind_methods()
     ClassDB::bind_method(D_METHOD("push_boolean", "b"), &LuaState::push_boolean);
     ClassDB::bind_method(D_METHOD("push_thread"), &LuaState::push_thread);
     ClassDB::bind_method(D_METHOD("push_light_userdata", "obj", "tag"), &LuaState::push_light_userdata, DEFVAL(-1));
-    ClassDB::bind_method(D_METHOD("push_userdata", "obj", "tag"), &LuaState::push_userdata, DEFVAL(-1));
+    ClassDB::bind_method(D_METHOD("push_object", "obj", "tag"), &LuaState::push_object, DEFVAL(-1));
 
     // Get functions (Lua -> stack)
     ClassDB::bind_method(D_METHOD("get_table", "index"), &LuaState::get_table);
@@ -807,7 +807,7 @@ Object *LuaState::to_light_userdata(int p_index, int p_tag)
     return to_light_object(L, p_index, p_tag);
 }
 
-Object *LuaState::to_userdata(int p_index, int p_tag)
+Object *LuaState::to_full_userdata(int p_index, int p_tag)
 {
     ERR_FAIL_COND_V_MSG(!is_valid(), nullptr, "Lua state is invalid. Cannot convert to userdata.");
     return to_full_object(L, p_index, p_tag);
@@ -951,7 +951,7 @@ void LuaState::push_light_userdata(Object *p_obj, int p_tag)
     push_light_object(L, p_obj, p_tag);
 }
 
-void LuaState::push_userdata(Object *p_obj, int p_tag)
+void LuaState::push_object(Object *p_obj, int p_tag)
 {
     ERR_FAIL_COND_MSG(!is_valid(), "Lua state is invalid. Cannot push userdata.");
     push_full_object(L, p_obj, p_tag);
