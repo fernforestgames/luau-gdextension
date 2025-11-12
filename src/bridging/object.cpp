@@ -1,4 +1,6 @@
 #include "bridging/object.h"
+
+#include "bridging/variant.h"
 #include "helpers.h"
 #include "lua_state.h"
 #include "static_strings.h"
@@ -192,6 +194,15 @@ Object *gdluau::to_light_object(lua_State *L, int p_index, int p_tag)
 Object *gdluau::to_object(lua_State *L, int p_index, int p_tag)
 {
     ERR_FAIL_COND_V_MSG(!is_valid_index(L, p_index), nullptr, vformat("to_object(%d): Invalid stack index. Stack has %d elements.", p_index, lua_gettop(L)));
+
+    Variant togodot_result;
+    if (call_togodot_metamethod(L, p_index, togodot_result, p_tag)) [[unlikely]]
+    {
+        Variant::Type type = togodot_result.get_type();
+        ERR_FAIL_COND_V_MSG(type != Variant::NIL && type != Variant::OBJECT, nullptr, vformat("to_object(%d): __togodot did not return an Object.", p_index));
+
+        return static_cast<Object *>(togodot_result);
+    }
 
     switch (lua_type(L, p_index))
     {

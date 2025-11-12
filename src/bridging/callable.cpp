@@ -142,17 +142,17 @@ Callable gdluau::to_callable(lua_State *L, int p_index)
 {
     ERR_FAIL_COND_V_MSG(!is_valid_index(L, p_index), Callable(), vformat("to_callable(%d): Invalid stack index. Stack has %d elements.", p_index, lua_gettop(L)));
 
-    if (!lua_isfunction(L, p_index)) [[unlikely]]
-    {
-        return Callable();
-    }
-
     // Check if this is a Callable pushed via push_callable()
     // If so, return the original Callable instead of wrapping it again
     if (is_godot_callable(L, p_index))
     {
         Callable *callable = static_cast<Callable *>(lua_touserdata(L, p_index));
         return *callable;
+    }
+
+    if (!lua_isfunction(L, p_index)) [[unlikely]]
+    {
+        return Callable();
     }
 
     // Protect the function from GC

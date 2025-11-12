@@ -17,6 +17,7 @@ using namespace gdluau;
 using namespace godot;
 
 static const char *const VARIANT_METATABLE_NAME = "GDVariant";
+static const char *const METAMETHOD_TOGODOT = "__togodot";
 
 static void variant_dtor(void *ud)
 {
@@ -263,6 +264,12 @@ Variant gdluau::to_variant(lua_State *L, int p_index)
 {
     ERR_FAIL_COND_V_MSG(!is_valid_index(L, p_index), Variant(), vformat("to_variant(%d): Invalid stack index. Stack has %d elements.", p_index, lua_gettop(L)));
 
+    Variant togodot_result;
+    if (call_togodot_metamethod(L, p_index, togodot_result)) [[unlikely]]
+    {
+        return togodot_result;
+    }
+
     lua_Type type = static_cast<lua_Type>(lua_type(L, p_index));
     switch (type)
     {
@@ -463,4 +470,35 @@ void gdluau::push_variant(lua_State *L, const Variant &p_variant)
         lua_setmetatable(L, -2);
     }
     }
+}
+
+bool gdluau::call_togodot_metamethod(lua_State *L, int p_index, Variant &r_result, int p_tag)
+{
+    ERR_FAIL_COND_V_MSG(!is_valid_index(L, p_index), false, vformat("call_togodot_metamethod(%d): Invalid stack index. Stack has %d elements.", p_index, lua_gettop(L)));
+    ERR_FAIL_COND_V_MSG(!lua_checkstack(L, 2), false, vformat("call_togodot_metamethod(%d): Stack overflow. Cannot grow stack.", p_index));
+
+    if (!lua_getmetatable(L, p_index))
+    {
+        return false;
+    }
+
+    // Using getfield instead of rawgetfield to allow inheritance of metamethods
+    int type = lua_getfield(L, -1, METAMETHOD_TOGODOT);
+    if (type == LUA_TNIL) [[likely]] // Most values will not have __togodot
+    {
+        lua_pop(L, 2); // Pop metatable and nil
+        return false;
+    }
+
+    if (!is_godot_callable(L, -1)) [[unlikely]]
+    {
+        lua_pop(L, 2); // Pop metatable and __togodot value
+        ERR_FAIL_V_MSG(false, vformat("call_togodot_metamethod(%d): __togodot is not a Godot Callable.", p_index));
+    }
+
+    Callable callable = to_callable(L, -1);
+    lua_pop(L, 2); // Pop metatable and __togodot
+
+    r_result = callable.call(LuaState::find_or_create_lua_state(L), p_index, p_tag);
+    return true;
 }

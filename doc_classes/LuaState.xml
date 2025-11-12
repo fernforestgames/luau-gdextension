@@ -632,7 +632,9 @@
 			<param index="0" name="index" type="int" />
 			<param index="1" name="tag" type="int" default="-1" />
 			<description>
-				Converts the userdata at [param index] to an [Object] using either [method to_light_userdata] or [method to_full_userdata], based on the value's type. If [param tag] is provided, only returns the object if the tag matches. Returns null if the value could not be read as an [Object] or if the tag doesn't match.
+				Converts the value at [param index] to an [Object].
+				If the value has a metatable with a [code]__togodot[/code] metamethod, that method is called with arguments [LuaState], [param index], and [param tag], and its return value is used as the result. [b]Important:[/b] The metamethod must be implemented in Godot (not Luau), and set using [method push_callable].
+				Otherwise, the value is converted with either [method to_light_userdata] or [method to_full_userdata], based on the value's type. If [param tag] is provided, only returns the object if the tag matches. Returns null if the value could not be read as an [Object] or if the tag doesn't match.
 				[codeblock]
 				state.push_object(some_object)
 				var obj := state.to_object(-1)
@@ -2028,11 +2030,14 @@
 			<return type="Variant" />
 			<param index="0" name="index" type="int" />
 			<description>
-				Converts the Lua value at [param index] to a Godot [Variant]. All Lua types are supported.
-				Lua tables will be converted to [Array]s if they are fully array-like (only sequential integer keys starting from 1), or to [Dictionary]s otherwise.
-				[Object]s can be read from light or full userdata as described in [method to_object].
-				Functions will be converted to [Callable]s as described in [method to_callable].
-				Full userdata that does not map to any Godot type will be returned as [code]null[/code].
+				Converts the Lua value at [param index] to a Godot [Variant].
+				If the value has a metatable with a [code]__togodot[/code] metamethod, that method is called with arguments [LuaState], [param index], and [param tag], and its return value is used as the result. [b]Important:[/b] The metamethod must be implemented in Godot (not Luau), and set using [method push_callable].
+				Otherwise, values will be converted as follows:
+				- Lua tables will be converted to [Array]s if they are fully array-like (only sequential integer keys starting from 1), or to [Dictionary]s otherwise.
+				- [Object]s can be read from light or full userdata as described in [method to_object].
+				- Functions will be converted to [Callable]s as described in [method to_callable].
+				- All other Lua types will be converted to their corresponding Godot equivalents.
+				- Full userdata that does not map to any Godot type will be returned as [code]null[/code].
 				[codeblock]
 				state.do_string("return {10, 20, 30}", "test")
 				var value := state.to_variant(-1)
