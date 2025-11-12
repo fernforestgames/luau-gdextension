@@ -12,6 +12,7 @@ namespace gdluau
 
     class LuaState;
 
+    bool is_godot_callable(lua_State *p_L, int p_index);
     Callable to_callable(lua_State *p_L, int p_index);
     void push_callable(lua_State *p_L, const Callable &p_callable);
 

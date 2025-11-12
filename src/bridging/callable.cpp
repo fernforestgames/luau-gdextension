@@ -121,6 +121,23 @@ static String lua_function_name(lua_State *L, int p_index)
     return funcname.is_empty() ? "<unknown>" : funcname;
 }
 
+bool gdluau::is_godot_callable(lua_State *L, int p_index)
+{
+    ERR_FAIL_COND_V_MSG(!is_valid_index(L, p_index), false, vformat("is_godot_callable(%d): Invalid stack index. Stack has %d elements.", p_index, lua_gettop(L)));
+    ERR_FAIL_COND_V_MSG(!lua_checkstack(L, 2), false, vformat("is_godot_callable(%d): Stack overflow. Cannot grow stack.", p_index));
+
+    if (!lua_getmetatable(L, p_index)) [[unlikely]]
+    {
+        return false;
+    }
+
+    luaL_getmetatable(L, CALLABLE_METATABLE_NAME);
+    bool mt_equal = lua_rawequal(L, -1, -2);
+    lua_pop(L, 2); // Pop both metatables
+
+    return mt_equal;
+}
+
 Callable gdluau::to_callable(lua_State *L, int p_index)
 {
     ERR_FAIL_COND_V_MSG(!is_valid_index(L, p_index), Callable(), vformat("to_callable(%d): Invalid stack index. Stack has %d elements.", p_index, lua_gettop(L)));
@@ -128,6 +145,14 @@ Callable gdluau::to_callable(lua_State *L, int p_index)
     if (!lua_isfunction(L, p_index)) [[unlikely]]
     {
         return Callable();
+    }
+
+    // Check if this is a Callable pushed via push_callable()
+    // If so, return the original Callable instead of wrapping it again
+    if (is_godot_callable(L, p_index))
+    {
+        Callable *callable = static_cast<Callable *>(lua_touserdata(L, p_index));
+        return *callable;
     }
 
     // Protect the function from GC
