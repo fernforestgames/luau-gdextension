@@ -38,27 +38,27 @@ jobs:
           - preset: windows-x86_64-debug
             os: windows-latest
             name: 🏁 Windows Debug
-            build-options: -j 4
+            build-options: -j
           - preset: windows-x86_64-release
             os: windows-latest
             name: 🏁 Windows Release
-            build-options: -j 4
+            build-options: -j
           - preset: macos-arm64-debug
             os: macos-latest
             name: 🍎 macOS Debug
-            build-options: -j 2
+            build-options: -j
           - preset: macos-arm64-release
             os: macos-latest
             name: 🍎 macOS Release
-            build-options: -j 2
+            build-options: -j
           - preset: linux-x86_64-debug
             os: ubuntu-latest
             name: 🐧 Linux Debug
-            build-options: -j 8
+            build-options: -j
           - preset: linux-x86_64-release
             os: ubuntu-latest
             name: 🐧 Linux Release
-            build-options: -j 8
+            build-options: -j
 
     steps:
       - name: Capture workflow telemetry
