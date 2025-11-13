@@ -26,7 +26,7 @@ namespace gdluau
 	public:
 		LuauScript() {}
 
-		virtual void _reset_state();
+		virtual void _reset_state() override;
 
 		void set_source_code(const String &p_source);
 		const String &get_source_code() const;
