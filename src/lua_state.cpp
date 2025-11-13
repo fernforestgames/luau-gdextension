@@ -335,7 +335,7 @@ void LuaState::_bind_methods()
 
     // Additional convenience functions
     ClassDB::bind_method(D_METHOD("load_string", "code", "chunk_name", "env"), &LuaState::load_string, DEFVAL(0));
-    ClassDB::bind_method(D_METHOD("do_string", "code", "chunk_name", "env", "nargs", "nresults", "errfunc"), &LuaState::do_string, DEFVAL(0), DEFVAL(0), DEFVAL(LUA_MULTRET), DEFVAL(0));
+    ClassDB::bind_method(D_METHOD("do_string", "code", "chunk_name", "env", "nargs", "nresults", "errfunc"), &LuaState::do_string, DEFVAL(String()), DEFVAL(0), DEFVAL(0), DEFVAL(LUA_MULTRET), DEFVAL(0));
     ClassDB::bind_method(D_METHOD("bind_callable_weakly", "callable"), &LuaState::bind_callable_weakly);
 
     BIND_BITFIELD_FLAG(LIB_BASE);
@@ -1178,12 +1178,12 @@ bool LuaState::set_fenv(int p_index)
 }
 
 // Load and call functions (Luau bytecode)
-bool LuaState::load_bytecode(const PackedByteArray &p_bytecode, const StringName &p_chunk_name, int p_env)
+bool LuaState::load_bytecode(const PackedByteArray &p_bytecode, const String &p_chunk_name, int p_env)
 {
     ERR_FAIL_COND_V_MSG(!is_valid(), false, "Lua state is invalid. Cannot load bytecode.");
     ERR_FAIL_COND_V_MSG(!lua_checkstack(L, 1), false, "LuaState.load_bytecode(): Stack overflow. Cannot grow stack.");
 
-    return luau_load(L, char_string(p_chunk_name).get_data(), reinterpret_cast<const char *>(p_bytecode.ptr()), p_bytecode.size(), p_env) == 0;
+    return luau_load(L, p_chunk_name.utf8().get_data(), reinterpret_cast<const char *>(p_bytecode.ptr()), p_bytecode.size(), p_env) == 0;
 }
 
 lua_Status LuaState::pcall(int p_nargs, int p_nresults, int p_errfunc)
@@ -1966,15 +1966,15 @@ void LuaState::push_default_object_metatable()
 }
 
 // Additional convenience functions
-bool LuaState::load_string(const String &p_code, const StringName &p_chunk_name, int p_env)
+bool LuaState::load_string(const String &p_code, const String &p_chunk_name, int p_env)
 {
     ERR_FAIL_COND_V_MSG(!is_valid(), false, "Lua state is invalid. Cannot load string.");
     return load_bytecode(Luau::compile(p_code), p_chunk_name, p_env);
 }
 
-lua_Status LuaState::do_string(const String &p_code, const StringName &p_chunk_name, int p_env, int p_nargs, int p_nresults, int p_errfunc)
+lua_Status LuaState::do_string(const String &p_code, const String &p_chunk_name, int p_env, int p_nargs, int p_nresults, int p_errfunc)
 {
-    if (load_string(p_code, p_chunk_name, p_env))
+    if (load_string(p_code, p_chunk_name.is_empty() ? p_code : p_chunk_name, p_env))
     {
         return pcall(p_nargs, p_nresults, p_errfunc);
     }

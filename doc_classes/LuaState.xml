@@ -2134,13 +2134,13 @@
 		<method name="do_string">
 			<return type="int" enum="lua_Status" />
 			<param index="0" name="code" type="String" />
-			<param index="1" name="chunk_name" type="String" />
+			<param index="1" name="chunk_name" type="String" default="&quot;&quot;" />
 			<param index="2" name="env" type="int" default="0" />
 			<param index="3" name="nargs" type="int" default="0" />
 			<param index="4" name="nresults" type="int" default="-1" />
 			<param index="5" name="errfunc" type="int" default="0" />
 			<description>
-				Compiles and executes Luau source code. Returns [constant Luau.LUA_OK] on success, or an error status code on failure. The [param chunk_name] is used to identify the function in error messages and debugging (see [method load_string]). [param env] can optionally specify the stack index of a custom environment table to use.
+				Compiles and executes Luau source code. Returns [constant Luau.LUA_OK] on success, or an error status code on failure. The optional [param chunk_name] is used to identify the function in error messages and debugging (see [method load_string]). [param env] can optionally specify the stack index of a custom environment table to use.
 				[param nargs] is the number of arguments already on the stack to pass to the loaded new function. [param nresults] is the number of expected return values (or [constant Luau.LUA_MULTRET] to receive all of them).
 				[b]Warning:[/b] This method is not compatible with [method sandbox] and [method sandbox_thread], and is offered only as a convenience for simple use cases. For the best performance and sandboxing support, it is recommended to use [method load_string], enable sandboxing, then use [method pcall] afterward.
 				[codeblock]

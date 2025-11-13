@@ -183,7 +183,7 @@ namespace gdluau
         bool set_fenv(int p_index);
 
         // Load and call functions (Luau bytecode)
-        bool load_bytecode(const PackedByteArray &p_bytecode, const StringName &p_chunk_name, int p_env = 0);
+        bool load_bytecode(const PackedByteArray &p_bytecode, const String &p_chunk_name, int p_env = 0);
         lua_Status pcall(int p_nargs, int p_nresults, int p_errfunc = 0);
         lua_Status cpcall(Callable p_callable);
 
@@ -288,8 +288,8 @@ namespace gdluau
         void push_default_object_metatable();
 
         // Additional convenience functions
-        bool load_string(const String &p_code, const StringName &p_chunk_name, int p_env = 0);
-        lua_Status do_string(const String &p_code, const StringName &p_chunk_name, int p_env = 0, int p_nargs = 0, int p_nresults = LUA_MULTRET, int p_errfunc = 0);
+        bool load_string(const String &p_code, const String &p_chunk_name, int p_env = 0);
+        lua_Status do_string(const String &p_code, const String &p_chunk_name = String(), int p_env = 0, int p_nargs = 0, int p_nresults = LUA_MULTRET, int p_errfunc = 0);
         Callable bind_callable_weakly(const Callable &p_callable);
 
         // C++ only helpers
