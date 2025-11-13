@@ -13,15 +13,11 @@
 		state.open_libs()
 		state.do_string(script.get_source_code(), script.get_path())
 		[/codeblock]
-
 		[b]Method 2: Create programmatically[/b]
 		[codeblock]
 		var script := LuauScript.new()
 		script.set_source_code("return 42")
-		script.set_path_cache("res://dynamic_script.luau")
-		ResourceSaver.save(script)
 		[/codeblock]
-
 		[b]Method 3: Import via the editor[/b]
 		[code].lua[/code] and [code].luau[/code] files can be imported directly into the Godot editor, creating LuauScript resources that can be assigned to nodes or other resources. Both file extensions are recognized and handled identically by the resource system.
 	</description>
@@ -39,10 +35,32 @@
 			<description>
 			</description>
 		</method>
+		<method name="get_compile_options">
+			<return type="LuaCompileOptions" />
+			<description>
+			</description>
+		</method>
+		<method name="set_compile_options">
+			<return type="void" />
+			<param index="0" name="options" type="LuaCompileOptions" />
+			<description>
+			</description>
+		</method>
+		<method name="compile">
+			<return type="PackedByteArray" />
+			<param index="0" name="force_recompile" type="bool" default="false" />
+			<description>
+				Compiles the [member source_code] of this script into bytecode using the [member compile_options]. Once compiled, the bytecode is cached in memory for future calls, unless [param force_recompile] is enabled.
+			</description>
+		</method>
 	</methods>
 	<members>
 		<member name="source_code" type="String" setter="set_source_code" getter="get_source_code" default="&quot;&quot;">
 			The Luau source code contained in this resource. Setting this property does not automatically save the resource to disk.
+		</member>
+		<member name="compile_options" type="LuaCompileOptions" setter="set_compile_options" getter="get_compile_options" default="null">
+			Options used when compiling the Luau source code (see [method compile]).
+			[b]Note:[/b] This property is not saved to disk with the resource. It must be set programmatically after loading if needed.
 		</member>
 	</members>
 </class>
