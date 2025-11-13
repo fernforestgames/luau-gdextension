@@ -26,7 +26,7 @@ static int vector2_constructor(lua_State *L)
 static int vector2i_constructor(lua_State *L)
 {
     int isnum = 0;
-    int x = luaL_checkinteger(L, 1);
+    int x = lua_tointegerx(L, 1, &isnum);
     if (isnum)
     {
         int y = luaL_checkinteger(L, 2);
