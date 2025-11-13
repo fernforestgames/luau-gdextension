@@ -1,5 +1,7 @@
 #pragma once
 
+#include "lua_compileoptions.h"
+
 #include <godot_cpp/classes/resource.hpp>
 #include <godot_cpp/classes/resource_format_loader.hpp>
 #include <godot_cpp/classes/resource_format_saver.hpp>
@@ -9,31 +11,32 @@ namespace gdluau
 {
 	using namespace godot;
 
-	/// A resource representing a Luau script file (.lua or .luau).
-	/// This class stores the source code and provides integration with Godot's resource system.
 	class LuauScript : public Resource
 	{
 		GDCLASS(LuauScript, Resource)
 
 	private:
 		String source_code;
+		Ref<LuaCompileOptions> compile_options;
+		PackedByteArray cached_bytecode;
 
 	protected:
 		static void _bind_methods();
 
 	public:
-		LuauScript();
-		~LuauScript();
+		LuauScript() {}
 
-		// Source code management
+		virtual void _reset_state() override;
+
 		void set_source_code(const String &p_source);
-		String get_source_code() const;
+		const String &get_source_code() const;
 
-		// Resource loading
-		Error load_source_code(const String &p_path);
+		void set_compile_options(LuaCompileOptions *p_options);
+		LuaCompileOptions *get_compile_options() const;
+
+		const PackedByteArray &compile(bool p_force_recompile = false);
 	};
 
-	/// ResourceFormatLoader for Luau scripts (.lua, .luau files)
 	class ResourceFormatLoaderLuauScript : public ResourceFormatLoader
 	{
 		GDCLASS(ResourceFormatLoaderLuauScript, ResourceFormatLoader)
@@ -48,7 +51,6 @@ namespace gdluau
 		virtual String _get_resource_type(const String &p_path) const override;
 	};
 
-	/// ResourceFormatSaver for Luau scripts (.lua, .luau files)
 	class ResourceFormatSaverLuauScript : public ResourceFormatSaver
 	{
 		GDCLASS(ResourceFormatSaverLuauScript, ResourceFormatSaver)
