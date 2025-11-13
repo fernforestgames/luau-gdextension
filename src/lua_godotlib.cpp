@@ -25,11 +25,23 @@ static int vector2_constructor(lua_State *L)
 
 static int vector2i_constructor(lua_State *L)
 {
+    int isnum = 0;
     int x = luaL_checkinteger(L, 1);
-    int y = luaL_checkinteger(L, 2);
-    lua_pop(L, 2);
+    if (isnum)
+    {
+        int y = luaL_checkinteger(L, 2);
+        lua_pop(L, 2);
 
-    push_variant(L, Vector2i(x, y));
+        push_variant(L, Vector2i(x, y));
+    }
+    else
+    {
+        Vector2 vec = to_variant(L, 1);
+        lua_pop(L, 1);
+
+        push_variant(L, Vector2i(vec));
+    }
+
     return 1;
 }
 
