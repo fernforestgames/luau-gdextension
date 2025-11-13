@@ -2240,6 +2240,7 @@
 		</constant>
 		<constant name="LIB_GODOT" value="2048" enum="LibraryFlags" is_bitfield="true">
 			Custom Godot bridging library (part of luau-gdextension) providing utilities for Godot types (e.g., [code]Vector2()[/code], [code]Color()[/code] constructors). Use with [method open_libs].
+			This library also overrides Luau's built-in [code]print[/code] function to route output to Godot's debug console.
 		</constant>
 		<constant name="LIB_ALL" value="4095" enum="LibraryFlags" is_bitfield="true">
 			All libraries combined. This is the default value for [method open_libs].
