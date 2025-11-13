@@ -11,6 +11,7 @@
 #include <gdextension_interface.h>
 #include <godot_cpp/core/defs.hpp>
 #include <godot_cpp/godot.hpp>
+#include <godot_cpp/classes/engine_debugger.hpp>
 #include <godot_cpp/classes/resource_loader.hpp>
 #include <godot_cpp/classes/resource_saver.hpp>
 #include <Luau/Common.h>
@@ -21,6 +22,14 @@ using namespace godot;
 static int assertionHandler(const char *expr, const char *file, int line, const char *function)
 {
     ERR_PRINT(vformat("Luau assertion failed: %s, function %s, file %s, line %d", expr, function, file, line));
+
+    EngineDebugger *debugger = EngineDebugger::get_singleton();
+    if (debugger && debugger->is_active())
+    {
+        // Break in the debugger
+        debugger->debug();
+    }
+
     return 1;
 }
 

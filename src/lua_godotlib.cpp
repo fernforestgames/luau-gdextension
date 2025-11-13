@@ -6,7 +6,8 @@
 #include "helpers.h"
 
 #include <godot_cpp/core/error_macros.hpp>
-#include <godot_cpp/variant/variant.hpp>
+#include <godot_cpp/core/print_string.hpp>
+#include <godot_cpp/variant/utility_functions.hpp>
 #include <lualib.h>
 
 using namespace gdluau;
@@ -618,12 +619,41 @@ static int packed_vector4_array_constructor(lua_State *L)
     return 1;
 }
 
+static int godotlib_print(lua_State *L)
+{
+    ERR_FAIL_COND_V_MSG(!lua_checkstack(L, 1), 0, "lua_godotlib.print(): Stack overflow. Cannot grow stack.");
+
+    int nargs = lua_gettop(L);
+
+    PackedStringArray s;
+    s.resize(nargs);
+
+    for (int i = 1; i <= nargs; i++)
+    {
+        // Convert using Lua's tostring()
+        // This has the downside that we won't handle Godot types specially, but they should have meaningful __tostring metamethods anyway
+        size_t len;
+        const char *str = luaL_tolstring(L, i, &len);
+        s.set(i - 1, String::utf8(str, len));
+
+        lua_pop(L, 1); // pop result of luaL_tolstring
+    }
+
+    lua_pop(L, nargs);
+
+    // Match Lua print behavior by separating with tabs
+    String joined = String("\t").join(s);
+    print_line(joined);
+
+    return 0;
+}
+
 int luaopen_godot(lua_State *L)
 {
     luaL_checkstack(L, 3, "luaopen_godot(): Stack overflow. Cannot grow stack.");
 
-    // Register constructors into globals, not the `godot` table
     luaL_Reg globals[] = {
+        // Register constructors into globals, not the `godot` table
         {"Vector2", vector2_constructor},
         {"Vector2i", vector2i_constructor},
         {"Rect2", rect2_constructor},
@@ -652,6 +682,10 @@ int luaopen_godot(lua_State *L)
         {"PackedVector3Array", packed_vector3_array_constructor},
         {"PackedColorArray", packed_color_array_constructor},
         {"PackedVector4Array", packed_vector4_array_constructor},
+
+        // Override Luau default `print` so that it shows up in Godot debugging
+        {"print", godotlib_print},
+
         {NULL, NULL} // sentinel
     };
 
