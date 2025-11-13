@@ -648,19 +648,19 @@
 				Returns the tag of the light userdata at [param index], or -1 if the value is not light userdata. Tags can be used to distinguish different types of light userdata.
 				[codeblock]
 				state.push_light_userdata(obj, MY_TAG)
-				print(state.light_userdata_tag(-1))  # Prints MY_TAG
+				print(state.light_userdata_tag(-1))  # Prints the value of MY_TAG
 				[/codeblock]
 			</description>
 		</method>
-		<method name="userdata_tag">
+		<method name="full_userdata_tag">
 			<return type="int" />
 			<param index="0" name="index" type="int" />
 			<description>
 				Returns the tag of the full userdata at [param index], or -1 if the value is not full userdata. Tags can be used to distinguish different types of userdata.
 				[codeblock]
 				state.push_object(obj)
-				state.set_userdata_tag(-1, MY_TAG)
-				print(state.userdata_tag(-1))  # Prints MY_TAG
+				state.set_full_userdata_tag(-1, MY_TAG)
+				print(state.full_userdata_tag(-1))  # Prints the value of MY_TAG
 				[/codeblock]
 			</description>
 		</method>
@@ -1310,7 +1310,7 @@
 				[/codeblock]
 			</description>
 		</method>
-		<method name="set_userdata_tag">
+		<method name="set_full_userdata_tag">
 			<return type="void" />
 			<param index="0" name="index" type="int" />
 			<param index="1" name="tag" type="int" />
@@ -1318,7 +1318,7 @@
 				Sets the tag of the full userdata at [param index] to [param tag], an integer between 0 and 128. Tags can be associated with different types of userdata to easily identify them later.
 				[codeblock]
 				state.push_object(some_object)
-				state.set_userdata_tag(-1, MY_TAG)
+				state.set_full_userdata_tag(-1, MY_TAG)
 				[/codeblock]
 			</description>
 		</method>
