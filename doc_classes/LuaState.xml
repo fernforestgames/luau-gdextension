@@ -455,7 +455,7 @@
 			</description>
 		</method>
 		<method name="type_name">
-			<return type="String" />
+			<return type="StringName" />
 			<param index="0" name="type_id" type="int" enum="lua_Type" />
 			<description>
 				Returns the name of the given Lua type as a string. [param type_id] should be a [enum lua_Type] value.
@@ -576,7 +576,7 @@
 			</description>
 		</method>
 		<method name="get_namecall">
-			<return type="String" />
+			<return type="StringName" />
 			<description>
 				Returns the name being used in a namecall (method call with colon syntax). This is only valid during the execution of a [code]__namecall[/code] metamethod.
 				[codeblock]
@@ -846,7 +846,7 @@
 		<method name="get_field">
 			<return type="int" enum="lua_Type" />
 			<param index="0" name="index" type="int" />
-			<param index="1" name="key" type="String" />
+			<param index="1" name="key" type="StringName" />
 			<description>
 				Gets the value [code]t[key][/code] where [code]t[/code] is the table at [param index], and pushes it onto the stack. This operation may invoke the [code]__index[/code] metamethod. Returns the type of the pushed value.
 				[codeblock]
@@ -858,7 +858,7 @@
 		</method>
 		<method name="get_global">
 			<return type="int" enum="lua_Type" />
-			<param index="0" name="key" type="String" />
+			<param index="0" name="key" type="StringName" />
 			<description>
 				Pushes onto the stack the value of the global variable [param key]. Returns the type of the pushed value. This is equivalent to [code]get_field(Luau.LUA_GLOBALSINDEX, key)[/code].
 				[codeblock]
@@ -871,7 +871,7 @@
 		<method name="raw_get_field">
 			<return type="int" enum="lua_Type" />
 			<param index="0" name="index" type="int" />
-			<param index="1" name="key" type="String" />
+			<param index="1" name="key" type="StringName" />
 			<description>
 				Similar to [method get_field], but performs a raw access without invoking [code]__index[/code] metamethods. Gets [code]t[key][/code] where [code]t[/code] is the table at [param index] and pushes it onto the stack. Returns the type of the pushed value.
 				[codeblock]
@@ -1003,7 +1003,7 @@
 		<method name="set_field">
 			<return type="void" />
 			<param index="0" name="index" type="int" />
-			<param index="1" name="key" type="String" />
+			<param index="1" name="key" type="StringName" />
 			<description>
 				Pops a value from the stack and assigns [code]t[key] = value[/code] where [code]t[/code] is the table at [param index]. This operation may invoke the [code]__newindex[/code] metamethod.
 				[codeblock]
@@ -1015,7 +1015,7 @@
 		</method>
 		<method name="set_global">
 			<return type="void" />
-			<param index="0" name="key" type="String" />
+			<param index="0" name="key" type="StringName" />
 			<description>
 				Pops a value from the stack and sets it as the global variable [param key]. This is equivalent to [code]set_field(LUA_GLOBALSINDEX, key)[/code].
 				[codeblock]
@@ -1028,7 +1028,7 @@
 		<method name="raw_set_field">
 			<return type="void" />
 			<param index="0" name="index" type="int" />
-			<param index="1" name="key" type="String" />
+			<param index="1" name="key" type="StringName" />
 			<description>
 				Similar to [method set_field], but performs a raw assignment without invoking [code]__newindex[/code] metamethods. Pops a value from the stack and assigns [code]t[key] = value[/code] where [code]t[/code] is the table at [param index].
 				[codeblock]
@@ -1096,11 +1096,12 @@
 			<param index="1" name="chunk_name" type="String" />
 			<param index="2" name="env" type="int" default="0" />
 			<description>
-				Loads pre-compiled Luau bytecode and pushes it as a function onto the stack. Returns whether loading was successful. [param chunk_name] is used to identify the function in error messages and debugging. [param env] can optionally specify the stack index of a custom environment table to use.
-				Use [method Luau.compile] to generate bytecode from source code. After loading, use [method call] or [method pcall] to execute the function.
+				Loads pre-compiled Luau bytecode (see [method Luau.compile]) and pushes it as a function onto the stack. Returns whether loading was successful. [param env] can optionally specify the stack index of a custom environment table to use.
+				[param chunk_name] is used to identify the function in error messages and debugging. [param chunk_name] may start with "@" to indicate a file name, or with "=" to indicate a custom chunkname. If neither prefix is used, Luau will treat it as a string literal.
+				After loading bytecode, use [method call] or [method pcall] to execute the function.
 				[codeblock]
-				var bytecode := Luau.compile("return 1 + 2", "example")
-				var result := state.load_bytecode(bytecode, "example")
+				var bytecode := Luau.compile("return 1 + 2", null)
+				var result := state.load_bytecode(bytecode, "@example.luau")
 				if result:
 				    state.call(0, 1)
 				    print(state.to_number(-1))  # Prints 3
@@ -1347,7 +1348,7 @@
 		<method name="set_light_userdata_name">
 			<return type="void" />
 			<param index="0" name="tag" type="int" />
-			<param index="1" name="name" type="String" />
+			<param index="1" name="name" type="StringName" />
 			<description>
 				Associates a name with a light userdata tag.
 				[codeblock]
@@ -1356,7 +1357,7 @@
 			</description>
 		</method>
 		<method name="get_light_userdata_name">
-			<return type="String" />
+			<return type="StringName" />
 			<param index="0" name="tag" type="int" />
 			<description>
 				Returns the name associated with light userdata tag [param tag].
@@ -2119,10 +2120,11 @@
 			<param index="1" name="chunk_name" type="String" />
 			<param index="2" name="env" type="int" default="0" />
 			<description>
-				Compiles Luau source code and pushes it as a function onto the stack without executing it. Returns whether loading was successful. The [param chunk_name] is used to identify the function in error messages and debugging. [param env] can optionally specify the stack index of a custom environment table to use.
+				Compiles Luau source code to bytecode, and pushes it as a function onto the stack without executing it. Returns whether loading was successful. [param env] can optionally specify the stack index of a custom environment table to use.
+				[param chunk_name] is used to identify the function in error messages and debugging. [param chunk_name] may start with "@" to indicate a file name, or with "=" to indicate a custom chunkname. If neither prefix is used, Luau will treat it as a string literal.
 				After loading, use [method call] or [method pcall] to execute the function.
 				[codeblock]
-				var result := state.load_string("return 1 + 2", "example")
+				var result := state.load_string("return 1 + 2", "@example.luau")
 				if result:
 				    state.call(0, 1)  # Execute the loaded function
 				    print(state.to_number(-1))  # Prints 3
@@ -2132,17 +2134,17 @@
 		<method name="do_string">
 			<return type="int" enum="lua_Status" />
 			<param index="0" name="code" type="String" />
-			<param index="1" name="chunk_name" type="String" />
+			<param index="1" name="chunk_name" type="String" default="&quot;&quot;" />
 			<param index="2" name="env" type="int" default="0" />
 			<param index="3" name="nargs" type="int" default="0" />
 			<param index="4" name="nresults" type="int" default="-1" />
 			<param index="5" name="errfunc" type="int" default="0" />
 			<description>
-				Compiles and executes Luau source code. Returns [constant Luau.LUA_OK] on success, or an error status code on failure. The [param chunk_name] is used to identify the function in error messages and debugging. [param env] can optionally specify the stack index of a custom environment table to use.
+				Compiles and executes Luau source code. Returns [constant Luau.LUA_OK] on success, or an error status code on failure. The optional [param chunk_name] is used to identify the function in error messages and debugging (see [method load_string]). [param env] can optionally specify the stack index of a custom environment table to use.
 				[param nargs] is the number of arguments already on the stack to pass to the loaded new function. [param nresults] is the number of expected return values (or [constant Luau.LUA_MULTRET] to receive all of them).
 				[b]Warning:[/b] This method is not compatible with [method sandbox] and [method sandbox_thread], and is offered only as a convenience for simple use cases. For the best performance and sandboxing support, it is recommended to use [method load_string], enable sandboxing, then use [method pcall] afterward.
 				[codeblock]
-				var result = state.do_string("return 1 + 2", "example")
+				var result = state.do_string("return 1 + 2", "@example.luau")
 				if result == LuaState.LUA_OK:
 				    print(state.to_number(-1))  # Prints 3
 				else:
