@@ -781,7 +781,7 @@
 			<param index="0" name="obj" type="Object" />
 			<param index="1" name="tag" type="int" default="-1" />
 			<description>
-				Pushes an [Object] as light userdata onto the stack. Light userdata is a raw pointer without memory management. The optional [param tag], an integer between 0 and 128, can be associated with different types of light userdata to easily identify them later.
+				Pushes an [Object] as light userdata onto the stack. Light userdata is a raw pointer without memory management. The optional [param tag], an unsigned integer less than [constant Luau.LUA_LUTAG_LIMIT], can be associated with different types of light userdata to easily identify them later.
 				[b]Warning:[/b] Because light userdata is not memory managed by Luau, you must ensure that the pushed Godot object remains valid as long as it is used as light userdata.
 				[codeblock]
 				state.push_light_userdata(some_object)
@@ -793,7 +793,7 @@
 			<param index="0" name="obj" type="Object" />
 			<param index="1" name="tag" type="int" default="-1" />
 			<description>
-				Pushes an [Object] as full userdata onto the stack. The optional [param tag], an integer between 0 and 128, can be associated with different types of userdata to easily identify them later.
+				Pushes an [Object] as full userdata onto the stack. The optional [param tag], an unsigned integer less than [constant Luau.LUA_UTAG_LIMIT], can be associated with different types of userdata to easily identify them later.
 				[codeblock]
 				state.push_full_userdata(some_object)
 				[/codeblock]
@@ -821,7 +821,7 @@
 			<param index="0" name="obj" type="Object" />
 			<param index="1" name="tag" type="int" default="-1" />
 			<description>
-				Pushes an [Object] onto the stack, either as a full userdata or with a custom representation. The optional [param tag], an integer between 0 and 128, can be associated with different types of userdata to easily identify them later.
+				Pushes an [Object] onto the stack, either as a full userdata or with a custom representation. The optional [param tag], an unsigned integer less than [constant Luau.LUA_UTAG_LIMIT], can be associated with different types of userdata to easily identify them later.
 				[codeblock]
 				state.push_object(some_object)
 				[/codeblock]
@@ -1228,7 +1228,7 @@
 			<return type="void" />
 			<param index="0" name="category" type="int" />
 			<description>
-				Sets the memory category, an integer between 0 and 256, for subsequent Lua allocations. Memory categories can be used to track memory usage across different areas.
+				Sets the memory category, an unsigned integer less than [constant Luau.LUA_MEMORY_CATEGORIES], for subsequent Lua allocations. Memory categories can be used to track memory usage across different areas.
 				[codeblock]
 				state.set_memory_category(1)
 				[/codeblock]
@@ -1315,7 +1315,7 @@
 			<param index="0" name="index" type="int" />
 			<param index="1" name="tag" type="int" />
 			<description>
-				Sets the tag of the full userdata at [param index] to [param tag], an integer between 0 and 128. Tags can be associated with different types of userdata to easily identify them later.
+				Sets the tag of the full userdata at [param index] to [param tag], an unsigned integer less than [constant Luau.LUA_UTAG_LIMIT]. Tags can be associated with different types of userdata to easily identify them later.
 				[codeblock]
 				state.push_object(some_object)
 				state.set_full_userdata_tag(-1, MY_TAG)
@@ -2175,7 +2175,7 @@
 				[/codeblock]
 			</description>
 		</method>
-		</methods>
+	</methods>
 	<signals>
 		<signal name="debugbreak">
 			<param index="0" name="state" type="LuaState" />

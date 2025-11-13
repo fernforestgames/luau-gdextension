@@ -199,5 +199,30 @@
 		<constant name="LUA_REFNIL" value="0">
 			A constant returned when attempting to generate a reference to a [code]nil[/code] value using [method LuaState.ref]. Indicates that the reference is not valid.
 		</constant>
+		<constant name="LUA_IDSIZE" value="256">
+			The maximum length of chunknames for describing loaded code (see [method LuaState.load_bytecode]). Chunknames longer than this will be truncated. Whether this is head or tail truncation depends on the type of chunkname (as determined by its prefix).
+		</constant>
+		<constant name="LUAI_MAXCSTACK" value="8000">
+			The maximum number of Lua stack slots that a host function can use. Note that [method LuaState.raw_check_stack] ignores this limit.
+		</constant>
+		<constant name="LUAI_MAXCALLS" value="20000">
+			The maximum number of nested calls, including both Luau and host functions.
+		</constant>
+		<constant name="LUA_UTAG_LIMIT" value="128">
+			The maximum number of unique tags for full userdata (see [method LuaState.push_full_userdata]). Full userdata tags must be between 0 and [code]LUA_UTAG_LIMIT - 1[/code].
+		</constant>
+		<constant name="LUA_LUTAG_LIMIT" value="128">
+			The maximum number of unique tags for light userdata (see [method LuaState.push_light_userdata]). Light userdata tags must be between 0 and [code]LUA_LUTAG_LIMIT - 1[/code].
+		</constant>
+		<constant name="LUA_MEMORY_CATEGORIES" value="256">
+			The number of available memory categories (see [method LuaState.set_memory_category]). Memory categories must be between 0 and [code]LUA_MEMORY_CATEGORIES - 1[/code].
+		</constant>
+		<constant name="LUA_MAXCAPTURES" value="32">
+			The maximum number of captures in a [url=https://www.lua.org/manual/5.3/manual.html#6.4.1]pattern match[/url].
+		</constant>
+		<constant name="LUA_VECTOR_SIZE" value="3">
+			The number of components (3 or 4) in Luau's native [code]vector[/code] type.
+			This is set to 3 to improve performance of Godot [Vector3]s in Luau. If this is ever changed to 4, it will be considered a breaking change in luau-gdextension and will be versioned accordingly.
+		</constant>
 	</constants>
 </class>

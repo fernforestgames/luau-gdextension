@@ -1,5 +1,7 @@
 #include "luau.h"
+
 #include "lua_compileoptions.h"
+
 #include <godot_cpp/core/class_db.hpp>
 #include <luacode.h>
 
@@ -59,6 +61,16 @@ void Luau::_bind_methods()
 
     BIND_CONSTANT(LUA_NOREF);
     BIND_CONSTANT(LUA_REFNIL);
+
+    // luaconf.h constants
+    BIND_CONSTANT(LUA_IDSIZE);
+    BIND_CONSTANT(LUAI_MAXCSTACK);
+    BIND_CONSTANT(LUAI_MAXCALLS);
+    BIND_CONSTANT(LUA_UTAG_LIMIT);
+    BIND_CONSTANT(LUA_LUTAG_LIMIT);
+    BIND_CONSTANT(LUA_MEMORY_CATEGORIES);
+    BIND_CONSTANT(LUA_MAXCAPTURES);
+    BIND_CONSTANT(LUA_VECTOR_SIZE);
 
     ClassDB::bind_static_method(Luau::get_class_static(), D_METHOD("compile", "source_code", "options"), &Luau::compile, DEFVAL(nullptr));
     ClassDB::bind_static_method(Luau::get_class_static(), D_METHOD("upvalue_index", "upvalue"), &Luau::upvalue_index);
