@@ -97,7 +97,7 @@ Variant ResourceFormatLoaderLuauScript::_load(const String &p_path, const String
 
 		script->set_source_code(source);
 
-		if (p_cache_mode == CACHE_MODE_IGNORE && p_cache_mode == CACHE_MODE_IGNORE_DEEP)
+		if (p_cache_mode == CACHE_MODE_IGNORE || p_cache_mode == CACHE_MODE_IGNORE_DEEP)
 		{
 			// Set the path of the resource but do not cache it
 			script->set_path_cache(p_path);
