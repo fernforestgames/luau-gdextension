@@ -1096,11 +1096,12 @@
 			<param index="1" name="chunk_name" type="String" />
 			<param index="2" name="env" type="int" default="0" />
 			<description>
-				Loads pre-compiled Luau bytecode and pushes it as a function onto the stack. Returns whether loading was successful. [param chunk_name] is used to identify the function in error messages and debugging. [param env] can optionally specify the stack index of a custom environment table to use.
-				Use [method Luau.compile] to generate bytecode from source code. After loading, use [method call] or [method pcall] to execute the function.
+				Loads pre-compiled Luau bytecode (see [method Luau.compile]) and pushes it as a function onto the stack. Returns whether loading was successful. [param env] can optionally specify the stack index of a custom environment table to use.
+				[param chunk_name] is used to identify the function in error messages and debugging. [param chunk_name] may start with "@" to indicate a file name, or with "=" to indicate a custom chunkname. If neither prefix is used, Luau will treat it as a string literal.
+				After loading bytecode, use [method call] or [method pcall] to execute the function.
 				[codeblock]
-				var bytecode := Luau.compile("return 1 + 2", "example")
-				var result := state.load_bytecode(bytecode, "example")
+				var bytecode := Luau.compile("return 1 + 2", null)
+				var result := state.load_bytecode(bytecode, "@example.luau")
 				if result:
 				    state.call(0, 1)
 				    print(state.to_number(-1))  # Prints 3
@@ -2119,10 +2120,11 @@
 			<param index="1" name="chunk_name" type="String" />
 			<param index="2" name="env" type="int" default="0" />
 			<description>
-				Compiles Luau source code and pushes it as a function onto the stack without executing it. Returns whether loading was successful. The [param chunk_name] is used to identify the function in error messages and debugging. [param env] can optionally specify the stack index of a custom environment table to use.
+				Compiles Luau source code to bytecode, and pushes it as a function onto the stack without executing it. Returns whether loading was successful. [param env] can optionally specify the stack index of a custom environment table to use.
+				[param chunk_name] is used to identify the function in error messages and debugging. [param chunk_name] may start with "@" to indicate a file name, or with "=" to indicate a custom chunkname. If neither prefix is used, Luau will treat it as a string literal.
 				After loading, use [method call] or [method pcall] to execute the function.
 				[codeblock]
-				var result := state.load_string("return 1 + 2", "example")
+				var result := state.load_string("return 1 + 2", "@example.luau")
 				if result:
 				    state.call(0, 1)  # Execute the loaded function
 				    print(state.to_number(-1))  # Prints 3
@@ -2138,11 +2140,11 @@
 			<param index="4" name="nresults" type="int" default="-1" />
 			<param index="5" name="errfunc" type="int" default="0" />
 			<description>
-				Compiles and executes Luau source code. Returns [constant Luau.LUA_OK] on success, or an error status code on failure. The [param chunk_name] is used to identify the function in error messages and debugging. [param env] can optionally specify the stack index of a custom environment table to use.
+				Compiles and executes Luau source code. Returns [constant Luau.LUA_OK] on success, or an error status code on failure. The [param chunk_name] is used to identify the function in error messages and debugging (see [method load_string]). [param env] can optionally specify the stack index of a custom environment table to use.
 				[param nargs] is the number of arguments already on the stack to pass to the loaded new function. [param nresults] is the number of expected return values (or [constant Luau.LUA_MULTRET] to receive all of them).
 				[b]Warning:[/b] This method is not compatible with [method sandbox] and [method sandbox_thread], and is offered only as a convenience for simple use cases. For the best performance and sandboxing support, it is recommended to use [method load_string], enable sandboxing, then use [method pcall] afterward.
 				[codeblock]
-				var result = state.do_string("return 1 + 2", "example")
+				var result = state.do_string("return 1 + 2", "@example.luau")
 				if result == LuaState.LUA_OK:
 				    print(state.to_number(-1))  # Prints 3
 				else:
