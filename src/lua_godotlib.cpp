@@ -646,7 +646,10 @@ static int godotlib_print(lua_State *L)
         // This has the downside that we won't handle Godot types specially, but they should have meaningful __tostring metamethods anyway
         size_t len;
         const char *str = luaL_tolstring(L, i, &len);
-        s.set(i - 1, String::utf8(str, len));
+        if (str)
+        {
+            s.set(i - 1, String::utf8(str, len));
+        }
 
         lua_pop(L, 1); // pop result of luaL_tolstring
     }
