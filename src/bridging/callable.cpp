@@ -162,18 +162,10 @@ Callable gdluau::to_callable(lua_State *L, int p_index)
     int negative_index = p_index < 0 ? p_index : p_index - lua_gettop(L) - 1;
 
     LuaState *state = LuaState::find_lua_state(L);
-    String func_name = lua_function_name(L, negative_index);
-    LuaFunctionCallable *lc;
-    if (state) [[likely]]
-    {
-        lc = memnew(LuaFunctionCallable(state, true, func_name, func_ref));
-    }
-    else [[unlikely]]
-    {
-        Ref<LuaState> created_state = LuaState::find_or_create_lua_state(L);
-        lc = memnew(LuaFunctionCallable(created_state.ptr(), false, func_name, func_ref));
-    }
+    ERR_FAIL_COND_V_MSG(!state, Callable(), "to_callable(): Could not find existing LuaState for the given lua_State.");
 
+    String func_name = lua_function_name(L, negative_index);
+    LuaFunctionCallable *lc = memnew(LuaFunctionCallable(state, func_name, func_ref));
     return Callable(lc);
 }
 
@@ -203,13 +195,9 @@ void gdluau::push_callable(lua_State *L, const Callable &p_callable)
     lua_setmetatable(L, -2);
 }
 
-LuaFunctionCallable::LuaFunctionCallable(LuaState *p_state, bool p_weak_state_ref, const String &p_func_name, int p_func_ref)
-    : lua_state_id(p_state->get_instance_id()), lua_state(), func_ref(p_func_ref), func_name(p_func_name)
+LuaFunctionCallable::LuaFunctionCallable(LuaState *p_state, const String &p_func_name, int p_func_ref)
+    : lua_state_id(p_state->get_instance_id()), func_ref(p_func_ref), func_name(p_func_name)
 {
-    if (!p_weak_state_ref)
-    {
-        lua_state.reference_ptr(p_state);
-    }
 }
 
 LuaFunctionCallable::~LuaFunctionCallable()

@@ -21,14 +21,13 @@ namespace gdluau
     class LuaFunctionCallable : public CallableCustom
     {
     private:
-        ObjectID lua_state_id;   // Weak reference to LuaState
-        Ref<LuaState> lua_state; // Optional strong reference to LuaState
+        ObjectID lua_state_id; // Weak reference to LuaState
 
         int func_ref;     // Reference to Lua function in registry
         String func_name; // Optional function name for debugging
 
     public:
-        LuaFunctionCallable(LuaState *p_state, bool p_weak_state_ref, const String &p_func_name, int p_func_ref);
+        LuaFunctionCallable(LuaState *p_state, const String &p_func_name, int p_func_ref);
         ~LuaFunctionCallable();
 
         // CallableCustom interface
@@ -36,8 +35,9 @@ namespace gdluau
         virtual String get_as_text() const override;
         virtual CompareEqualFunc get_compare_equal_func() const override;
         virtual CompareLessFunc get_compare_less_func() const override;
-        virtual ObjectID get_object() const override;
         virtual bool is_valid() const override;
+        virtual ObjectID get_object() const override;
+        // virtual int get_argument_count(bool &r_is_valid) const;
         virtual void call(const Variant **p_arguments, int p_argcount, Variant &r_return_value, GDExtensionCallError &r_call_error) const override;
 
         // Comparison functions
