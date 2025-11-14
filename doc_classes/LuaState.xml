@@ -2018,9 +2018,9 @@
 			<return type="Callable" />
 			<param index="0" name="index" type="int" />
 			<description>
-				Converts the function at [param index] to a Godot [Callable]. If the function is a Lua function, it will not be garbage collected until the [Callable] is destroyed. Functions with any number of arguments (including variadic/vararg functions) are supported, but any returned values other than the first will be discarded. Returns an invalid [Callable] if the value is not a function.
+				Converts the value at [param index] to a Godot [Callable]. The value can be a function, or a table or full userdata with a [code]__call[/code] metamethod; otherwise, returns an invalid [Callable]. If the conversion succeeds, the value will not be garbage collected until the [Callable] is destroyed.
+				Functions with any number of arguments (including variadic/vararg functions) are supported, but any returned values other than the first will be discarded. 
 				The [LuaState] will [i]not[/i] be automatically kept alive by the [Callable]. If the [LuaState] is freed while the [Callable] still exists, the [Callable] will become invalid and calling it will fail.
-				[b]Note:[/b] This currently does not support tables or userdata with a [code]__call[/code] metamethod. Only actual functions are supported.
 				[codeblock]
 				state.do_string("return function(x) return x * 2 end", "test")
 				var func := state.to_callable(-1)
