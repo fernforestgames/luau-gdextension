@@ -16,19 +16,17 @@ namespace gdluau
     Callable to_callable(lua_State *p_L, int p_index);
     void push_callable(lua_State *p_L, const Callable &p_callable);
 
-    // Custom Callable that wraps a Lua function.
-    // Allows Lua functions to be called from Godot as Callables.
+    // Custom Callable that wraps a Lua function, or a value with a __call metamethod.
     class LuaCallable : public CallableCustom
     {
     private:
         ObjectID lua_state_id; // Weak reference to LuaState
+        int lua_ref;           // Reference to Lua value in registry
 
-        int func_ref; // Reference to Lua function in registry
-
-        bool get_info(const char *p_what, lua_Debug &r_ar) const;
+        bool get_func_info(const char *p_what, lua_Debug &r_ar) const;
 
     public:
-        LuaCallable(LuaState *p_state, int p_func_ref);
+        LuaCallable(LuaState *p_state, int p_lua_ref);
         ~LuaCallable();
 
         // CallableCustom interface
@@ -46,6 +44,6 @@ namespace gdluau
         static bool compare_less(const CallableCustom *p_a, const CallableCustom *p_b);
 
         LuaState *get_lua_state() const;
-        int get_func_ref() const { return func_ref; }
+        int get_lua_ref() const;
     };
 } // namespace gdluau
