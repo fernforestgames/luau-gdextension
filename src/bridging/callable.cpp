@@ -213,6 +213,33 @@ bool LuaCallable::get_func_info(const char *p_what, lua_Debug &r_ar) const
     return result;
 }
 
+bool LuaCallable::get_func_from_callable_table_or_userdata(lua_State *L) const
+{
+    ERR_FAIL_COND_V_MSG(!lua_checkstack(L, 2), false, "LuaCallable.get_func_from_callable_table_or_userdata(): Stack overflow. Cannot grow stack.");
+    ERR_FAIL_COND_V_MSG(lua_getmetatable(L, -1) == 0, false, vformat("LuaCallable.get_func_from_callable_table_or_userdata(): Expected userdata or table %s to have a __call metamethod, but no metatable found.", get_as_text()));
+
+    int type = lua_getfield(L, -1, "__call");
+    if (type == LUA_TFUNCTION)
+    {
+        lua_remove(L, -2); // Remove metatable
+        return true;
+    }
+    else if (type == LUA_TTABLE || type == LUA_TUSERDATA)
+    {
+        lua_remove(L, -2); // Remove metatable
+        int value_index = lua_gettop(L);
+        bool result = get_func_from_callable_table_or_userdata(L);
+        lua_remove(L, value_index); // Remove __call
+
+        return result;
+    }
+    else
+    {
+        lua_pop(L, 2); // Pop metatable and __call
+        return false;
+    }
+}
+
 uint32_t LuaCallable::hash() const
 {
     uint32_t h = HASH_MURMUR3_SEED;
@@ -318,7 +345,7 @@ void LuaCallable::call(const Variant **p_arguments, int p_argcount, Variant &r_r
         return;
     }
 
-    // Function + all arguments
+    // Referenced value + all arguments
     if (!lua_checkstack(L, 1 + p_argcount)) [[unlikely]]
     {
         ERR_PRINT(vformat("LuaCallable.call(): Stack overflow. Cannot grow stack for %d arguments.", p_argcount));
@@ -327,9 +354,30 @@ void LuaCallable::call(const Variant **p_arguments, int p_argcount, Variant &r_r
     }
 
     int type = lua_getref(L, lua_ref);
-    if (type == LUA_TNIL || type == LUA_TNONE) [[unlikely]]
+    int self_arg = 0;
+    switch (type)
     {
-        ERR_PRINT("LuaCallable.call(): value reference is no longer valid");
+    case LUA_TFUNCTION:
+        // Functions are directly callable, nothing to do
+        break;
+
+    case LUA_TUSERDATA:
+        [[fallthrough]];
+    case LUA_TTABLE:
+        if (!get_func_from_callable_table_or_userdata(L))
+        {
+            ERR_PRINT(vformat("LuaCallable.call(): Expected userdata or table %s to have a __call metamethod", get_as_text()));
+            lua_pop(L, 1);
+            r_call_error.error = GDEXTENSION_CALL_ERROR_INVALID_METHOD;
+            return;
+        }
+
+        lua_insert(L, -2); // Move function below userdata/table (which becomes the `self` arg)
+        self_arg = 1;
+        break;
+
+    default:
+        ERR_PRINT(vformat("LuaCallable.call(): Expected function, userdata, or table, got %s.", lua_typename(L, type)));
         lua_pop(L, 1);
         r_call_error.error = GDEXTENSION_CALL_ERROR_INVALID_METHOD;
         return;
@@ -340,7 +388,7 @@ void LuaCallable::call(const Variant **p_arguments, int p_argcount, Variant &r_r
         push_variant(L, *(p_arguments[i]));
     }
 
-    int status = lua_pcall(L, p_argcount, 1, 0);
+    int status = lua_pcall(L, self_arg + p_argcount, 1, 0);
     if (status != LUA_OK)
     {
         const char *error_msg = lua_tostring(L, -1);

@@ -24,6 +24,7 @@ namespace gdluau
         int lua_ref;           // Reference to Lua value in registry
 
         bool get_func_info(const char *p_what, lua_Debug &r_ar) const;
+        bool get_func_from_callable_table_or_userdata(lua_State *L) const;
 
     public:
         LuaCallable(LuaState *p_state, int p_lua_ref);
