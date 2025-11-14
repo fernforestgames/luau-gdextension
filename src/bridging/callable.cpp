@@ -251,6 +251,21 @@ bool LuaFunctionCallable::is_valid() const
     return state != nullptr && state->is_valid();
 }
 
+int LuaFunctionCallable::get_argument_count(bool &r_is_valid) const
+{
+    lua_Debug ar;
+    if (get_info("a", ar))
+    {
+        r_is_valid = true;
+        return ar.nparams;
+    }
+    else
+    {
+        r_is_valid = false;
+        return 0;
+    }
+}
+
 void LuaFunctionCallable::call(const Variant **p_arguments, int p_argcount, Variant &r_return_value, GDExtensionCallError &r_call_error) const
 {
     r_call_error.error = GDEXTENSION_CALL_OK;
