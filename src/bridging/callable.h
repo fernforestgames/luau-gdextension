@@ -4,7 +4,7 @@
 #include <godot_cpp/variant/callable.hpp>
 #include <godot_cpp/variant/callable_custom.hpp>
 
-struct lua_State;
+#include <lua.h>
 
 namespace gdluau
 {
@@ -16,19 +16,18 @@ namespace gdluau
     Callable to_callable(lua_State *p_L, int p_index);
     void push_callable(lua_State *p_L, const Callable &p_callable);
 
-    // Custom Callable that wraps a Lua function.
-    // Allows Lua functions to be called from Godot as Callables.
+    // Custom Callable that wraps a Lua function, or a value with a __call metamethod.
     class LuaCallable : public CallableCustom
     {
     private:
-        ObjectID lua_state_id;   // Weak reference to LuaState
-        Ref<LuaState> lua_state; // Optional strong reference to LuaState
+        ObjectID lua_state_id; // Weak reference to LuaState
+        int lua_ref;           // Reference to Lua value in registry
 
-        int func_ref;     // Reference to Lua function in registry
-        String func_name; // Optional function name for debugging
+        bool get_func_info(const char *p_what, lua_Debug &r_ar) const;
+        bool get_func_from_callable_table_or_userdata(lua_State *L) const;
 
     public:
-        LuaCallable(LuaState *p_state, bool p_weak_state_ref, const String &p_func_name, int p_func_ref);
+        LuaCallable(LuaState *p_state, int p_lua_ref);
         ~LuaCallable();
 
         // CallableCustom interface
@@ -36,8 +35,9 @@ namespace gdluau
         virtual String get_as_text() const override;
         virtual CompareEqualFunc get_compare_equal_func() const override;
         virtual CompareLessFunc get_compare_less_func() const override;
-        virtual ObjectID get_object() const override;
         virtual bool is_valid() const override;
+        virtual ObjectID get_object() const override;
+        virtual int get_argument_count(bool &r_is_valid) const override;
         virtual void call(const Variant **p_arguments, int p_argcount, Variant &r_return_value, GDExtensionCallError &r_call_error) const override;
 
         // Comparison functions
@@ -45,6 +45,6 @@ namespace gdluau
         static bool compare_less(const CallableCustom *p_a, const CallableCustom *p_b);
 
         LuaState *get_lua_state() const;
-        int get_func_ref() const { return func_ref; }
+        int get_lua_ref() const;
     };
 } // namespace gdluau

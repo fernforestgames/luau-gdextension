@@ -129,7 +129,7 @@ func test_lua_function_error_handling() -> void:
 	L.pop(1)
 
 	var result: Variant = lua_func.call()
-	assert_engine_error("error during call to error_func")
+	assert_engine_error("error during call to lua:error_func")
 	assert_null(result, "Erroring Lua function should return null on error")
 	assert_stack_balanced()
 
