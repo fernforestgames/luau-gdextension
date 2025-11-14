@@ -73,6 +73,11 @@ static int callable_call(lua_State *L)
     // Pop all arguments and `self` from the stack
     lua_pop(L, arg_count + 1);
 
+    if (callable.is_custom() && dynamic_cast<LuaStateBoundCallable *>(callable.get_custom()))
+    {
+        args.push_front(LuaState::find_or_create_lua_state(L));
+    }
+
     Variant result = callable.callv(args);
 
     // The Callable can return additional values by pushing them on the stack
@@ -432,4 +437,102 @@ LuaState *LuaCallable::get_lua_state() const
 int LuaCallable::get_lua_ref() const
 {
     return lua_ref;
+}
+
+uint32_t LuaStateBoundCallable::hash() const
+{
+    uint32_t h = HASH_MURMUR3_SEED;
+    h = hash_murmur3_one_32(callable.hash(), h);
+    h = hash_murmur3_one_32(0xB17D, h); // Distinguish from plain Callable
+    return hash_fmix32(h);
+}
+
+String LuaStateBoundCallable::get_as_text() const
+{
+    return vformat("LuaStateBoundCallable(%s)", callable);
+}
+
+CallableCustom::CompareEqualFunc LuaStateBoundCallable::get_compare_equal_func() const
+{
+    return &LuaStateBoundCallable::compare_equal;
+}
+
+CallableCustom::CompareLessFunc LuaStateBoundCallable::get_compare_less_func() const
+{
+    return &LuaStateBoundCallable::compare_less;
+}
+
+bool LuaStateBoundCallable::is_valid() const
+{
+    return callable.is_valid();
+}
+
+ObjectID LuaStateBoundCallable::get_object() const
+{
+    return ObjectID(callable.get_object_id());
+}
+
+int LuaStateBoundCallable::get_argument_count(bool &r_is_valid) const
+{
+    if (callable.is_custom())
+    {
+        CallableCustom *custom = callable.get_custom();
+        return custom->get_argument_count(r_is_valid);
+    }
+    else
+    {
+        r_is_valid = true;
+        return callable.get_argument_count();
+    }
+}
+
+void LuaStateBoundCallable::call(const Variant **p_arguments, int p_argcount, Variant &r_return_value, GDExtensionCallError &r_call_error) const
+{
+    if (!callable.is_valid()) [[unlikely]]
+    {
+        r_call_error.error = GDEXTENSION_CALL_ERROR_INVALID_METHOD;
+        ERR_FAIL_MSG("LuaStateBoundCallable.call(): Callable is not valid.");
+    }
+
+    if (p_argcount < 1) [[unlikely]]
+    {
+        r_call_error.error = GDEXTENSION_CALL_ERROR_TOO_FEW_ARGUMENTS;
+        r_call_error.argument = 0;
+        r_call_error.expected = 1;
+        ERR_FAIL_MSG("LuaStateBoundCallable.call(): At least one argument (the LuaState) is required.");
+    }
+
+    LuaState *state = Object::cast_to<LuaState>(*p_arguments[0]);
+    if (!state) [[unlikely]]
+    {
+        r_call_error.error = GDEXTENSION_CALL_ERROR_INVALID_ARGUMENT;
+        ERR_FAIL_MSG("LuaStateBoundCallable.call(): First argument must be a valid LuaState.");
+    }
+
+    Array args;
+    args.resize(p_argcount);
+    for (int i = 0; i < p_argcount; i++)
+    {
+        args[i] = *(p_arguments[i]);
+    }
+
+    r_return_value = callable.callv(args);
+    r_call_error.error = GDEXTENSION_CALL_OK;
+}
+
+// Comparison functions
+bool LuaStateBoundCallable::compare_equal(const CallableCustom *p_a, const CallableCustom *p_b)
+{
+    const LuaStateBoundCallable *a = static_cast<const LuaStateBoundCallable *>(p_a);
+    const LuaStateBoundCallable *b = static_cast<const LuaStateBoundCallable *>(p_b);
+    return a->callable == b->callable;
+}
+
+bool LuaStateBoundCallable::compare_less(const CallableCustom *p_a, const CallableCustom *p_b)
+{
+    const LuaStateBoundCallable *a = static_cast<const LuaStateBoundCallable *>(p_a);
+    const LuaStateBoundCallable *b = static_cast<const LuaStateBoundCallable *>(p_b);
+
+    // Callable doesn't expose a < operator for some reason
+    return Variant(a->callable) < Variant(b->callable);
 }
