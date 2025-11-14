@@ -199,7 +199,7 @@ bool LuaCallable::get_func_info(const char *p_what, lua_Debug &r_ar) const
     }
 
     lua_State *L = state->get_lua_state();
-    ERR_FAIL_COND_V_MSG(lua_checkstack(L, 1), false, "LuaCallable.get_func_info(): Stack overflow. Cannot grow stack.");
+    ERR_FAIL_COND_V_MSG(!lua_checkstack(L, 1), false, "LuaCallable.get_func_info(): Stack overflow. Cannot grow stack.");
 
     if (lua_getref(L, lua_ref) != LUA_TFUNCTION)
     {
@@ -264,7 +264,7 @@ String LuaCallable::get_as_text() const
     }
 
     lua_State *L = state->get_lua_state();
-    ERR_FAIL_COND_V_MSG(lua_checkstack(L, 2), "<unknown>", "LuaCallable.get_as_text(): Stack overflow. Cannot grow stack.");
+    ERR_FAIL_COND_V_MSG(!lua_checkstack(L, 2), "<unknown>", "LuaCallable.get_as_text(): Stack overflow. Cannot grow stack.");
 
     lua_getref(L, lua_ref);
 
