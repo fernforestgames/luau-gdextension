@@ -18,7 +18,7 @@ namespace gdluau
 
     // Custom Callable that wraps a Lua function.
     // Allows Lua functions to be called from Godot as Callables.
-    class LuaCallable : public CallableCustom
+    class LuaFunctionCallable : public CallableCustom
     {
     private:
         ObjectID lua_state_id;   // Weak reference to LuaState
@@ -28,8 +28,8 @@ namespace gdluau
         String func_name; // Optional function name for debugging
 
     public:
-        LuaCallable(LuaState *p_state, bool p_weak_state_ref, const String &p_func_name, int p_func_ref);
-        ~LuaCallable();
+        LuaFunctionCallable(LuaState *p_state, bool p_weak_state_ref, const String &p_func_name, int p_func_ref);
+        ~LuaFunctionCallable();
 
         // CallableCustom interface
         virtual uint32_t hash() const override;

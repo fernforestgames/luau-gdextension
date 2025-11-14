@@ -32,7 +32,7 @@ derivative) into Godot Engine.
   and Luau. Vector3 uses Luau's native vector type for high performance. Other
   types (Vector2, Vector4, Color, etc.) use userdata with metatables for
   operators and property access.
-- `LuaCallable` in `lua_callable.h/cpp`: Wraps Lua functions as Godot Callables,
+- `LuaFunctionCallable` in `lua_callable.h/cpp`: Wraps Lua functions as Godot Callables,
   enabling bidirectional callable bridging between Godot and Luau. Uses manual
   reference counting to manage LuaState lifetime.
 - **Lua threads**: LuaState supports Lua threads (coroutines) via `new_thread()`
@@ -121,7 +121,7 @@ sample Luau script.
 - Other math types are implemented as userdata with metatables
 - **Callable bridging:** Bidirectional conversion between Lua functions and
   Godot Callables:
-  - Lua functions → Godot Callables: Wrapped in `LuaCallable` class using manual
+  - Lua functions → Godot Callables: Wrapped in `LuaFunctionCallable` class using manual
     reference counting to keep LuaState alive
   - Godot Callables → Lua: Stored as userdata with `__call` metamethod
   - Error handling: Prints errors and returns nil on failure

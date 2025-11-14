@@ -163,15 +163,15 @@ Callable gdluau::to_callable(lua_State *L, int p_index)
 
     LuaState *state = LuaState::find_lua_state(L);
     String func_name = lua_function_name(L, negative_index);
-    LuaCallable *lc;
+    LuaFunctionCallable *lc;
     if (state) [[likely]]
     {
-        lc = memnew(LuaCallable(state, true, func_name, func_ref));
+        lc = memnew(LuaFunctionCallable(state, true, func_name, func_ref));
     }
     else [[unlikely]]
     {
         Ref<LuaState> created_state = LuaState::find_or_create_lua_state(L);
-        lc = memnew(LuaCallable(created_state.ptr(), false, func_name, func_ref));
+        lc = memnew(LuaFunctionCallable(created_state.ptr(), false, func_name, func_ref));
     }
 
     return Callable(lc);
@@ -181,12 +181,12 @@ void gdluau::push_callable(lua_State *L, const Callable &p_callable)
 {
     ERR_FAIL_COND_MSG(!lua_checkstack(L, 2), "push_callable(): Stack overflow. Cannot grow stack."); // Callable + metatable
 
-    // Check if this is a LuaCallable wrapping a Lua function
+    // Check if this is a LuaFunctionCallable wrapping a Lua function
     // If so, push the original Lua function instead of wrapping it again
-    LuaCallable *lc = dynamic_cast<LuaCallable *>(p_callable.get_custom());
+    LuaFunctionCallable *lc = dynamic_cast<LuaFunctionCallable *>(p_callable.get_custom());
     if (lc)
     {
-        ERR_FAIL_COND_MSG(!lc->is_valid(), "push_callable(): LuaCallable is invalid.");
+        ERR_FAIL_COND_MSG(!lc->is_valid(), "push_callable(): LuaFunctionCallable is invalid.");
 
         LuaState *callable_state = lc->get_lua_state();
         ERR_FAIL_COND_MSG(callable_state->get_main_thread()->get_lua_state() != lua_mainthread(L), "push_callable(): Cannot push a Lua function from a different Luau VM.");
@@ -203,7 +203,7 @@ void gdluau::push_callable(lua_State *L, const Callable &p_callable)
     lua_setmetatable(L, -2);
 }
 
-LuaCallable::LuaCallable(LuaState *p_state, bool p_weak_state_ref, const String &p_func_name, int p_func_ref)
+LuaFunctionCallable::LuaFunctionCallable(LuaState *p_state, bool p_weak_state_ref, const String &p_func_name, int p_func_ref)
     : lua_state_id(p_state->get_instance_id()), lua_state(), func_ref(p_func_ref), func_name(p_func_name)
 {
     if (!p_weak_state_ref)
@@ -212,7 +212,7 @@ LuaCallable::LuaCallable(LuaState *p_state, bool p_weak_state_ref, const String 
     }
 }
 
-LuaCallable::~LuaCallable()
+LuaFunctionCallable::~LuaFunctionCallable()
 {
     LuaState *state = get_lua_state();
 
@@ -223,7 +223,7 @@ LuaCallable::~LuaCallable()
     }
 }
 
-uint32_t LuaCallable::hash() const
+uint32_t LuaFunctionCallable::hash() const
 {
     uint32_t h = HASH_MURMUR3_SEED;
     h = hash_murmur3_one_64(static_cast<uint64_t>(lua_state_id), h);
@@ -231,33 +231,33 @@ uint32_t LuaCallable::hash() const
     return hash_fmix32(h);
 }
 
-String LuaCallable::get_as_text() const
+String LuaFunctionCallable::get_as_text() const
 {
     return "lua:" + func_name;
 }
 
-CallableCustom::CompareEqualFunc LuaCallable::get_compare_equal_func() const
+CallableCustom::CompareEqualFunc LuaFunctionCallable::get_compare_equal_func() const
 {
-    return &LuaCallable::compare_equal;
+    return &LuaFunctionCallable::compare_equal;
 }
 
-CallableCustom::CompareLessFunc LuaCallable::get_compare_less_func() const
+CallableCustom::CompareLessFunc LuaFunctionCallable::get_compare_less_func() const
 {
-    return &LuaCallable::compare_less;
+    return &LuaFunctionCallable::compare_less;
 }
 
-ObjectID LuaCallable::get_object() const
+ObjectID LuaFunctionCallable::get_object() const
 {
     return lua_state_id;
 }
 
-bool LuaCallable::is_valid() const
+bool LuaFunctionCallable::is_valid() const
 {
     LuaState *state = get_lua_state();
     return state != nullptr && state->is_valid();
 }
 
-void LuaCallable::call(const Variant **p_arguments, int p_argcount, Variant &r_return_value, GDExtensionCallError &r_call_error) const
+void LuaFunctionCallable::call(const Variant **p_arguments, int p_argcount, Variant &r_return_value, GDExtensionCallError &r_call_error) const
 {
     r_call_error.error = GDEXTENSION_CALL_OK;
     r_return_value = Variant(); // Default to nil
@@ -265,13 +265,13 @@ void LuaCallable::call(const Variant **p_arguments, int p_argcount, Variant &r_r
     LuaState *state = get_lua_state();
     if (!state) [[unlikely]]
     {
-        ERR_PRINT("LuaCallable.call(): LuaState is null");
+        ERR_PRINT("LuaFunctionCallable.call(): LuaState is null");
         r_call_error.error = GDEXTENSION_CALL_ERROR_INSTANCE_IS_NULL;
         return;
     }
     else if (!state->is_valid()) [[unlikely]]
     {
-        ERR_PRINT("LuaCallable.call(): LuaState is not valid");
+        ERR_PRINT("LuaFunctionCallable.call(): LuaState is not valid");
         r_call_error.error = GDEXTENSION_CALL_ERROR_INSTANCE_IS_NULL;
         return;
     }
@@ -279,7 +279,7 @@ void LuaCallable::call(const Variant **p_arguments, int p_argcount, Variant &r_r
     lua_State *L = state->get_lua_state();
     if (!L) [[unlikely]]
     {
-        ERR_PRINT("LuaCallable.call(): lua_State is null");
+        ERR_PRINT("LuaFunctionCallable.call(): lua_State is null");
         r_call_error.error = GDEXTENSION_CALL_ERROR_INSTANCE_IS_NULL;
         return;
     }
@@ -287,7 +287,7 @@ void LuaCallable::call(const Variant **p_arguments, int p_argcount, Variant &r_r
     // Function + all arguments
     if (!lua_checkstack(L, 1 + p_argcount)) [[unlikely]]
     {
-        ERR_PRINT(vformat("LuaCallable.call(): Stack overflow. Cannot grow stack for %d arguments.", p_argcount));
+        ERR_PRINT(vformat("LuaFunctionCallable.call(): Stack overflow. Cannot grow stack for %d arguments.", p_argcount));
         r_call_error.error = GDEXTENSION_CALL_ERROR_TOO_MANY_ARGUMENTS;
         return;
     }
@@ -295,7 +295,7 @@ void LuaCallable::call(const Variant **p_arguments, int p_argcount, Variant &r_r
     lua_getref(L, func_ref);
     if (!lua_isLfunction(L, -1)) [[unlikely]]
     {
-        ERR_PRINT("LuaCallable.call(): function reference is not valid");
+        ERR_PRINT("LuaFunctionCallable.call(): function reference is not valid");
         lua_pop(L, 1);
         r_call_error.error = GDEXTENSION_CALL_ERROR_INVALID_METHOD;
         return;
@@ -310,7 +310,7 @@ void LuaCallable::call(const Variant **p_arguments, int p_argcount, Variant &r_r
     if (status != LUA_OK)
     {
         const char *error_msg = lua_tostring(L, -1);
-        ERR_PRINT(vformat("LuaCallable.call(): error during call to %s: %s", func_name, error_msg));
+        ERR_PRINT(vformat("LuaFunctionCallable.call(): error during call to %s: %s", func_name, error_msg));
         lua_pop(L, 1);
 
         // Don't set r_call_error, to avoid a fatal script error.
@@ -321,17 +321,17 @@ void LuaCallable::call(const Variant **p_arguments, int p_argcount, Variant &r_r
     lua_pop(L, 1);
 }
 
-bool LuaCallable::compare_equal(const CallableCustom *p_a, const CallableCustom *p_b)
+bool LuaFunctionCallable::compare_equal(const CallableCustom *p_a, const CallableCustom *p_b)
 {
-    const LuaCallable *a = static_cast<const LuaCallable *>(p_a);
-    const LuaCallable *b = static_cast<const LuaCallable *>(p_b);
+    const LuaFunctionCallable *a = static_cast<const LuaFunctionCallable *>(p_a);
+    const LuaFunctionCallable *b = static_cast<const LuaFunctionCallable *>(p_b);
     return a->lua_state_id == b->lua_state_id && a->func_ref == b->func_ref;
 }
 
-bool LuaCallable::compare_less(const CallableCustom *p_a, const CallableCustom *p_b)
+bool LuaFunctionCallable::compare_less(const CallableCustom *p_a, const CallableCustom *p_b)
 {
-    const LuaCallable *a = static_cast<const LuaCallable *>(p_a);
-    const LuaCallable *b = static_cast<const LuaCallable *>(p_b);
+    const LuaFunctionCallable *a = static_cast<const LuaFunctionCallable *>(p_a);
+    const LuaFunctionCallable *b = static_cast<const LuaFunctionCallable *>(p_b);
 
     if (a->lua_state_id != b->lua_state_id)
     {
@@ -341,7 +341,7 @@ bool LuaCallable::compare_less(const CallableCustom *p_a, const CallableCustom *
     return a->func_ref < b->func_ref;
 }
 
-LuaState *LuaCallable::get_lua_state() const
+LuaState *LuaFunctionCallable::get_lua_state() const
 {
     Object *obj = ObjectDB::get_instance(lua_state_id);
     return Object::cast_to<LuaState>(obj);
