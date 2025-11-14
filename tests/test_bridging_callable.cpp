@@ -276,4 +276,69 @@ TEST_SUITE("Bridging - Callable")
 
         CHECK(static_cast<int>(result) == 42);
     }
+
+    TEST_CASE_FIXTURE(LuaStateFixture, "to_callable - table with __call metamethod (function)")
+    {
+        exec_lua_ok(R"(
+            local my_table = {}
+            setmetatable(my_table, {
+                __call = function(self, a, b)
+                    return a + b
+                end
+            })
+            return my_table
+        )");
+
+        // The table should be on the stack
+        CHECK(state->type(-1) == LUA_TTABLE);
+
+        Callable callable = state->to_callable(-1);
+        state->pop(1);
+
+        CHECK(callable.is_valid());
+
+        // Call the callable
+        Array args;
+        args.push_back(15);
+        args.push_back(27);
+
+        Variant result = callable.callv(args);
+        CHECK(static_cast<int>(result) == 42);
+    }
+
+    TEST_CASE_FIXTURE(LuaStateFixture, "to_callable - table with __call metamethod (nested table)")
+    {
+        exec_lua_ok(R"(
+            -- Create a nested callable table structure
+            local inner_table = {}
+            setmetatable(inner_table, {
+                __call = function(self, x, y)
+                    return x * y
+                end
+            })
+
+            local outer_table = {}
+            setmetatable(outer_table, {
+                __call = inner_table
+            })
+
+            return outer_table
+        )");
+
+        // The outer table should be on the stack
+        CHECK(state->type(-1) == LUA_TTABLE);
+
+        Callable callable = state->to_callable(-1);
+        state->pop(1);
+
+        CHECK(callable.is_valid());
+
+        // Call the callable - should resolve through both metatables
+        Array args;
+        args.push_back(6);
+        args.push_back(7);
+
+        Variant result = callable.callv(args);
+        CHECK(static_cast<int>(result) == 42);
+    }
 }
