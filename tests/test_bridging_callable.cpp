@@ -1,5 +1,5 @@
 // Tests for bridging/callable - Callable bridging between Godot and Lua
-// to_callable, push_callable, LuaFunctionCallable
+// to_callable, push_callable, LuaCallable
 
 #include "doctest.h"
 #include "test_fixtures.h"
