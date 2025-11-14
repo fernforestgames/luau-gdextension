@@ -134,7 +134,7 @@ jobs:
           delete-merged: true
 
   upload-release-artifacts:
-    runs-on: ubuntu-slim
+    runs-on: ubuntu-latest
     needs: build
     if: github.event_name == 'release'
 
