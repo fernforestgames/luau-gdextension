@@ -245,17 +245,13 @@ TEST_SUITE("Bridging - Callable")
         CHECK(static_cast<int>(result5) == 15);
     }
 
-    TEST_CASE_FIXTURE(LuaStateFixture, "bind_callable_weakly")
+    TEST_CASE_FIXTURE(LuaStateFixture, "bind_callable")
     {
-        // Create a Lua function that checks if first arg is a valid LuaState
-        // and doubles the second arg
+        // Create a Lua function that receives LuaState as first arg and doubles the second arg
         exec_lua_ok(R"(
             function test_with_state(state, value)
-                if state == nil then
-                    return -1
-                end
-                -- In Lua, we can't directly check if it's a LuaState,
-                -- but if it's passed and not nil, we can return the doubled value
+                -- When called from Lua with a bound callable,
+                -- state will be automatically injected as the first argument
                 return value * 2
             end
         )");
@@ -264,17 +260,18 @@ TEST_SUITE("Bridging - Callable")
         Callable original = state->to_callable(-1);
         state->pop(1);
 
-        Callable weakly_bound = state->bind_callable_weakly(original);
+        Callable bound = LuaState::bind_callable(original);
 
-        CHECK(weakly_bound.is_valid());
+        CHECK(bound.is_valid());
 
-        // Call the weakly bound callable
-        // The LuaState should be passed as the first argument automatically
-        Array args;
-        args.push_back(21); // This becomes the second argument after the auto-inserted LuaState
-        Variant result = weakly_bound.callv(args);
+        // When the bound callable is invoked from Lua, the active LuaState
+        // is automatically passed as the first argument
+        state->push_callable(bound);
+        state->push_number(21);
+        state->pcall(1, 1);
 
-        CHECK(static_cast<int>(result) == 42);
+        CHECK(state->to_number(-1) == 42);
+        state->pop(1);
     }
 
     TEST_CASE_FIXTURE(LuaStateFixture, "to_callable - table with __call metamethod (function)")

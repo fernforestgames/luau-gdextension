@@ -549,114 +549,93 @@ func _concat_varargs(...values: Array) -> String:
 	return result
 
 # ============================================================================
-# bind_callable_weakly Tests
+# bind_callable Tests
 # ============================================================================
 
-func test_bind_callable_weakly_state_alive() -> void:
-	# Create a callable that expects LuaState as first argument
-	var weakly_bound: Callable = L.bind_callable_weakly(self._test_func_with_state)
+func test_bind_callable_invoked_from_lua() -> void:
+	# bind_callable is used to create callables that, when invoked from Lua,
+	# automatically receive the active LuaState as the first argument
+	var bound: Callable = LuaState.bind_callable(self._test_func_with_state)
 
-	assert_true(weakly_bound.is_valid(), "Weakly bound callable should be valid")
+	assert_true(bound.is_valid(), "Bound callable should be valid")
 
-	# Call the weakly bound callable (LuaState is automatically passed as first arg)
-	var result: int = weakly_bound.call(21)
-	assert_eq(result, 42, "Weakly bound callable should work with LuaState alive")
+	# Push the bound callable to Lua and invoke it
+	L.push_callable(bound)
+	L.set_global("test_func")
+
+	var code: String = "return test_func(21)"
+	var bytecode: PackedByteArray = Luau.compile(code, null)
+	L.load_bytecode(bytecode, "test")
+	L.resume()
+
+	var result: int = L.to_integer(-1)
+	assert_eq(result, 42, "Bound callable should work when invoked from Lua")
+	L.pop(1)
 
 	assert_stack_balanced()
 
-func test_bind_callable_weakly_with_varargs_state_alive() -> void:
-	# Create a weakly bound callable with varargs
-	var weakly_bound: Callable = L.bind_callable_weakly(self._concat_with_state)
+func test_bind_callable_with_varargs_from_lua() -> void:
+	# Test a bound callable with varargs invoked from Lua
+	var bound: Callable = LuaState.bind_callable(self._concat_with_state)
 
-	assert_true(weakly_bound.is_valid(), "Weakly bound callable should be valid")
+	assert_true(bound.is_valid(), "Bound callable should be valid")
+
+	L.push_callable(bound)
+	L.set_global("concat")
 
 	# Test with 0 arguments
-	var result0: String = weakly_bound.call()
-	assert_eq(result0, "", "Varargs with 0 args should return empty string")
+	L.do_string('return concat()', "test0")
+	assert_eq(L.to_string_inplace(-1), "", "Varargs with 0 args should return empty string")
+	L.pop(1)
 
 	# Test with 1 argument
-	var result1: String = weakly_bound.call("A")
-	assert_eq(result1, "A", "Varargs with 1 arg should return single value")
+	L.do_string('return concat("A")', "test1")
+	assert_eq(L.to_string_inplace(-1), "A", "Varargs with 1 arg should return single value")
+	L.pop(1)
 
 	# Test with 3 arguments
-	var result3: String = weakly_bound.call("Hello", " ", "World")
-	assert_eq(result3, "Hello World", "Varargs with 3 args should concatenate all")
+	L.do_string('return concat("Hello", " ", "World")', "test3")
+	assert_eq(L.to_string_inplace(-1), "Hello World", "Varargs with 3 args should concatenate all")
+	L.pop(1)
 
 	# Test with 5 arguments
-	var result5: String = weakly_bound.call("A", "B", "C", "D", "E")
-	assert_eq(result5, "ABCDE", "Varargs with 5 args should concatenate all")
+	L.do_string('return concat("A", "B", "C", "D", "E")', "test5")
+	assert_eq(L.to_string_inplace(-1), "ABCDE", "Varargs with 5 args should concatenate all")
+	L.pop(1)
 
 	assert_stack_balanced()
 
-func test_bind_callable_weakly_state_freed() -> void:
-	var weakly_bound: Callable
+func test_bind_callable_state_injection() -> void:
+	# Verify that the LuaState is properly injected when callable is invoked from Lua
+	var bound: Callable = LuaState.bind_callable(self._verify_state_injected)
 
-	# Create a nested scope where the LuaState will be freed
-	var inner_state: LuaState = LuaState.new()
-	inner_state.open_libs()
+	L.push_callable(bound)
+	L.set_global("verify")
 
-	weakly_bound = inner_state.bind_callable_weakly(self._test_func_with_state)
-	assert_true(weakly_bound.is_valid(), "Weakly bound callable should be valid")
+	var code: String = "return verify()"
+	var bytecode: PackedByteArray = Luau.compile(code, null)
+	L.load_bytecode(bytecode, "test")
+	L.resume()
 
-	# Verify it works while state is alive
-	var result_alive: int = weakly_bound.call(5)
-	assert_eq(result_alive, 10, "Callable should work while state is alive")
-
-	# Close the state to free it
-	inner_state.close()
-	inner_state = null
-
-	# The callable should still be valid as a Callable object
-	assert_true(weakly_bound.is_valid(), "Callable object should still be valid after state freed")
-
-	# But when called, it should receive null as first argument
-	var result_freed: int = weakly_bound.call(5)
-	assert_eq(result_freed, -1, "Callable should return -1 when state is freed (null passed)")
+	var result: bool = L.to_boolean(-1)
+	assert_true(result, "LuaState should be automatically injected and valid")
+	L.pop(1)
 
 	assert_stack_balanced()
 
-func test_bind_callable_weakly_with_varargs_state_freed() -> void:
-	var weakly_bound: Callable
-
-	# Create a nested scope where the LuaState will be freed
-	var inner_state: LuaState = LuaState.new()
-	inner_state.open_libs()
-
-	weakly_bound = inner_state.bind_callable_weakly(self._concat_with_state)
-	assert_true(weakly_bound.is_valid(), "Weakly bound callable should be valid")
-
-	# Verify it works while state is alive
-	var result_alive: String = weakly_bound.call("Hello", " ", "World")
-	assert_eq(result_alive, "Hello World", "Callable should work while state is alive")
-
-	# Close the state to free it
-	inner_state.close()
-	inner_state = null
-
-	# But callable should still be valid as a Callable object
-	assert_true(weakly_bound.is_valid(), "Callable object should still be valid after state freed")
-
-	# But when called, it should indicate the state was freed
-	var result_freed: String = weakly_bound.call("Test")
-	assert_eq(result_freed, "State was freed", "Callable should return error message when state is freed")
-
-	assert_stack_balanced()
-
-# Helper function for bind_callable_weakly tests
-# Expects LuaState as first argument, then an integer value
+# Helper function for bind_callable tests
+# Expects LuaState as first argument (automatically injected when called from Lua)
 func _test_func_with_state(state: LuaState, value: int) -> int:
-	if state == null:
-		return -1 # State was freed
-	if not state.is_valid():
-		return -1 # State is invalid
+	if state == null or not state.is_valid():
+		return -1
 	# Return value doubled to prove the callable works
 	return value * 2
 
-# Helper function for bind_callable_weakly varargs tests
-# Expects LuaState as first argument, then varargs
+# Helper function for bind_callable varargs tests
+# Expects LuaState as first argument (automatically injected when called from Lua)
 func _concat_with_state(state: LuaState, ...values: Array) -> String:
-	if state == null:
-		return "State was freed"
+	if state == null or not state.is_valid():
+		return "State was invalid"
 
 	# Concatenate all values
 	var result: String = ""
@@ -664,17 +643,21 @@ func _concat_with_state(state: LuaState, ...values: Array) -> String:
 		result += val
 	return result
 
+# Helper to verify state is properly injected
+func _verify_state_injected(state: LuaState) -> bool:
+	return state != null and state.is_valid()
+
 # ============================================================================
 # Multiple Return Values from Godot Callable Tests
 # ============================================================================
 
 func test_godot_callable_void_with_stack_pushes() -> void:
 	# Test a void-returning Callable that pushes multiple values to the stack
+	# When invoked from Lua, the LuaState is automatically injected as first argument
 	# Expected behavior: Lua should receive all 3 pushed values
-	# Current behavior: This test will likely fail because callable_call only returns 1 value
-	var weakly_bound: Callable = L.bind_callable_weakly(self._void_callable_with_stack_pushes)
+	var bound: Callable = LuaState.bind_callable(self._void_callable_with_stack_pushes)
 
-	L.push_callable(weakly_bound)
+	L.push_callable(bound)
 	L.set_global("multi_push")
 
 	var code: String = """
@@ -703,9 +686,10 @@ func test_godot_callable_void_with_stack_pushes() -> void:
 
 func test_godot_callable_value_with_stack_pushes() -> void:
 	# Test a Callable that returns a value AND pushes additional values to the stack
-	var weakly_bound: Callable = L.bind_callable_weakly(self._value_callable_with_stack_pushes)
+	# When invoked from Lua, the LuaState is automatically injected as first argument
+	var bound: Callable = LuaState.bind_callable(self._value_callable_with_stack_pushes)
 
-	L.push_callable(weakly_bound)
+	L.push_callable(bound)
 	L.set_global("multi_return")
 
 	var code: String = """
@@ -736,9 +720,6 @@ func test_godot_callable_value_with_stack_pushes() -> void:
 
 # Helper function that returns void but pushes multiple values to the stack
 func _void_callable_with_stack_pushes(state: LuaState) -> void:
-	if state == null or not state.is_valid():
-		return
-
 	# Push 3 values onto the stack
 	state.push_integer(42)
 	state.push_string("hello")
@@ -747,9 +728,6 @@ func _void_callable_with_stack_pushes(state: LuaState) -> void:
 
 # Helper function that returns a value AND pushes additional values to the stack
 func _value_callable_with_stack_pushes(state: LuaState) -> String:
-	if state == null or not state.is_valid():
-		return "error"
-
 	# Push 3 additional values onto the stack
 	state.push_integer(100)
 	state.push_string("world")
