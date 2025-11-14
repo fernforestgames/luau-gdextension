@@ -47,4 +47,27 @@ namespace gdluau
         LuaState *get_lua_state() const;
         int get_lua_ref() const;
     };
+
+    class LuaStateBoundCallable : public CallableCustom
+    {
+    private:
+        Callable callable;
+
+    public:
+        LuaStateBoundCallable(Callable p_callable) : callable(p_callable) {}
+
+        // CallableCustom interface
+        virtual uint32_t hash() const override;
+        virtual String get_as_text() const override;
+        virtual CompareEqualFunc get_compare_equal_func() const override;
+        virtual CompareLessFunc get_compare_less_func() const override;
+        virtual bool is_valid() const override;
+        virtual ObjectID get_object() const override;
+        virtual int get_argument_count(bool &r_is_valid) const override;
+        virtual void call(const Variant **p_arguments, int p_argcount, Variant &r_return_value, GDExtensionCallError &r_call_error) const override;
+
+        // Comparison functions
+        static bool compare_equal(const CallableCustom *p_a, const CallableCustom *p_b);
+        static bool compare_less(const CallableCustom *p_a, const CallableCustom *p_b);
+    };
 } // namespace gdluau
