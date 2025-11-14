@@ -106,21 +106,6 @@ static void push_callable_metatable(lua_State *L)
     lua_setreadonly(L, -1, 1);
 }
 
-static String lua_function_name(lua_State *L, int p_index)
-{
-    ERR_FAIL_COND_V_MSG(p_index >= 0, "<unknown>", vformat("lua_function_name(%d): Expected a negative stack index.", p_index));
-    ERR_FAIL_COND_V_MSG(!lua_isfunction(L, p_index), "<invalid>", vformat("lua_function_name(%d): Not a function on the stack.", p_index));
-
-    String funcname;
-    lua_Debug ar;
-    if (lua_getinfo(L, p_index, "n", &ar))
-    {
-        funcname = ar.name;
-    }
-
-    return funcname.is_empty() ? "<unknown>" : funcname;
-}
-
 bool gdluau::is_godot_callable(lua_State *L, int p_index)
 {
     ERR_FAIL_COND_V_MSG(!is_valid_index(L, p_index), false, vformat("is_godot_callable(%d): Invalid stack index. Stack has %d elements.", p_index, lua_gettop(L)));
@@ -158,14 +143,10 @@ Callable gdluau::to_callable(lua_State *L, int p_index)
     // Protect the function from GC
     int func_ref = lua_ref(L, p_index);
 
-    // Need a relative stack index for lua_getinfo (positive numbers are treated as call stack levels)
-    int negative_index = p_index < 0 ? p_index : p_index - lua_gettop(L) - 1;
-
     LuaState *state = LuaState::find_lua_state(L);
     ERR_FAIL_COND_V_MSG(!state, Callable(), "to_callable(): Could not find existing LuaState for the given lua_State.");
 
-    String func_name = lua_function_name(L, negative_index);
-    LuaFunctionCallable *lc = memnew(LuaFunctionCallable(state, func_name, func_ref));
+    LuaFunctionCallable *lc = memnew(LuaFunctionCallable(state, func_ref));
     return Callable(lc);
 }
 
@@ -195,8 +176,8 @@ void gdluau::push_callable(lua_State *L, const Callable &p_callable)
     lua_setmetatable(L, -2);
 }
 
-LuaFunctionCallable::LuaFunctionCallable(LuaState *p_state, const String &p_func_name, int p_func_ref)
-    : lua_state_id(p_state->get_instance_id()), func_ref(p_func_ref), func_name(p_func_name)
+LuaFunctionCallable::LuaFunctionCallable(LuaState *p_state, int p_func_ref)
+    : lua_state_id(p_state->get_instance_id()), func_ref(p_func_ref)
 {
 }
 
@@ -211,6 +192,24 @@ LuaFunctionCallable::~LuaFunctionCallable()
     }
 }
 
+bool LuaFunctionCallable::get_info(const char *p_what, lua_Debug &r_ar) const
+{
+    LuaState *state = get_lua_state();
+    if (!state || !state->is_valid())
+    {
+        return false;
+    }
+
+    lua_State *L = state->get_lua_state();
+    ERR_FAIL_COND_V_MSG(lua_checkstack(L, 1), false, "LuaFunctionCallable.get_info(): Stack overflow. Cannot grow stack.");
+    lua_getref(L, func_ref);
+
+    bool result = (lua_getinfo(L, -1, p_what, &r_ar) != 0);
+    lua_pop(L, 1);
+
+    return result;
+}
+
 uint32_t LuaFunctionCallable::hash() const
 {
     uint32_t h = HASH_MURMUR3_SEED;
@@ -221,6 +220,13 @@ uint32_t LuaFunctionCallable::hash() const
 
 String LuaFunctionCallable::get_as_text() const
 {
+    String func_name = "<unknown>";
+    lua_Debug ar;
+    if (get_info("n", ar))
+    {
+        func_name = ar.name;
+    }
+
     return "lua:" + func_name;
 }
 
@@ -298,7 +304,7 @@ void LuaFunctionCallable::call(const Variant **p_arguments, int p_argcount, Vari
     if (status != LUA_OK)
     {
         const char *error_msg = lua_tostring(L, -1);
-        ERR_PRINT(vformat("LuaFunctionCallable.call(): error during call to %s: %s", func_name, error_msg));
+        ERR_PRINT(vformat("LuaFunctionCallable.call(): error during call to %s: %s", get_as_text(), error_msg));
         lua_pop(L, 1);
 
         // Don't set r_call_error, to avoid a fatal script error.

@@ -4,7 +4,7 @@
 #include <godot_cpp/variant/callable.hpp>
 #include <godot_cpp/variant/callable_custom.hpp>
 
-struct lua_State;
+#include <lua.h>
 
 namespace gdluau
 {
@@ -23,11 +23,12 @@ namespace gdluau
     private:
         ObjectID lua_state_id; // Weak reference to LuaState
 
-        int func_ref;     // Reference to Lua function in registry
-        String func_name; // Optional function name for debugging
+        int func_ref; // Reference to Lua function in registry
+
+        bool get_info(const char *p_what, lua_Debug &r_ar) const;
 
     public:
-        LuaFunctionCallable(LuaState *p_state, const String &p_func_name, int p_func_ref);
+        LuaFunctionCallable(LuaState *p_state, int p_func_ref);
         ~LuaFunctionCallable();
 
         // CallableCustom interface
@@ -37,7 +38,7 @@ namespace gdluau
         virtual CompareLessFunc get_compare_less_func() const override;
         virtual bool is_valid() const override;
         virtual ObjectID get_object() const override;
-        // virtual int get_argument_count(bool &r_is_valid) const;
+        // virtual int get_argument_count(bool &r_is_valid) const override;
         virtual void call(const Variant **p_arguments, int p_argcount, Variant &r_return_value, GDExtensionCallError &r_call_error) const override;
 
         // Comparison functions
