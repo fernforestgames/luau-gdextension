@@ -56,27 +56,28 @@ static int callable_call(lua_State *L)
 
     int arg_count = lua_gettop(L) - 1; // Subtract 1 for self
     int expected_args = callable.get_argument_count();
-    if (expected_args >= 0 && arg_count < expected_args) [[unlikely]]
+    int luastate_arg = callable.is_custom() && dynamic_cast<LuaStateBoundCallable *>(callable.get_custom());
+    if (expected_args >= 0 && arg_count + luastate_arg < expected_args) [[unlikely]]
     {
         luaL_error(L, "Too few arguments for Callable (expected at least %d, got %d)", expected_args, arg_count);
     }
 
     Array args;
-    args.resize(arg_count);
+    args.resize(arg_count + luastate_arg);
+    if (luastate_arg)
+    {
+        args[0] = LuaState::find_or_create_lua_state(L);
+    }
+
     for (int argi = 0; argi < arg_count; argi++)
     {
         // Skip `self` at index 1 (Lua stack is 1-based)
         int stack_idx = argi + 2;
-        args[argi] = to_variant(L, stack_idx);
+        args[argi + luastate_arg] = to_variant(L, stack_idx);
     }
 
     // Pop all arguments and `self` from the stack
     lua_pop(L, arg_count + 1);
-
-    if (callable.is_custom() && dynamic_cast<LuaStateBoundCallable *>(callable.get_custom()))
-    {
-        args.push_front(LuaState::find_or_create_lua_state(L));
-    }
 
     Variant result = callable.callv(args);
 
