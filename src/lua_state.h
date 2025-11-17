@@ -4,6 +4,8 @@
 #include <godot_cpp/core/binder_common.hpp>
 #include <lua.h>
 
+#include "helpers.h"
+
 namespace gdluau
 {
     using namespace godot;
@@ -134,9 +136,9 @@ namespace gdluau
         StringName to_string_name(int p_index);
         StringName get_namecall();
         int obj_len(int p_index);
-        Object *to_light_userdata(int p_index, int p_tag = -1);
-        Object *to_full_userdata(int p_index, int p_tag = -1);
-        Object *to_object(int p_index, int p_tag = -1);
+        Object *to_light_userdata(int p_index, int p_tag = LUA_NOTAG);
+        Object *to_full_userdata(int p_index, int p_tag = LUA_NOTAG);
+        Object *to_object(int p_index, int p_tag = LUA_NOTAG);
         int light_userdata_tag(int p_index);
         int full_userdata_tag(int p_index);
         Ref<LuaState> to_thread(int p_index);
@@ -152,9 +154,9 @@ namespace gdluau
         void push_string_name(const StringName &p_string_name);
         void push_boolean(bool p_b);
         bool push_thread();
-        void push_light_userdata(Object *p_obj, int p_tag = -1);
-        void push_full_userdata(Object *p_obj, int p_tag = -1);
-        void push_object(Object *p_obj, int p_tag = -1);
+        void push_light_userdata(Object *p_obj, int p_tag = LUA_NOTAG);
+        void push_full_userdata(Object *p_obj, int p_tag = LUA_NOTAG);
+        void push_object(Object *p_obj, int p_tag = LUA_NOTAG);
 
         // Get functions (Lua -> stack)
         lua_Type get_table(int p_index);
@@ -277,6 +279,7 @@ namespace gdluau
 
         // Godot bridging
         bool is_array(int p_index);
+        bool is_object(int p_index, int p_tag = LUA_NOTAG);
         Array to_array(int p_index);
         Callable to_callable(int p_index);
         Dictionary to_dictionary(int p_index);

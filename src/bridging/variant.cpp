@@ -435,7 +435,7 @@ void gdluau::push_variant(lua_State *L, const Variant &p_variant)
         }
         else
         {
-            push_object(L, obj);
+            push_object(L, obj, LUA_NOTAG);
         }
 
         return;
@@ -464,6 +464,7 @@ void gdluau::push_variant(lua_State *L, const Variant &p_variant)
     default:
     {
         // For all other types (geometry, etc.), push as userdata
+        // Use of an inline dtor is REQUIRED to not conflict with user's custom userdata tags
         void *ptr = lua_newuserdatadtor(L, sizeof(Variant), variant_dtor);
         memnew_placement(ptr, Variant(p_variant));
 

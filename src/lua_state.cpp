@@ -181,9 +181,9 @@ void LuaState::_bind_methods()
     ClassDB::bind_method(D_METHOD("to_string_name", "index"), &LuaState::to_string_name);
     ClassDB::bind_method(D_METHOD("get_namecall"), &LuaState::get_namecall);
     ClassDB::bind_method(D_METHOD("obj_len", "index"), &LuaState::obj_len);
-    ClassDB::bind_method(D_METHOD("to_light_userdata", "index", "tag"), &LuaState::to_light_userdata, DEFVAL(-1));
-    ClassDB::bind_method(D_METHOD("to_full_userdata", "index", "tag"), &LuaState::to_full_userdata, DEFVAL(-1));
-    ClassDB::bind_method(D_METHOD("to_object", "index", "tag"), &LuaState::to_object, DEFVAL(-1));
+    ClassDB::bind_method(D_METHOD("to_light_userdata", "index", "tag"), &LuaState::to_light_userdata, DEFVAL(LUA_NOTAG));
+    ClassDB::bind_method(D_METHOD("to_full_userdata", "index", "tag"), &LuaState::to_full_userdata, DEFVAL(LUA_NOTAG));
+    ClassDB::bind_method(D_METHOD("to_object", "index", "tag"), &LuaState::to_object, DEFVAL(LUA_NOTAG));
     ClassDB::bind_method(D_METHOD("light_userdata_tag", "index"), &LuaState::light_userdata_tag);
     ClassDB::bind_method(D_METHOD("full_userdata_tag", "index"), &LuaState::full_userdata_tag);
     ClassDB::bind_method(D_METHOD("to_thread", "index"), &LuaState::to_thread);
@@ -199,9 +199,9 @@ void LuaState::_bind_methods()
     ClassDB::bind_method(D_METHOD("push_string_name", "string_name"), &LuaState::push_string_name);
     ClassDB::bind_method(D_METHOD("push_boolean", "b"), &LuaState::push_boolean);
     ClassDB::bind_method(D_METHOD("push_thread"), &LuaState::push_thread);
-    ClassDB::bind_method(D_METHOD("push_light_userdata", "obj", "tag"), &LuaState::push_light_userdata, DEFVAL(-1));
-    ClassDB::bind_method(D_METHOD("push_full_userdata", "obj", "tag"), &LuaState::push_full_userdata, DEFVAL(-1));
-    ClassDB::bind_method(D_METHOD("push_object", "obj", "tag"), &LuaState::push_object, DEFVAL(-1));
+    ClassDB::bind_method(D_METHOD("push_light_userdata", "obj", "tag"), &LuaState::push_light_userdata, DEFVAL(LUA_NOTAG));
+    ClassDB::bind_method(D_METHOD("push_full_userdata", "obj", "tag"), &LuaState::push_full_userdata, DEFVAL(LUA_NOTAG));
+    ClassDB::bind_method(D_METHOD("push_object", "obj", "tag"), &LuaState::push_object, DEFVAL(LUA_NOTAG));
 
     // Get functions (Lua -> stack)
     ClassDB::bind_method(D_METHOD("get_table", "index"), &LuaState::get_table);
@@ -322,6 +322,7 @@ void LuaState::_bind_methods()
 
     // Godot bridging
     ClassDB::bind_method(D_METHOD("is_array", "index"), &LuaState::is_array);
+    ClassDB::bind_method(D_METHOD("is_object", "index", "tag"), &LuaState::is_object, DEFVAL(LUA_NOTAG));
     ClassDB::bind_method(D_METHOD("to_array", "index"), &LuaState::to_array);
     ClassDB::bind_method(D_METHOD("to_callable", "index"), &LuaState::to_callable);
     ClassDB::bind_method(D_METHOD("to_dictionary", "index"), &LuaState::to_dictionary);
@@ -336,6 +337,8 @@ void LuaState::_bind_methods()
     ClassDB::bind_method(D_METHOD("load_string", "code", "chunk_name", "env"), &LuaState::load_string, DEFVAL(0));
     ClassDB::bind_method(D_METHOD("do_string", "code", "chunk_name", "env", "nargs", "nresults", "errfunc"), &LuaState::do_string, DEFVAL(String()), DEFVAL(0), DEFVAL(0), DEFVAL(LUA_MULTRET), DEFVAL(0));
     ClassDB::bind_static_method(LuaState::get_class_static(), D_METHOD("bind_callable", "callable"), &LuaState::bind_callable);
+
+    BIND_CONSTANT(LUA_NOTAG);
 
     BIND_BITFIELD_FLAG(LIB_BASE);
     BIND_BITFIELD_FLAG(LIB_COROUTINE);
@@ -821,18 +824,35 @@ Object *LuaState::to_object(int p_index, int p_tag)
 
 int LuaState::light_userdata_tag(int p_index)
 {
-    ERR_FAIL_COND_V_MSG(!is_valid(), -1, "Lua state is invalid. Cannot get light userdata tag.");
-    ERR_FAIL_COND_V_MSG(!is_valid_index(p_index), -1, vformat("LuaState.light_userdata_tag(%d): Invalid stack index. Stack has %d elements.", p_index, lua_gettop(L)));
+    ERR_FAIL_COND_V_MSG(!is_valid(), LUA_NOTAG, "Lua state is invalid. Cannot get light userdata tag.");
+    ERR_FAIL_COND_V_MSG(!is_valid_index(p_index), LUA_NOTAG, vformat("LuaState.light_userdata_tag(%d): Invalid stack index. Stack has %d elements.", p_index, lua_gettop(L)));
 
-    return lua_lightuserdatatag(L, p_index);
+    int tag = lua_lightuserdatatag(L, p_index);
+    if (tag < 0 || tag >= LUA_LUTAG_LIMIT)
+    {
+        return LUA_NOTAG;
+    }
+    else
+    {
+        return tag;
+    }
 }
 
 int LuaState::full_userdata_tag(int p_index)
 {
-    ERR_FAIL_COND_V_MSG(!is_valid(), -1, "Lua state is invalid. Cannot get full userdata tag.");
-    ERR_FAIL_COND_V_MSG(!is_valid_index(p_index), -1, vformat("LuaState.full_userdata_tag(%d): Invalid stack index. Stack has %d elements.", p_index, lua_gettop(L)));
+    ERR_FAIL_COND_V_MSG(!is_valid(), LUA_NOTAG, "Lua state is invalid. Cannot get full userdata tag.");
+    ERR_FAIL_COND_V_MSG(!is_valid_index(p_index), LUA_NOTAG, vformat("LuaState.full_userdata_tag(%d): Invalid stack index. Stack has %d elements.", p_index, lua_gettop(L)));
 
-    return lua_userdatatag(L, p_index);
+    int tag = lua_userdatatag(L, p_index);
+    if (tag < 0 || tag >= LUA_UTAG_LIMIT)
+    {
+        // This will be the case for userdata with inline dtors. Avoid returning anything but LUA_NOTAG.
+        return LUA_NOTAG;
+    }
+    else
+    {
+        return tag;
+    }
 }
 
 Ref<LuaState> LuaState::to_thread(int p_index)
@@ -948,18 +968,24 @@ bool LuaState::push_thread()
 void LuaState::push_light_userdata(Object *p_obj, int p_tag)
 {
     ERR_FAIL_COND_MSG(!is_valid(), "Lua state is invalid. Cannot push light userdata.");
+    ERR_FAIL_COND_MSG(p_tag < LUA_NOTAG || p_tag >= LUA_LUTAG_LIMIT, vformat("LuaState.push_light_userdata(%s, %d): Invalid tag.", p_obj, p_tag));
+
     push_light_object(L, p_obj, p_tag);
 }
 
 void LuaState::push_full_userdata(Object *p_obj, int p_tag)
 {
     ERR_FAIL_COND_MSG(!is_valid(), "Lua state is invalid. Cannot push full userdata.");
+    ERR_FAIL_COND_MSG(p_tag < LUA_NOTAG || p_tag >= LUA_UTAG_LIMIT, vformat("LuaState.push_full_userdata(%s, %d): Invalid tag.", p_obj, p_tag));
+
     push_full_object(L, p_obj, p_tag);
 }
 
 void LuaState::push_object(Object *p_obj, int p_tag)
 {
     ERR_FAIL_COND_MSG(!is_valid(), "Lua state is invalid. Cannot push userdata.");
+    ERR_FAIL_COND_MSG(p_tag < LUA_NOTAG || p_tag >= LUA_UTAG_LIMIT, vformat("LuaState.push_object(%s, %d): Invalid tag.", p_obj, p_tag));
+
     gdluau::push_object(L, p_obj, p_tag);
 }
 
@@ -1330,6 +1356,7 @@ void LuaState::set_full_userdata_tag(int p_index, int p_tag)
 {
     ERR_FAIL_COND_MSG(!is_valid(), "Lua state is invalid. Cannot set full userdata tag.");
     ERR_FAIL_COND_MSG(!is_valid_index(p_index), vformat("LuaState.set_full_userdata_tag(%d, %d): Invalid stack index. Stack has %d elements.", p_index, p_tag, lua_gettop(L)));
+    ERR_FAIL_COND_MSG(p_tag < 0 || p_tag >= LUA_UTAG_LIMIT, vformat("LuaState.set_full_userdata_tag(%d, %d): Invalid tag.", p_index, p_tag));
 
     lua_setuserdatatag(L, p_index, p_tag);
 }
@@ -1337,6 +1364,7 @@ void LuaState::set_full_userdata_tag(int p_index, int p_tag)
 void LuaState::set_full_userdata_metatable(int p_tag)
 {
     ERR_FAIL_COND_MSG(!is_valid(), "Lua state is invalid. Cannot set full userdata metatable.");
+    ERR_FAIL_COND_MSG(p_tag < 0 || p_tag >= LUA_UTAG_LIMIT, vformat("LuaState.set_full_userdata_metatable(%d): Invalid tag.", p_tag));
 
     int top = lua_gettop(L);
     ERR_FAIL_COND_MSG(top < 1, vformat("LuaState.set_full_userdata_metatable(%d): Expected metatable at top of stack. Stack has %d elements.", p_tag, top));
@@ -1348,6 +1376,7 @@ void LuaState::get_full_userdata_metatable(int p_tag)
 {
     ERR_FAIL_COND_MSG(!is_valid(), "Lua state is invalid. Cannot get full userdata metatable.");
     ERR_FAIL_COND_MSG(!lua_checkstack(L, 1), vformat("LuaState.get_full_userdata_metatable(%d): Stack overflow. Cannot grow stack.", p_tag));
+    ERR_FAIL_COND_MSG(p_tag < 0 || p_tag >= LUA_UTAG_LIMIT, vformat("LuaState.get_full_userdata_metatable(%d): Invalid tag.", p_tag));
 
     lua_getuserdatametatable(L, p_tag);
 }
@@ -1355,12 +1384,15 @@ void LuaState::get_full_userdata_metatable(int p_tag)
 void LuaState::set_light_userdata_name(int p_tag, const StringName &p_name)
 {
     ERR_FAIL_COND_MSG(!is_valid(), "Lua state is invalid. Cannot set light userdata name.");
+    ERR_FAIL_COND_MSG(p_tag < 0 || p_tag >= LUA_LUTAG_LIMIT, vformat("LuaState.set_light_userdata_name(%d, %s): Invalid tag.", p_tag, p_name));
+
     lua_setlightuserdataname(L, p_tag, char_string(p_name).get_data());
 }
 
 StringName LuaState::get_light_userdata_name(int p_tag)
 {
     ERR_FAIL_COND_V_MSG(!is_valid(), StringName(), "Lua state is invalid. Cannot get light userdata name.");
+    ERR_FAIL_COND_V_MSG(p_tag < 0 || p_tag >= LUA_LUTAG_LIMIT, StringName(), vformat("LuaState.get_light_userdata_name(%d): Invalid tag.", p_tag));
 
     const char *name = lua_getlightuserdataname(L, p_tag);
     return StringName(name);
@@ -1910,6 +1942,12 @@ bool LuaState::is_array(int p_index)
     return gdluau::is_array(L, p_index);
 }
 
+bool LuaState::is_object(int p_index, int p_tag)
+{
+    ERR_FAIL_COND_V_MSG(!is_valid(), false, "Lua state is invalid. Cannot check if value is array.");
+    return gdluau::is_object(L, p_index, p_tag);
+}
+
 Array LuaState::to_array(int p_index)
 {
     ERR_FAIL_COND_V_MSG(!is_valid(), Array(), "Lua state is invalid. Cannot convert to Array.");
@@ -1961,6 +1999,7 @@ void LuaState::push_variant(const Variant &p_value)
 void LuaState::push_default_object_metatable()
 {
     ERR_FAIL_COND_MSG(!is_valid(), "Lua state is invalid. Cannot push object metatable.");
+    ERR_FAIL_COND_MSG(!lua_checkstack(L, 1), "LuaState.push_object_metatable(): Stack overflow. Cannot grow stack.");
     push_object_metatable(L);
 }
 

@@ -4,30 +4,11 @@
 
 struct lua_State;
 
+#define LUA_NOTAG -1
+
 namespace gdluau
 {
     using namespace godot;
-
-    // Destructor definitions for any Godot object userdata, for use with lua_setuserdatadtor() or lua_newuserdatadtor()
-    template <typename T>
-    void userdata_dtor(void *p_ud)
-    {
-        T *obj = static_cast<T *>(p_ud);
-        if (obj)
-        {
-            obj->~T();
-        }
-    }
-
-    template <typename T>
-    void userdata_dtor(lua_State *p_state, void *p_ud)
-    {
-        T *obj = static_cast<T *>(p_ud);
-        if (obj)
-        {
-            obj->~T();
-        }
-    }
 
     // Generic __concat metamethod that converts values to strings
     int generic_lua_concat(lua_State *p_L);
