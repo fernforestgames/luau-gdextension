@@ -326,6 +326,7 @@ Variant gdluau::to_variant(lua_State *L, int p_index)
             return *static_cast<Variant *>(lua_touserdata(L, p_index));
         }
 
+        // __togodot is checked and possibly invoked above. Here we can assume it's full userdata.
         Object *obj = to_full_object(L, p_index);
         if (obj)
         {
