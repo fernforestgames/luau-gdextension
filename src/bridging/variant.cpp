@@ -435,7 +435,7 @@ void gdluau::push_variant(lua_State *L, const Variant &p_variant)
         }
         else
         {
-            push_object(L, p_variant);
+            push_object(L, obj);
         }
 
         return;
