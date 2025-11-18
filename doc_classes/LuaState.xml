@@ -1070,7 +1070,7 @@
 			<return type="void" />
 			<param index="0" name="index" type="int" />
 			<description>
-				Pops a table from the stack and sets it as the metatable for the table or userdata at [param index]. If the value at [param index] is [code]nil[/code], removes any existing metatable.
+				Pops a table from the stack and sets it as the metatable for the table or userdata at [param index]. If the top value on the stack is [code]nil[/code], removes any existing metatable.
 				[codeblock]
 				state.create_table()  # Create object table
 				state.create_table()  # Create metatable
