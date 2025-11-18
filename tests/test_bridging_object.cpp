@@ -91,7 +91,7 @@ TEST_SUITE("Bridging - Object")
     TEST_CASE_FIXTURE(LuaStateFixture, "light_userdata - null object")
     {
         state->push_light_userdata(nullptr);
-        CHECK(state->is_light_userdata(-1));
+        CHECK(state->is_nil(-1));
 
         Object *result = state->to_light_userdata(-1);
         CHECK(result == nullptr);
