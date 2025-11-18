@@ -23,7 +23,7 @@ static ObjectID get_userdata(void *ud)
 
 static Object *get_userdata_instance(void *ud)
 {
-    return ObjectDB::get_instance(*static_cast<ObjectID *>(ud));
+    return ObjectDB::get_instance(get_userdata(ud));
 }
 
 static void set_userdata_instance(void *ud, Object *p_obj)
@@ -110,8 +110,11 @@ static bool has_object_metatable(lua_State *L, int p_index)
 {
     ERR_FAIL_COND_V_MSG(!lua_checkstack(L, 3), false, vformat("has_object_metatable(%d): Stack overflow. Cannot grow stack.", p_index));
 
+    // Negative indices will be invalidated by luaL_getmetatable
+    int abs_index = lua_absindex(L, p_index);
+
     luaL_getmetatable(L, OBJECT_METATABLE_NAME);
-    if (!lua_getmetatable(L, p_index)) [[unlikely]]
+    if (!lua_getmetatable(L, abs_index)) [[unlikely]]
     {
         lua_pop(L, 1); // Pop Object metatable
         return false;
@@ -120,12 +123,12 @@ static bool has_object_metatable(lua_State *L, int p_index)
     while (!lua_rawequal(L, -1, -2))
     {
         // Look for "inherited" metatable
-        lua_rawgetfield(L, -1, "__index");
+        int type = lua_rawgetfield(L, -1, "__index");
         lua_remove(L, -2); // Remove previous metatable
 
-        if (lua_isnil(L, -1))
+        if (type != LUA_TTABLE)
         {
-            lua_pop(L, 2); // Pop nil and Object metatable
+            lua_pop(L, 2); // Pop __index and Object metatable
             return false;
         }
     }
@@ -164,7 +167,7 @@ void gdluau::push_object_metatable(lua_State *L)
 
 bool gdluau::is_object(lua_State *L, int p_index, int p_tag)
 {
-    ERR_FAIL_COND_V_MSG(!is_valid_index(L, p_index), false, vformat("is_object(%d): Invalid stack index. Stack has %d elements.", p_index, lua_gettop(L)));
+    ERR_FAIL_COND_V_MSG(!is_valid_index(L, p_index), false, vformat("is_object(%d, %d): Invalid stack index. Stack has %d elements.", p_index, p_tag, lua_gettop(L)));
 
     switch (lua_type(L, p_index))
     {
