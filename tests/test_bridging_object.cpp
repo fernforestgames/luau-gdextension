@@ -91,7 +91,7 @@ TEST_SUITE("Bridging - Object")
     TEST_CASE_FIXTURE(LuaStateFixture, "light_userdata - null object")
     {
         state->push_light_userdata(nullptr);
-        CHECK(state->is_light_userdata(-1));
+        CHECK(state->is_nil(-1));
 
         Object *result = state->to_light_userdata(-1);
         CHECK(result == nullptr);
@@ -330,5 +330,37 @@ TEST_SUITE("Bridging - Object")
         state->pcall(2, 1);
         CHECK(state->is_boolean(-1));
         state->pop(1);
+    }
+
+    TEST_CASE_FIXTURE(LuaStateFixture, "to_full_userdata returns null for non-object userdata")
+    {
+        SUBCASE("Variant userdata")
+        {
+            // Push a Variant (which creates userdata with GDVariant metatable)
+            Variant test_variant = Vector2(1.0f, 2.0f);
+            state->push_variant(test_variant);
+            CHECK(state->is_userdata(-1));
+
+            // to_full_userdata should return null because this is not an Object
+            Object *result = state->to_full_userdata(-1);
+            CHECK(result == nullptr);
+
+            state->pop(1);
+        }
+
+        SUBCASE("Callable userdata")
+        {
+            Callable test_callable = Callable(state.ptr(), "test_func");
+
+            // Push the callable (creates userdata with GDCallable metatable)
+            state->push_callable(test_callable);
+            CHECK(state->is_userdata(-1));
+
+            // to_full_userdata should return null because this is not an Object
+            Object *result = state->to_full_userdata(-1);
+            CHECK(result == nullptr);
+
+            state->pop(1);
+        }
     }
 }

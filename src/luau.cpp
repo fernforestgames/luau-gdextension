@@ -1,5 +1,6 @@
 #include "luau.h"
 
+#include "helpers.h"
 #include "lua_compileoptions.h"
 
 #include <godot_cpp/core/class_db.hpp>
@@ -61,6 +62,8 @@ void Luau::_bind_methods()
 
     BIND_CONSTANT(LUA_NOREF);
     BIND_CONSTANT(LUA_REFNIL);
+
+    BIND_CONSTANT(LUA_NOTAG);
 
     // luaconf.h constants
     BIND_CONSTANT(LUA_IDSIZE);

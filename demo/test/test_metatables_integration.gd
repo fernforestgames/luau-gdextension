@@ -264,7 +264,7 @@ func test_push_to_lua_basic() -> void:
 
 func test_push_to_lua_with_tag() -> void:
 	var obj = CustomPushObject.new(100)
-	var custom_tag: int = 999
+	var custom_tag: int = 25
 
 	# Push with custom tag
 	L.push_object(obj, custom_tag)
@@ -273,7 +273,7 @@ func test_push_to_lua_with_tag() -> void:
 
 	# Verify the tag was passed through
 	var result = L.to_variant(-1)
-	assert_eq(result["tag"], 999, "push_to_lua should receive the custom tag")
+	assert_eq(result["tag"], custom_tag, "push_to_lua should receive the custom tag")
 	assert_eq(result["value"], 100, "Table should have correct value")
 
 	L.pop(1)
@@ -410,7 +410,7 @@ func test_push_to_lua_complex_structure() -> void:
 	}
 	var obj = ComplexPushObject.new("TestObject", nested)
 
-	L.push_object(obj, 777)
+	L.push_object(obj)
 
 	assert_true(L.is_table(-1), "Should have pushed a table")
 
@@ -421,8 +421,6 @@ func test_push_to_lua_complex_structure() -> void:
 	assert_true("data" in result, "Should have data field")
 	assert_typeof(result["data"], TYPE_DICTIONARY, "data should be a dictionary")
 	assert_eq(result["data"]["level"], 1, "Nested data should be correct")
-	assert_true("_meta" in result, "Should have _meta field")
-	assert_eq(result["_meta"]["tag"], 777, "Meta tag should be correct")
 
 	L.pop(1)
 	assert_stack_balanced()

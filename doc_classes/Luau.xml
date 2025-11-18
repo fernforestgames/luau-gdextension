@@ -154,6 +154,9 @@
 		<constant name="LUA_T_COUNT" value="11" enum="lua_Type">
 			The total number of Lua types. This is useful for bounds checking when iterating over all types.
 		</constant>
+		<constant name="LUA_NOTAG" value="-1">
+			An invalid userdata and light userdata tag (see [constant LUA_UTAG_LIMIT] and [constant LUA_LUTAG_LIMIT]), used to represent the absence of any tag.
+		</constant>
 		<constant name="LUA_GCSTOP" value="0" enum="lua_GCOp">
 			Stop incremental garbage collection. No GC work will be performed until [constant LUA_GCRESTART] is used.
 		</constant>

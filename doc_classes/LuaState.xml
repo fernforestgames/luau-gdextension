@@ -602,9 +602,10 @@
 		<method name="to_light_userdata">
 			<return type="Object" />
 			<param index="0" name="index" type="int" />
-			<param index="1" name="tag" type="int" default="-1" />
+			<param index="1" name="tag" type="int" default="LUA_NOTAG" />
 			<description>
 				Converts the light userdata at [param index] to an [Object]. If [param tag] is provided, only returns the object if the tag matches. Returns [code]null[/code] if the value is not light userdata or the tag doesn't match.
+				[b]Note:[/b] Light userdata that was not explicitly assigned a tag will have a tag of 0.
 				[b]Warning:[/b] Because light userdata is not memory managed by Luau, you must ensure that the pushed Godot object remains valid as long as it is used as light userdata.
 				[codeblock]
 				state.push_light_userdata(some_object)
@@ -615,7 +616,7 @@
 		<method name="to_full_userdata">
 			<return type="Object" />
 			<param index="0" name="index" type="int" />
-			<param index="1" name="tag" type="int" default="-1" />
+			<param index="1" name="tag" type="int" default="LUA_NOTAG" />
 			<description>
 				Converts the full userdata at [param index] to an [Object]. If [param tag] is provided, only returns the object if the tag matches.
 				If untagged, the userdata must have the default object metatable (see [method push_default_object_metatable]), or a metatable inheriting from it, to be successfully converted to an [Object]. See [method push_full_userdata] for more information.
@@ -630,7 +631,7 @@
 		<method name="to_object">
 			<return type="Object" />
 			<param index="0" name="index" type="int" />
-			<param index="1" name="tag" type="int" default="-1" />
+			<param index="1" name="tag" type="int" default="LUA_NOTAG" />
 			<description>
 				Converts the value at [param index] to an [Object].
 				If the value has a metatable with a [code]__togodot[/code] metamethod, that method is called with arguments [LuaState], [param index], and [param tag], and its return value is used as the result. [b]Important:[/b] The metamethod must be implemented in Godot (not Luau), and set using [method push_callable].
@@ -645,7 +646,8 @@
 			<return type="int" />
 			<param index="0" name="index" type="int" />
 			<description>
-				Returns the tag of the light userdata at [param index], or -1 if the value is not light userdata. Tags can be used to distinguish different types of light userdata.
+				Returns the tag of the light userdata at [param index], or [constant Luau.LUA_NOTAG] if the value is not light userdata. Tags can be used to distinguish different types of light userdata.
+				[b]Note:[/b] Light userdata that was not explicitly assigned a tag will have a tag of 0.
 				[codeblock]
 				state.push_light_userdata(obj, MY_TAG)
 				print(state.light_userdata_tag(-1))  # Prints the value of MY_TAG
@@ -656,7 +658,7 @@
 			<return type="int" />
 			<param index="0" name="index" type="int" />
 			<description>
-				Returns the tag of the full userdata at [param index], or -1 if the value is not full userdata. Tags can be used to distinguish different types of userdata.
+				Returns the tag of the full userdata at [param index], or [constant Luau.LUA_NOTAG] if the value has not been assigned a tag or is not full userdata. Tags can be used to distinguish different types of userdata.
 				[codeblock]
 				state.push_object(obj)
 				state.set_full_userdata_tag(-1, MY_TAG)
@@ -779,9 +781,9 @@
 		<method name="push_light_userdata">
 			<return type="void" />
 			<param index="0" name="obj" type="Object" />
-			<param index="1" name="tag" type="int" default="-1" />
+			<param index="1" name="tag" type="int" default="LUA_NOTAG" />
 			<description>
-				Pushes an [Object] as light userdata onto the stack. Light userdata is a raw pointer without memory management. The optional [param tag], an unsigned integer less than [constant Luau.LUA_LUTAG_LIMIT], can be associated with different types of light userdata to easily identify them later.
+				Pushes an [Object] as light userdata onto the stack, or pushes [code]nil[/code] if [param obj] is null. Light userdata is a raw pointer without memory management. The optional [param tag], an unsigned integer less than [constant Luau.LUA_LUTAG_LIMIT], can be associated with different types of light userdata to easily identify them later.
 				[b]Warning:[/b] Because light userdata is not memory managed by Luau, you must ensure that the pushed Godot object remains valid as long as it is used as light userdata.
 				[codeblock]
 				state.push_light_userdata(some_object)
@@ -791,9 +793,9 @@
 		<method name="push_full_userdata">
 			<return type="void" />
 			<param index="0" name="obj" type="Object" />
-			<param index="1" name="tag" type="int" default="-1" />
+			<param index="1" name="tag" type="int" default="LUA_NOTAG" />
 			<description>
-				Pushes an [Object] as full userdata onto the stack. The optional [param tag], an unsigned integer less than [constant Luau.LUA_UTAG_LIMIT], can be associated with different types of userdata to easily identify them later.
+				Pushes an [Object] as full userdata onto the stack, or pushes [code]nil[/code] if [param obj] is null. The optional [param tag], an unsigned integer less than [constant Luau.LUA_UTAG_LIMIT], can be associated with different types of userdata to easily identify them later.
 				[codeblock]
 				state.push_full_userdata(some_object)
 				[/codeblock]
@@ -819,9 +821,9 @@
 		<method name="push_object">
 			<return type="void" />
 			<param index="0" name="obj" type="Object" />
-			<param index="1" name="tag" type="int" default="-1" />
+			<param index="1" name="tag" type="int" default="LUA_NOTAG" />
 			<description>
-				Pushes an [Object] onto the stack, either as a full userdata or with a custom representation. The optional [param tag], an unsigned integer less than [constant Luau.LUA_UTAG_LIMIT], can be associated with different types of userdata to easily identify them later.
+				Pushes an [Object] onto the stack, either as a full userdata or with a custom representation, or pushes [code]nil[/code] if [param obj] is null. The optional [param tag], an unsigned integer less than [constant Luau.LUA_UTAG_LIMIT], can be associated with different types of userdata to easily identify them later.
 				[codeblock]
 				state.push_object(some_object)
 				[/codeblock]
@@ -1316,6 +1318,7 @@
 			<param index="1" name="tag" type="int" />
 			<description>
 				Sets the tag of the full userdata at [param index] to [param tag], an unsigned integer less than [constant Luau.LUA_UTAG_LIMIT]. Tags can be associated with different types of userdata to easily identify them later.
+				[b]Note:[/b] This will not automatically update the metatable of the userdata, even if one has been associated with the tag via [method set_userdata_metatable].
 				[codeblock]
 				state.push_object(some_object)
 				state.set_full_userdata_tag(-1, MY_TAG)
@@ -1327,6 +1330,7 @@
 			<param index="0" name="tag" type="int" />
 			<description>
 				Pops a table from the stack and sets it as the metatable for all userdata with the given [param tag].
+				[b]Note:[/b] This does not change the metatable of existing userdata values; it only affects userdata created afterwards with the same tag.
 				[codeblock]
 				state.create_table()
 				# Set up metatable...
@@ -1999,6 +2003,18 @@
 
 				state.do_string("return {a=1, b=2}", "test")
 				print(state.is_array(-1))  # Prints false (dictionary)
+				[/codeblock]
+			</description>
+		</method>
+		<method name="is_object">
+			<return type="bool" />
+			<param index="0" name="index" type="int" />
+			<param index="1" name="tag" type="int" default="LUA_NOTAG" />
+			<description>
+				Returns [code]true[/code] if the value at [param index] is a light or full userdata representing a Godot [Object].
+				[codeblock]
+				state.push_object(some_object)
+				print(state.is_object(-1))  # Prints true
 				[/codeblock]
 			</description>
 		</method>

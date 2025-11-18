@@ -326,6 +326,7 @@ Variant gdluau::to_variant(lua_State *L, int p_index)
             return *static_cast<Variant *>(lua_touserdata(L, p_index));
         }
 
+        // __togodot is checked and possibly invoked above. Here we can assume it's full userdata.
         Object *obj = to_full_object(L, p_index);
         if (obj)
         {
@@ -434,7 +435,7 @@ void gdluau::push_variant(lua_State *L, const Variant &p_variant)
         }
         else
         {
-            push_object(L, p_variant);
+            push_object(L, obj, LUA_NOTAG);
         }
 
         return;
@@ -463,6 +464,7 @@ void gdluau::push_variant(lua_State *L, const Variant &p_variant)
     default:
     {
         // For all other types (geometry, etc.), push as userdata
+        // Use of an inline dtor is REQUIRED to not conflict with user's custom userdata tags
         void *ptr = lua_newuserdatadtor(L, sizeof(Variant), variant_dtor);
         memnew_placement(ptr, Variant(p_variant));
 
