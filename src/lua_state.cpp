@@ -338,8 +338,6 @@ void LuaState::_bind_methods()
     ClassDB::bind_method(D_METHOD("do_string", "code", "chunk_name", "env", "nargs", "nresults", "errfunc"), &LuaState::do_string, DEFVAL(String()), DEFVAL(0), DEFVAL(0), DEFVAL(LUA_MULTRET), DEFVAL(0));
     ClassDB::bind_static_method(LuaState::get_class_static(), D_METHOD("bind_callable", "callable"), &LuaState::bind_callable);
 
-    BIND_CONSTANT(LUA_NOTAG);
-
     BIND_BITFIELD_FLAG(LIB_BASE);
     BIND_BITFIELD_FLAG(LIB_COROUTINE);
     BIND_BITFIELD_FLAG(LIB_TABLE);
