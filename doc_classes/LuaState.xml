@@ -795,7 +795,7 @@
 			<param index="0" name="obj" type="Object" />
 			<param index="1" name="tag" type="int" default="LUA_NOTAG" />
 			<description>
-				Pushes an [Object] as full userdata onto the stack, or pushes [code]nil[/code] if [param obj] is null. The optional [param tag], an unsigned integer less than [constant Luau.LUA_UTAG_LIMIT], can be associated with different types of userdata to easily identify them later.
+				Pushes an [Object] as full userdata onto the stack, or pushes [code]nil[/code] if [param obj] is null. The optional [param tag], an unsigned integer less than [constant Luau.LUA_UTAG_LIMIT], can be associated with different types of userdata to easily identify them later. Alternatively, the object can define a [code]lua_userdata_tag[/code] property to specify the tag to use when pushed.
 				[codeblock]
 				state.push_full_userdata(some_object)
 				[/codeblock]

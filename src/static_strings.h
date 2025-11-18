@@ -12,6 +12,7 @@ namespace gdluau
         StringName debugbreak;
         StringName debugstep;
         StringName push_to_lua;
+        StringName lua_userdata_tag;
     };
 
     extern StaticStrings *static_strings;

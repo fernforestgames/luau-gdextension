@@ -254,7 +254,7 @@ static void push_refcounted_object(lua_State *L, RefCounted *p_obj)
 {
     ERR_FAIL_COND_MSG(!lua_checkstack(L, 2), "push_refcounted_object(): Stack overflow. Cannot grow stack.");
 
-    if (!p_obj || !p_obj->init_ref()) [[unlikely]]
+    if (!p_obj->init_ref()) [[unlikely]]
     {
         lua_pushnil(L);
         return;
@@ -272,7 +272,7 @@ static void push_refcounted_object_custom(lua_State *L, RefCounted *p_obj, int p
 {
     ERR_FAIL_COND_MSG(!lua_checkstack(L, 2), "push_refcounted_object_custom(): Stack overflow. Cannot grow stack.");
 
-    if (!p_obj || !p_obj->init_ref()) [[unlikely]]
+    if (!p_obj->init_ref()) [[unlikely]]
     {
         lua_pushnil(L);
         return;
@@ -290,12 +290,6 @@ static void push_weak_object(lua_State *L, Object *p_obj)
 {
     ERR_FAIL_COND_MSG(!lua_checkstack(L, 2), "push_weak_object(): Stack overflow. Cannot grow stack.");
 
-    if (!p_obj) [[unlikely]]
-    {
-        lua_pushnil(L);
-        return;
-    }
-
     // Use of the inline dtor constructor is REQUIRED to not conflict with user's custom userdata tags
     void *ud = lua_newuserdatadtor(L, sizeof(ObjectID), nullptr);
     set_userdata_instance(ud, p_obj);
@@ -308,12 +302,6 @@ static void push_weak_object_custom(lua_State *L, Object *p_obj, int p_tag)
 {
     ERR_FAIL_COND_MSG(!lua_checkstack(L, 1), "push_weak_object_custom(): Stack overflow. Cannot grow stack.");
 
-    if (!p_obj) [[unlikely]]
-    {
-        lua_pushnil(L);
-        return;
-    }
-
     void *ud = lua_newuserdatatagged(L, sizeof(ObjectID), p_tag);
     set_userdata_instance(ud, p_obj);
     // dtor not needed (but if this tag is reused for RefCounted objects, tagged_object_dtor will be compatible)
@@ -322,7 +310,7 @@ static void push_weak_object_custom(lua_State *L, Object *p_obj, int p_tag)
     lua_setmetatable(L, -2);
 }
 
-void gdluau::push_full_object(lua_State *L, Object *p_obj, int p_tag)
+static void push_full_object_given_tag(lua_State *L, Object *p_obj, int p_tag)
 {
     RefCounted *rc = Object::cast_to<RefCounted>(p_obj);
     if (rc && p_tag == LUA_NOTAG)
@@ -340,6 +328,35 @@ void gdluau::push_full_object(lua_State *L, Object *p_obj, int p_tag)
     else
     {
         push_weak_object_custom(L, p_obj, p_tag);
+    }
+}
+
+void gdluau::push_full_object(lua_State *L, Object *p_obj, int p_tag)
+{
+    if (!p_obj) [[unlikely]]
+    {
+        ERR_FAIL_COND_MSG(!lua_checkstack(L, 1), "push_full_object(): Stack overflow. Cannot grow stack.");
+        lua_pushnil(L);
+        return;
+    }
+
+    Variant tag_variant = p_obj->get(static_strings->lua_userdata_tag);
+    if (tag_variant.get_type() != Variant::NIL)
+    {
+        int tag_value = tag_variant;
+        ERR_FAIL_COND_MSG(tag_value < 0 || tag_value >= LUA_UTAG_LIMIT, vformat("push_full_object(): Object %s has invalid lua_userdata_tag constant: %d", p_obj, tag_value));
+
+        if (p_tag != LUA_NOTAG && p_tag != tag_value) [[unlikely]]
+        {
+            WARN_PRINT(vformat("push_full_object(): Object %s has lua_userdata_tag set to %d, but a different tag %d was given. Using %d.", p_obj, tag_value, p_tag, p_tag));
+            tag_value = p_tag;
+        }
+
+        push_full_object_given_tag(L, p_obj, tag_value);
+    }
+    else
+    {
+        push_full_object_given_tag(L, p_obj, p_tag);
     }
 }
 

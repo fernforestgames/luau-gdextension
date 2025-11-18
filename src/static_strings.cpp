@@ -12,6 +12,7 @@ void gdluau::initialize_static_strings()
     static_strings->debugbreak = StringName("debugbreak");
     static_strings->debugstep = StringName("debugstep");
     static_strings->push_to_lua = StringName("push_to_lua");
+    static_strings->lua_userdata_tag = StringName("lua_userdata_tag");
 }
 
 void gdluau::uninitialize_static_strings()
