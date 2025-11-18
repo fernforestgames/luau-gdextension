@@ -133,6 +133,12 @@ Callable gdluau::to_callable(lua_State *L, int p_index)
 {
     ERR_FAIL_COND_V_MSG(!is_valid_index(L, p_index), Callable(), vformat("to_callable(%d): Invalid stack index. Stack has %d elements.", p_index, lua_gettop(L)));
 
+    int type = lua_type(L, p_index);
+    if (type != LUA_TFUNCTION && type != LUA_TUSERDATA && type != LUA_TTABLE)
+    {
+        return Callable();
+    }
+
     // Check if this is a Callable pushed via push_callable()
     // If so, return the original Callable instead of wrapping it again
     if (is_godot_callable(L, p_index))
@@ -140,9 +146,6 @@ Callable gdluau::to_callable(lua_State *L, int p_index)
         Callable *callable = static_cast<Callable *>(lua_touserdata(L, p_index));
         return *callable;
     }
-
-    int type = lua_type(L, p_index);
-    ERR_FAIL_COND_V_MSG(type != LUA_TFUNCTION && type != LUA_TUSERDATA && type != LUA_TTABLE, Callable(), vformat("to_callable(%d): Expected a function, userdata, or table, got %s.", p_index, lua_typename(L, type)));
 
     // Protect the value from GC
     int value_ref = lua_ref(L, p_index);
