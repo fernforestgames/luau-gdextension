@@ -1356,7 +1356,7 @@ void LuaState::set_full_userdata_tag(int p_index, int p_tag)
     ERR_FAIL_COND_MSG(!is_valid_index(p_index), vformat("LuaState.set_full_userdata_tag(%d, %d): Invalid stack index. Stack has %d elements.", p_index, p_tag, lua_gettop(L)));
     ERR_FAIL_COND_MSG(p_tag < 0 || p_tag >= LUA_UTAG_LIMIT, vformat("LuaState.set_full_userdata_tag(%d, %d): Invalid tag.", p_index, p_tag));
 
-    lua_setuserdatatag(L, p_index, p_tag);
+    update_full_object_tag(L, p_index, p_tag);
 }
 
 void LuaState::set_full_userdata_metatable(int p_tag)

@@ -21,4 +21,7 @@ namespace gdluau
     void push_full_object(lua_State *p_L, Object *p_obj, int p_tag);
     void push_light_object(lua_State *p_L, Object *p_obj, int p_tag);
     void push_object(lua_State *p_L, Object *p_obj, int p_tag);
+
+    // Ensures dtor is set correctly when changing the tag of a full userdata
+    void update_full_object_tag(lua_State *p_L, int p_index, int p_tag);
 } // namespace gdluau

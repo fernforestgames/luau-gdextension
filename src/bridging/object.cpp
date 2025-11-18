@@ -382,3 +382,9 @@ void gdluau::push_object(lua_State *L, Object *p_obj, int p_tag)
         push_full_object(L, p_obj, p_tag);
     }
 }
+
+void gdluau::update_full_object_tag(lua_State *L, int p_index, int p_tag)
+{
+    lua_setuserdatatag(L, p_index, p_tag);
+    lua_setuserdatadtor(L, p_tag, tagged_object_dtor);
+}
