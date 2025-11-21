@@ -9,9 +9,11 @@ func test_callable_as_index_metamethod():
 
 	# Track if callable was invoked
 	var index_calls = []
+	var table_args = []
 
 	# Create a Godot callable for __index
-	var index_callable = func(_table, key):
+	var index_callable = func(table, key):
+		table_args.append(table)
 		index_calls.append(key)
 		return "indexed_" + str(key)
 
@@ -39,6 +41,10 @@ func test_callable_as_index_metamethod():
 	assert_eq(index_calls[0], "test_key", "__index should receive correct key")
 	assert_eq(result, "indexed_test_key", "__index should return correct value")
 
+	# Validate that the table argument was passed correctly
+	assert_eq(table_args.size(), 1, "Table argument should have been passed once")
+	assert_true(table_args[0] is Array or table_args[0] is Dictionary, "Table argument should be an Array or Dictionary")
+
 	state.close()
 
 func test_callable_as_newindex_metamethod():
@@ -47,9 +53,11 @@ func test_callable_as_newindex_metamethod():
 
 	# Track if callable was invoked
 	var newindex_calls = []
+	var table_args = []
 
 	# Create a Godot callable for __newindex
-	var newindex_callable = func(_table, key, value):
+	var newindex_callable = func(table, key, value):
+		table_args.append(table)
 		newindex_calls.append([key, value])
 
 	# Create a table
@@ -76,6 +84,10 @@ func test_callable_as_newindex_metamethod():
 	assert_eq(newindex_calls[0][0], "new_key", "__newindex should receive correct key")
 	assert_eq(newindex_calls[0][1], "new_value", "__newindex should receive correct value")
 
+	# Validate that the table argument was passed correctly
+	assert_eq(table_args.size(), 1, "Table argument should have been passed once")
+	assert_true(table_args[0] is Array or table_args[0] is Dictionary, "Table argument should be an Array or Dictionary")
+
 	state.close()
 
 func test_callable_as_call_metamethod():
@@ -84,9 +96,11 @@ func test_callable_as_call_metamethod():
 
 	# Track if callable was invoked
 	var call_invocations = []
+	var table_args = []
 
 	# Create a Godot callable for __call
-	var call_callable = func(_table, arg1, arg2):
+	var call_callable = func(table, arg1, arg2):
+		table_args.append(table)
 		call_invocations.append([arg1, arg2])
 		return arg1 + arg2
 
@@ -110,6 +124,10 @@ func test_callable_as_call_metamethod():
 	assert_eq(call_invocations[0][0], 10, "__call should receive first arg")
 	assert_eq(call_invocations[0][1], 20, "__call should receive second arg")
 
+	# Validate that the table argument was passed correctly
+	assert_eq(table_args.size(), 1, "Table argument should have been passed once")
+	assert_true(table_args[0] is Array or table_args[0] is Dictionary, "Table argument should be an Array or Dictionary")
+
 	var result = state.to_number(-1)
 	assert_eq(result, 30, "__call should return the sum")
 
@@ -122,13 +140,17 @@ func test_callable_metamethods_combined():
 	# Track invocations
 	var index_calls = []
 	var newindex_calls = []
+	var index_table_args = []
+	var newindex_table_args = []
 
 	# Create Godot callables
-	var index_callable = func(_table, key):
+	var index_callable = func(table, key):
+		index_table_args.append(table)
 		index_calls.append(key)
 		return "value_for_" + str(key)
 
-	var newindex_callable = func(_table, key, value):
+	var newindex_callable = func(table, key, value):
+		newindex_table_args.append(table)
 		newindex_calls.append([key, value])
 
 	# Create table and metatable
@@ -159,6 +181,12 @@ func test_callable_metamethods_combined():
 	assert_eq(newindex_calls.size(), 1, "__newindex should be called once")
 	assert_eq(newindex_calls[0][0], "bar", "__newindex should receive 'bar' key")
 	assert_eq(newindex_calls[0][1], 42, "__newindex should receive value 42")
+
+	# Validate that the table arguments were passed correctly
+	assert_eq(index_table_args.size(), 1, "__index should receive table argument once")
+	assert_true(index_table_args[0] is Array or index_table_args[0] is Dictionary, "__index table argument should be an Array or Dictionary")
+	assert_eq(newindex_table_args.size(), 1, "__newindex should receive table argument once")
+	assert_true(newindex_table_args[0] is Array or newindex_table_args[0] is Dictionary, "__newindex table argument should be an Array or Dictionary")
 
 	var result = state.to_string_inplace(-1)
 	assert_eq(result, "value_for_foo", "Should return value from __index")
