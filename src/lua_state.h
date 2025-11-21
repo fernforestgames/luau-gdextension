@@ -294,6 +294,9 @@ namespace gdluau
         bool load_string(const String &p_code, const String &p_chunk_name, int p_env = 0);
         lua_Status do_string(const String &p_code, const String &p_chunk_name = String(), int p_env = 0, int p_nargs = 0, int p_nresults = LUA_MULTRET, int p_errfunc = 0);
         static Callable bind_callable(const Callable &p_callable);
+        void set_call_metamethod(int p_metatable_index, const Callable &p_callable);
+        void set_index_metamethod(int p_metatable_index, const Callable &p_callable);
+        void set_newindex_metamethod(int p_metatable_index, const Callable &p_callable);
 
         // C++ only helpers
         lua_State *get_lua_state()

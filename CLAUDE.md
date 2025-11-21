@@ -17,6 +17,11 @@ When working with this codebase:
 3. Update doc_classes/ XML files when adding or modifying public APIs
 4. Use `godot --doctool` to regenerate documentation after API changes
 
+**Common API patterns:**
+- To get a string from the stack: Use `to_string_inplace(index)`, NOT `to_string(index)`
+- To get any value as a Variant: Use `to_variant(index)`
+- To set a global: Use `set_global(key)` after pushing the value (NOT `set_global(key, value)`)
+
 ## Project Overview
 
 A Godot 4.5+ GDExtension that integrates the Luau scripting language (Lua
