@@ -11,7 +11,7 @@ func test_callable_as_index_metamethod():
 	var index_calls = []
 
 	# Create a Godot callable for __index
-	var index_callable = func(key):
+	var index_callable = func(_table, key):
 		index_calls.append(key)
 		return "indexed_" + str(key)
 
@@ -23,9 +23,7 @@ func test_callable_as_index_metamethod():
 	state.create_table()
 
 	# Set __index metamethod to our Godot Callable
-	state.push_string("__index")
-	state.push_callable(index_callable)
-	state.raw_set(-3)
+	state.set_index_metamethod(-1, index_callable)
 
 	# Set the metatable on the table
 	state.set_metatable(table_idx)
@@ -51,7 +49,7 @@ func test_callable_as_newindex_metamethod():
 	var newindex_calls = []
 
 	# Create a Godot callable for __newindex
-	var newindex_callable = func(key, value):
+	var newindex_callable = func(_table, key, value):
 		newindex_calls.append([key, value])
 
 	# Create a table
@@ -62,9 +60,7 @@ func test_callable_as_newindex_metamethod():
 	state.create_table()
 
 	# Set __newindex metamethod to our Godot Callable
-	state.push_string("__newindex")
-	state.push_callable(newindex_callable)
-	state.raw_set(-3)
+	state.set_newindex_metamethod(-1, newindex_callable)
 
 	# Set the metatable on the table
 	state.set_metatable(table_idx)
@@ -90,15 +86,14 @@ func test_callable_as_call_metamethod():
 	var call_invocations = []
 
 	# Create a Godot callable for __call
-	var call_callable = func(arg1, arg2):
+	var call_callable = func(_table, arg1, arg2):
 		call_invocations.append([arg1, arg2])
 		return arg1 + arg2
 
 	# Create a table with __call metamethod
 	state.create_table()
-	state.push_dictionary({
-		"__call": call_callable,
-	})
+	state.create_table()
+	state.set_call_metamethod(-1, call_callable)
 	state.set_metatable(-2)
 
 	# Set as global
@@ -112,11 +107,8 @@ func test_callable_as_call_metamethod():
 
 	assert_eq(status, Luau.LUA_OK, "__call should execute successfully")
 	assert_eq(call_invocations.size(), 1, "__call callable should have been invoked once")
-	# assert_eq(call_invocations[0][0], 10, "__call should receive first arg")
-	# assert_eq(call_invocations[0][1], 20, "__call should receive second arg")
-
-	var error = state.to_string_inplace(-1)
-	assert_eq(error, "", "No error should occur during __call")
+	assert_eq(call_invocations[0][0], 10, "__call should receive first arg")
+	assert_eq(call_invocations[0][1], 20, "__call should receive second arg")
 
 	var result = state.to_number(-1)
 	assert_eq(result, 30, "__call should return the sum")
@@ -132,27 +124,21 @@ func test_callable_metamethods_combined():
 	var newindex_calls = []
 
 	# Create Godot callables
-	var index_callable = func(key):
+	var index_callable = func(_table, key):
 		index_calls.append(key)
 		return "value_for_" + str(key)
 
-	var newindex_callable = func(key, value):
+	var newindex_callable = func(_table, key, value):
 		newindex_calls.append([key, value])
 
 	# Create table and metatable
 	state.create_table()
 	var table_idx = state.get_top()
-	state.create_table()
 
 	# Set both metamethods
-	state.push_string("__index")
-	state.push_callable(index_callable)
-	state.raw_set(-3)
-
-	state.push_string("__newindex")
-	state.push_callable(newindex_callable)
-	state.raw_set(-3)
-
+	state.create_table()
+	state.set_index_metamethod(-1, index_callable)
+	state.set_newindex_metamethod(-1, newindex_callable)
 	state.set_metatable(table_idx)
 
 	# Test via Lua code

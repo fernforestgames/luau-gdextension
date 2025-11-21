@@ -122,6 +122,22 @@ static void coverage_wrapper(void *context, const char *function, int linedefine
     callable->call(function_str, linedefined, depth, hits_array);
 }
 
+static int callable_metamethod_wrapper(lua_State *L)
+{
+    luaL_checkstack(L, 1, "LuaState.callable_metamethod_wrapper: Stack overflow. Cannot grow stack.");
+
+    int nargs = lua_gettop(L);
+
+    // Push Callable upvalue onto the stack
+    lua_pushvalue(L, lua_upvalueindex(1));
+    lua_insert(L, 1);
+
+    // Invoke Callable.__call with original arguments
+    lua_call(L, nargs, LUA_MULTRET);
+
+    return lua_gettop(L);
+}
+
 void LuaState::_bind_methods()
 {
     ClassDB::bind_method(D_METHOD("is_valid"), &LuaState::is_valid);
@@ -337,6 +353,9 @@ void LuaState::_bind_methods()
     ClassDB::bind_method(D_METHOD("load_string", "code", "chunk_name", "env"), &LuaState::load_string, DEFVAL(0));
     ClassDB::bind_method(D_METHOD("do_string", "code", "chunk_name", "env", "nargs", "nresults", "errfunc"), &LuaState::do_string, DEFVAL(String()), DEFVAL(0), DEFVAL(0), DEFVAL(LUA_MULTRET), DEFVAL(0));
     ClassDB::bind_static_method(LuaState::get_class_static(), D_METHOD("bind_callable", "callable"), &LuaState::bind_callable);
+    ClassDB::bind_method(D_METHOD("set_call_metamethod", "metatable_index", "callable"), &LuaState::set_call_metamethod);
+    ClassDB::bind_method(D_METHOD("set_index_metamethod", "metatable_index", "callable"), &LuaState::set_index_metamethod);
+    ClassDB::bind_method(D_METHOD("set_newindex_metamethod", "metatable_index", "callable"), &LuaState::set_newindex_metamethod);
 
     BIND_BITFIELD_FLAG(LIB_BASE);
     BIND_BITFIELD_FLAG(LIB_COROUTINE);
@@ -2028,6 +2047,48 @@ Callable LuaState::bind_callable(const Callable &p_callable)
 
     LuaStateBoundCallable *bound = memnew(LuaStateBoundCallable(p_callable));
     return Callable(bound);
+}
+
+void LuaState::set_call_metamethod(int p_metatable_index, const Callable &p_callable)
+{
+    ERR_FAIL_COND_MSG(!is_valid(), "Lua state is invalid. Cannot set metamethod.");
+    ERR_FAIL_COND_MSG(!is_valid_index(p_metatable_index), vformat("LuaState.set_call_metamethod(%d): Invalid stack index. Stack has %d elements.", p_metatable_index, lua_gettop(L)));
+    ERR_FAIL_COND_MSG(!lua_istable(L, p_metatable_index), vformat("LuaState.set_call_metamethod(%d): Index is not a table.", p_metatable_index));
+    ERR_FAIL_COND_MSG(!lua_checkstack(L, 1), vformat("LuaState.set_call_metamethod(%d): Stack overflow. Cannot grow stack.", p_metatable_index));
+
+    int abs_index = lua_absindex(L, p_metatable_index);
+
+    push_callable(p_callable);
+    lua_pushcclosure(L, callable_metamethod_wrapper, "LuaState.callable_metamethod_wrapper.__call", 1);
+    lua_rawsetfield(L, abs_index, "__call");
+}
+
+void LuaState::set_index_metamethod(int p_metatable_index, const Callable &p_callable)
+{
+    ERR_FAIL_COND_MSG(!is_valid(), "Lua state is invalid. Cannot set metamethod.");
+    ERR_FAIL_COND_MSG(!is_valid_index(p_metatable_index), vformat("LuaState.set_index_metamethod(%d): Invalid stack index. Stack has %d elements.", p_metatable_index, lua_gettop(L)));
+    ERR_FAIL_COND_MSG(!lua_istable(L, p_metatable_index), vformat("LuaState.set_index_metamethod(%d): Index is not a table.", p_metatable_index));
+    ERR_FAIL_COND_MSG(!lua_checkstack(L, 1), vformat("LuaState.set_index_metamethod(%d): Stack overflow. Cannot grow stack.", p_metatable_index));
+
+    int abs_index = lua_absindex(L, p_metatable_index);
+
+    push_callable(p_callable);
+    lua_pushcclosure(L, callable_metamethod_wrapper, "LuaState.callable_metamethod_wrapper.__index", 1);
+    lua_rawsetfield(L, abs_index, "__index");
+}
+
+void LuaState::set_newindex_metamethod(int p_metatable_index, const Callable &p_callable)
+{
+    ERR_FAIL_COND_MSG(!is_valid(), "Lua state is invalid. Cannot set metamethod.");
+    ERR_FAIL_COND_MSG(!is_valid_index(p_metatable_index), vformat("LuaState.set_newindex_metamethod(%d): Invalid stack index. Stack has %d elements.", p_metatable_index, lua_gettop(L)));
+    ERR_FAIL_COND_MSG(!lua_istable(L, p_metatable_index), vformat("LuaState.set_newindex_metamethod(%d): Index is not a table.", p_metatable_index));
+    ERR_FAIL_COND_MSG(!lua_checkstack(L, 1), vformat("LuaState.set_newindex_metamethod(%d): Stack overflow. Cannot grow stack.", p_metatable_index));
+
+    int abs_index = lua_absindex(L, p_metatable_index);
+
+    push_callable(p_callable);
+    lua_pushcclosure(L, callable_metamethod_wrapper, "LuaState.callable_metamethod_wrapper.__newindex", 1);
+    lua_rawsetfield(L, abs_index, "__newindex");
 }
 
 Ref<LuaState> LuaState::find_or_create_lua_state(lua_State *p_L)

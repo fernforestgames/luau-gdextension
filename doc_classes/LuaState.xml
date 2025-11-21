@@ -2188,6 +2188,45 @@
 				[/codeblock]
 			</description>
 		</method>
+		<method name="set_call_metamethod">
+			<return type="void" />
+			<param index="0" name="metatable_index" type="int" />
+			<param index="1" name="callable" type="Callable" />
+			<description>
+				Sets the [code]__call[/code] metamethod on the metatable at [param metatable_index] to the given [param callable]. When invoked, [param callable] will receive the table or userdata being called as the first argument, followed by any arguments passed from Lua. If the [Callable] pushes any values onto the Lua stack, those will be treated as additional values to return to Lua [i]before[/i] the return value of the [Callable].
+				[b]Note:[/b] [Callable]s cannot be used to implement [code]__call[/code] without this method, as Luau does not recursively look up [code]__call[/code] metamethods on full userdata (which is how [Callable] is bridged).
+				[codeblock]
+				state.new_metatable_named("MyCallable")
+				state.set_call_metamethod(-1, my_callable)
+				[/codeblock]
+			</description>
+		</method>
+		<method name="set_index_metamethod">
+			<return type="void" />
+			<param index="0" name="metatable_index" type="int" />
+			<param index="1" name="callable" type="Callable" />
+			<description>
+				Sets the [code]__index[/code] metamethod on the metatable at [param metatable_index] to the given [param callable]. When invoked, [param callable] will receive the table or userdata being indexed as the first argument, and the key as the second argument, and should return the value corresponding to that key.
+				[b]Note:[/b] [Callable]s cannot be used to implement [code]__index[/code] without this method, as bridged [Callable]s do not have an [code]__index[/code] metamethod themselves.
+				[codeblock]
+				state.new_metatable_named("MyIndexable")
+				state.set_index_metamethod(-1, my_index_callable)
+				[/codeblock]
+			</description>
+		</method>
+		<method name="set_newindex_metamethod">
+			<return type="void" />
+			<param index="0" name="metatable_index" type="int" />
+			<param index="1" name="callable" type="Callable" />
+			<description>
+				Sets the [code]__newindex[/code] metamethod on the metatable at [param metatable_index] to the given [param callable]. When invoked, [param callable] will receive the table or userdata being indexed as the first argument, the key as the second argument, and the new value as the third argument.
+				[b]Note:[/b] [Callable]s cannot be used to implement [code]__newindex[/code] without this method, as bridged [Callable]s do not have an [code]__newindex[/code] metamethod themselves.
+				[codeblock]
+				state.new_metatable_named("MyIndexable")
+				state.set_newindex_metamethod(-1, my_newindex_callable)
+				[/codeblock]
+			</description>
+		</method>
 	</methods>
 	<signals>
 		<signal name="debugbreak">
