@@ -16,7 +16,7 @@ TEST_SUITE("StringCache")
     TEST_CASE("create_atom - creates atom for valid string")
     {
         const char *test_str = "test_function";
-        int16_t atom = create_atom(test_str, strlen(test_str));
+        int16_t atom = create_atom(nullptr, test_str, strlen(test_str));
 
         CHECK(atom >= 0);
     }
@@ -24,8 +24,8 @@ TEST_SUITE("StringCache")
     TEST_CASE("create_atom - returns same atom for same string")
     {
         const char *test_str = "repeated_string";
-        int16_t atom1 = create_atom(test_str, strlen(test_str));
-        int16_t atom2 = create_atom(test_str, strlen(test_str));
+        int16_t atom1 = create_atom(nullptr, test_str, strlen(test_str));
+        int16_t atom2 = create_atom(nullptr, test_str, strlen(test_str));
 
         CHECK(atom1 >= 0);
         CHECK(atom1 == atom2);
@@ -33,14 +33,14 @@ TEST_SUITE("StringCache")
 
     TEST_CASE("create_atom - returns -1 for empty string")
     {
-        int16_t atom = create_atom("", 0);
+        int16_t atom = create_atom(nullptr, "", 0);
         CHECK(atom == -1);
     }
 
     TEST_CASE("create_atom - handles UTF-8 strings")
     {
         const char *utf8_str = "hello_世界_мир";
-        int16_t atom = create_atom(utf8_str, strlen(utf8_str));
+        int16_t atom = create_atom(nullptr, utf8_str, strlen(utf8_str));
 
         CHECK(atom >= 0);
 
@@ -58,7 +58,7 @@ TEST_SUITE("StringCache")
             long_str += "a";
         }
         CharString utf8 = long_str.utf8();
-        int16_t atom = create_atom(utf8.get_data(), utf8.length());
+        int16_t atom = create_atom(nullptr, utf8.get_data(), utf8.length());
 
         CHECK(atom >= 0);
     }
@@ -76,7 +76,7 @@ TEST_SUITE("StringCache")
 
         for (const char *str : strings)
         {
-            int16_t atom = create_atom(str, strlen(str));
+            int16_t atom = create_atom(nullptr, str, strlen(str));
             // Should either get a valid atom or -1 (collision)
             CHECK(atom >= -1);
         }
@@ -85,7 +85,7 @@ TEST_SUITE("StringCache")
     TEST_CASE("string_name_for_atom - retrieves created atom")
     {
         const char *test_str = "test_retrieval";
-        int16_t atom = create_atom(test_str, strlen(test_str));
+        int16_t atom = create_atom(nullptr, test_str, strlen(test_str));
         CHECK(atom >= 0);
 
         StringName retrieved = string_name_for_atom(atom);
@@ -178,7 +178,7 @@ TEST_SUITE("StringCache")
         const char *original = "roundtrip_test";
 
         // Create atom
-        int16_t atom = create_atom(original, strlen(original));
+        int16_t atom = create_atom(nullptr, original, strlen(original));
         CHECK(atom >= 0);
 
         // Retrieve StringName
@@ -196,9 +196,9 @@ TEST_SUITE("StringCache")
         const char *str2 = "atom_two";
         const char *str3 = "atom_three";
 
-        int16_t atom1 = create_atom(str1, strlen(str1));
-        int16_t atom2 = create_atom(str2, strlen(str2));
-        int16_t atom3 = create_atom(str3, strlen(str3));
+        int16_t atom1 = create_atom(nullptr, str1, strlen(str1));
+        int16_t atom2 = create_atom(nullptr, str2, strlen(str2));
+        int16_t atom3 = create_atom(nullptr, str3, strlen(str3));
 
         // All should succeed (unless collision)
         CHECK(atom1 >= -1);
@@ -243,7 +243,7 @@ TEST_SUITE("StringCache")
     TEST_CASE("Edge case - special characters in atom creation")
     {
         const char *special = "func@#$%^&*()";
-        int16_t atom = create_atom(special, strlen(special));
+        int16_t atom = create_atom(nullptr, special, strlen(special));
 
         if (atom >= 0)
         {
@@ -256,7 +256,7 @@ TEST_SUITE("StringCache")
     {
         char str_with_null[10] = "abc\0def";
         // Only take up to null byte
-        int16_t atom = create_atom(str_with_null, 3);
+        int16_t atom = create_atom(nullptr, str_with_null, 3);
 
         if (atom >= 0)
         {
@@ -276,7 +276,7 @@ TEST_SUITE("StringCache")
         {
             String test_str = String("collision_test_") + String::num_int64(i);
             CharString utf8 = test_str.utf8();
-            int16_t atom = create_atom(utf8.get_data(), utf8.length());
+            int16_t atom = create_atom(nullptr, utf8.get_data(), utf8.length());
 
             if (atom == -1)
             {
@@ -305,7 +305,7 @@ TEST_SUITE("StringCache")
         const char *str = "atom_test";
         for (int i = 0; i < 100; i++)
         {
-            int16_t atom = create_atom(str, strlen(str));
+            int16_t atom = create_atom(nullptr, str, strlen(str));
             if (atom >= 0)
             {
                 StringName retrieved = string_name_for_atom(atom);
@@ -338,7 +338,7 @@ TEST_SUITE("StringCache")
         {
             String unique_str = String("cache_overflow_test_string_") + String::num_int64(i);
             CharString utf8 = unique_str.utf8();
-            int16_t atom = create_atom(utf8.get_data(), utf8.length());
+            int16_t atom = create_atom(nullptr, utf8.get_data(), utf8.length());
 
             pairs.push_back({unique_str, atom});
 
@@ -378,7 +378,7 @@ TEST_SUITE("StringCache")
         for (const auto &pair : pairs)
         {
             CharString utf8 = pair.str.utf8();
-            int16_t atom_again = create_atom(utf8.get_data(), utf8.length());
+            int16_t atom_again = create_atom(nullptr, utf8.get_data(), utf8.length());
             CHECK(atom_again == pair.atom);
         }
 

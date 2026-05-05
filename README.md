@@ -3,7 +3,7 @@
 Godot 4.5+ GDExtension to integrate the [Luau](https://luau.org/) scripting
 language (a high-performance Lua derivative) into Godot Engine.
 
-**📖 Documentation:** Full API reference is available in Godot's built-in help system (Godot 4.3+). Search for `LuaState`, `Luau`, or `LuauScript` in the editor, or browse the XML files in [`doc_classes/`](doc_classes/).
+**📖 Documentation:** Full API reference is available in Godot's built-in help system. Search for `LuaState`, `Luau`, or `LuauScript` in the editor, or browse the XML files in [`doc_classes/`](doc_classes/).
 
 ## Why Luau?
 
@@ -15,6 +15,8 @@ integration into games:
 - **Type Checking**: Optional gradual typing catches errors before runtime
 - **Safety**: Built-in sandboxing capabilities for running untrusted code
 - **Modern Features**: Native vector type, improved string library, buffer API
+
+This extension is currently built against Luau 0.719, though the API only exposes features available from Luau 0.696 and earlier. (No specific reason, we just need to review the changelog!)
 
 ## Quick Start
 

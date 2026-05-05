@@ -27,7 +27,7 @@ set(LUAU_STATIC_CRT OFF)  # Use dynamic runtime (/MD or /MDd) to match godot-cpp
 FetchContent_Declare(
     Luau
     GIT_REPOSITORY https://github.com/luau-lang/luau.git
-    GIT_TAG 696
+    GIT_TAG 0.719
 )
 FetchContent_Declare(
     GodotCpp

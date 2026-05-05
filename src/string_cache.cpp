@@ -56,7 +56,7 @@ static unsigned slot_for_string_name(const StringName &p_str_name)
     return static_cast<unsigned>(p_str_name.hash()) & CACHE_MASK;
 }
 
-int16_t gdluau::create_atom(const char *p_str, size_t p_len)
+int16_t gdluau::create_atom(lua_State *L, const char *p_str, size_t p_len)
 {
     ERR_FAIL_COND_V_MSG(p_len == 0, -1, "Cannot create atom for empty string.");
 
