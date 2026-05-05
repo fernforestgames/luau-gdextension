@@ -1558,6 +1558,14 @@
 				Enables or disables single-step debugging mode. When enabled, the [signal debugstep] signal is emitted after each Lua instruction executes, allowing step-by-step debugging.
 			</description>
 		</method>
+		<method name="set_interrupts">
+			<return type="void" />
+			<param index="0" name="enabled" type="bool" />
+			<description>
+				Enables or disables interrupts. When enabled, the [signal interrupt] signal is emitted when an interrupt occurs.
+				Note this affects all Lua threads in the same VM, and can significantly impact performance.
+			</description>
+		</method>
 		<method name="set_breakpoint">
 			<return type="int" />
 			<param index="0" name="funcindex" type="int" />
@@ -2251,7 +2259,7 @@
 			<param index="0" name="state" type="Object" />
 			<param index="1" name="gc_state" type="int" />
 			<description>
-				Emitted when the Lua VM has reached a "safepoint," like the end of a loop iteration, function call or return, or garbage collection step. [param gc_state], if non-negative, indicates Luau's internal garbage collection state.
+				Emitted when interrupts are enabled (via [method set_interrupts]) and the Lua VM has reached a "safepoint," like the end of a loop iteration, function call or return, or garbage collection step. [param gc_state], if non-negative, indicates Luau's internal garbage collection state.
 				This can be used as a hook to safely interrupt long-running scripts.
 			</description>
 		</signal>

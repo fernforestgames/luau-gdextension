@@ -300,6 +300,7 @@ void LuaState::_bind_methods()
     ClassDB::bind_method(D_METHOD("get_upvalue", "funcindex", "nupvalue"), &LuaState::get_upvalue);
     ClassDB::bind_method(D_METHOD("set_upvalue", "funcindex", "nupvalue"), &LuaState::set_upvalue);
     ClassDB::bind_method(D_METHOD("set_single_step", "enabled"), &LuaState::set_single_step);
+    ClassDB::bind_method(D_METHOD("set_interrupts", "enabled"), &LuaState::set_interrupts);
     ClassDB::bind_method(D_METHOD("set_breakpoint", "funcindex", "nline", "enabled"), &LuaState::set_breakpoint);
     ClassDB::bind_method(D_METHOD("get_coverage", "funcindex", "callback"), &LuaState::get_coverage);
     ClassDB::bind_method(D_METHOD("debug_trace"), &LuaState::debug_trace);
@@ -411,7 +412,6 @@ void LuaState::setup_vm()
 {
     // NB: Callbacks are shared among all threads in the same Lua VM
     lua_Callbacks *callbacks = lua_callbacks(L);
-    callbacks->interrupt = callback_interrupt;
     callbacks->panic = callback_panic;
     callbacks->userthread = callback_userthread;
     callbacks->useratom = create_atom;
@@ -1565,6 +1565,19 @@ void LuaState::set_single_step(bool p_enabled)
 {
     ERR_FAIL_COND_MSG(!is_valid(), "Lua state is invalid. Cannot set singlestep mode.");
     lua_singlestep(L, p_enabled);
+}
+
+void LuaState::set_interrupts(bool p_enabled)
+{
+    ERR_FAIL_COND_MSG(!is_valid(), "Lua state is invalid. Cannot set interrupts.");
+
+    if (!is_main_thread())
+    {
+        WARN_PRINT("LuaState.set_interrupts() called on a non-main Lua thread, but will affect all threads.");
+    }
+
+    lua_Callbacks *callbacks = lua_callbacks(L);
+    callbacks->interrupt = p_enabled ? callback_interrupt : nullptr;
 }
 
 int LuaState::set_breakpoint(int p_funcindex, int p_nline, bool p_enabled)

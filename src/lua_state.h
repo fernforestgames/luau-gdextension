@@ -239,6 +239,7 @@ namespace gdluau
         StringName get_upvalue(int p_funcindex, int p_nupvalue);
         StringName set_upvalue(int p_funcindex, int p_nupvalue);
         void set_single_step(bool p_enabled);
+        void set_interrupts(bool p_enabled);
         int set_breakpoint(int p_funcindex, int p_nline, bool p_enabled);
         void get_coverage(int p_funcindex, Callable p_callback);
         String debug_trace();
