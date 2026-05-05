@@ -74,23 +74,23 @@ jobs:
       - name: Install Godot (Windows)
         if: runner.os == 'Windows'
         run: |
-          curl -sL -o godot.zip https://github.com/godotengine/godot/releases/download/4.5.1-stable/Godot_v4.5.1-stable_win64.exe.zip
+          curl -sL -o godot.zip https://github.com/godotengine/godot/releases/download/4.6.2-stable/Godot_v4.6.2-stable_win64.exe.zip
           unzip -q godot.zip
-          mv Godot_v4.5.1-stable_win64.exe "$RUNNER_TEMP/godot.exe"
+          mv Godot_v4.6.2-stable_win64.exe "$RUNNER_TEMP/godot.exe"
           echo "GODOT_EXECUTABLE=$RUNNER_TEMP/godot.exe" >> $GITHUB_ENV
 
       - name: Install Godot (Linux)
         if: runner.os == 'Linux'
         run: |
-          curl -sL -o godot.zip https://github.com/godotengine/godot/releases/download/4.5.1-stable/Godot_v4.5.1-stable_linux.x86_64.zip
+          curl -sL -o godot.zip https://github.com/godotengine/godot/releases/download/4.6.2-stable/Godot_v4.6.2-stable_linux.x86_64.zip
           unzip -q godot.zip
-          mv Godot_v4.5.1-stable_linux.x86_64 "$RUNNER_TEMP/godot"
+          mv Godot_v4.6.2-stable_linux.x86_64 "$RUNNER_TEMP/godot"
           echo "GODOT_EXECUTABLE=$RUNNER_TEMP/godot" >> $GITHUB_ENV
 
       - name: Install Godot (macOS)
         if: runner.os == 'macOS'
         run: |
-          curl -sL -o godot.zip https://github.com/godotengine/godot/releases/download/4.5.1-stable/Godot_v4.5.1-stable_macos.universal.zip
+          curl -sL -o godot.zip https://github.com/godotengine/godot/releases/download/4.6.2-stable/Godot_v4.6.2-stable_macos.universal.zip
           unzip -q godot.zip
           mv Godot.app "$RUNNER_TEMP/Godot.app"
           echo "GODOT_EXECUTABLE=$RUNNER_TEMP/Godot.app/Contents/MacOS/Godot" >> $GITHUB_ENV
