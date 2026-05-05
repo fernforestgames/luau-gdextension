@@ -1,9 +1,26 @@
 extends Node2D
 
+const RUN_BENCHMARK := false
+
+const BENCHMARK_SOURCE := """
+local startTime = os.clock()
+
+local x = 0
+for i = 1, 10000000, 1 do
+    x = x + 1
+end
+
+local elapsed = os.clock() - startTime
+print(string.format("Benchmark: %.6f seconds", elapsed))
+"""
+
 var L: LuaState
 var _step_count := 0
 
 func _ready() -> void:
+    if RUN_BENCHMARK:
+        _run_benchmark()
+
     var test_script := FileAccess.get_file_as_string("res://test_script.luau")
 
     L = LuaState.new()
@@ -51,3 +68,15 @@ func _resume_after_break() -> void:
 
     print("Luau script execution completed")
     get_tree().quit()
+
+func _run_benchmark() -> void:
+    var bench := LuaState.new()
+    bench.open_libs()
+    var bytecode := Luau.compile(BENCHMARK_SOURCE, null)
+    if not bench.load_bytecode(bytecode, "benchmark"):
+        push_error("Failed to load benchmark bytecode")
+        return
+    var status := bench.resume()
+    if status != Luau.LUA_OK:
+        var error_msg := bench.to_string_inplace(-1) if bench.get_top() > 0 else "Unknown error"
+        push_error("Benchmark failed: error ", status, ": ", error_msg)
