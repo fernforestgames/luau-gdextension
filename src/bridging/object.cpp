@@ -40,6 +40,12 @@ static void inline_refcounted_dtor(void *ud)
     }
 }
 
+static void weak_object_dtor(void *)
+{
+    // Weak references don't own the Object, so nothing to do.
+    // Required because lua_newuserdatadtor asserts dtor != nullptr (since Luau 0.718).
+}
+
 static void tagged_object_dtor(lua_State *L, void *ud)
 {
     ObjectID id = get_userdata(ud);
@@ -291,7 +297,7 @@ static void push_weak_object(lua_State *L, Object *p_obj)
     ERR_FAIL_COND_MSG(!lua_checkstack(L, 2), "push_weak_object(): Stack overflow. Cannot grow stack.");
 
     // Use of the inline dtor constructor is REQUIRED to not conflict with user's custom userdata tags
-    void *ud = lua_newuserdatadtor(L, sizeof(ObjectID), nullptr);
+    void *ud = lua_newuserdatadtor(L, sizeof(ObjectID), weak_object_dtor);
     set_userdata_instance(ud, p_obj);
 
     push_object_metatable(L);
