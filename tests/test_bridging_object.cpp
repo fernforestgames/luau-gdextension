@@ -4,6 +4,7 @@
 #include "doctest.h"
 #include "test_fixtures.h"
 #include "lua_state.h"
+#include <godot_cpp/classes/node.hpp>
 
 using namespace gdluau;
 using namespace godot;
@@ -270,6 +271,37 @@ TEST_SUITE("Bridging - Object")
         CHECK(result == ref.ptr());
 
         state->pop(1);
+    }
+
+    // Regression test for https://github.com/fernforestgames/luau-gdextension/issues/70
+    // Pushing a non-RefCounted Object (e.g. a Node) with no tag hit a Luau assertion
+    // (dtor != nullptr) in lua_newuserdatadtor because push_weak_object passed nullptr.
+    TEST_CASE_FIXTURE(LuaStateFixture, "push_full_userdata - non-RefCounted Object with no tag")
+    {
+        Node *node = memnew(Node);
+
+        state->push_full_userdata(node);
+        CHECK(state->is_full_userdata(-1));
+
+        Object *result = state->to_full_userdata(-1);
+        CHECK(result == node);
+
+        state->pop(1);
+        memdelete(node);
+    }
+
+    TEST_CASE_FIXTURE(LuaStateFixture, "push_object - non-RefCounted Object with no tag")
+    {
+        Node *node = memnew(Node);
+
+        state->push_object(node);
+        CHECK(state->is_full_userdata(-1));
+
+        Object *result = state->to_full_userdata(-1);
+        CHECK(result == node);
+
+        state->pop(1);
+        memdelete(node);
     }
 
     TEST_CASE_FIXTURE(LuaStateFixture, "default object metatable has basic metamethods")
