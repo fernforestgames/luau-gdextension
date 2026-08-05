@@ -3,6 +3,7 @@
 #include "helpers.h"
 #include "lua_compileoptions.h"
 
+#include <cstdlib>
 #include <godot_cpp/core/class_db.hpp>
 #include <luacode.h>
 
@@ -86,12 +87,20 @@ PackedByteArray Luau::compile(const String &p_source_code, const LuaCompileOptio
     CharString utf8 = p_source_code.utf8();
     lua_CompileOptions options = p_options ? p_options->get_options() : LuaCompileOptions::default_options();
 
-    size_t bytecode_size;
+    size_t bytecode_size = 0;
     char *bytecode = luau_compile(utf8.get_data(), utf8.length(), &options, &bytecode_size);
+    if (!bytecode)
+    {
+        return PackedByteArray();
+    }
 
     PackedByteArray result;
     result.resize(bytecode_size);
-    memcpy(result.ptrw(), bytecode, bytecode_size);
+    if (bytecode_size > 0)
+    {
+        memcpy(result.ptrw(), bytecode, bytecode_size);
+    }
+    std::free(bytecode);
     return result;
 }
 
